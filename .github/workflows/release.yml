@@ -1,0 +1,77 @@
+name: build-release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: linux-x64
+            archive: tar
+          - os: macos-latest
+            asset: macos-x64
+            archive: tar
+          - os: windows-latest
+            asset: windows-x64
+            archive: zip
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller segno
+
+      - name: Build binary
+        run: pyinstaller --onefile --name qr-generator qr_generator.py
+
+      - name: Package (tar.gz)
+        if: matrix.archive == 'tar'
+        run: |
+          mkdir -p package
+          cp dist/qr-generator package/
+          cp README.md LICENSE package/
+          tar -czf qr-generator-${{ matrix.asset }}.tar.gz -C package .
+
+      - name: Package (zip)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path package | Out-Null
+          Copy-Item dist/qr-generator.exe package/
+          Copy-Item README.md, LICENSE package/
+          Compress-Archive -Path package/* -DestinationPath qr-generator-${{ matrix.asset }}.zip
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: qr-generator-${{ matrix.asset }}
+          path: |
+            qr-generator-*.tar.gz
+            qr-generator-*.zip
+
+      - name: Publish release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            qr-generator-*.tar.gz
+            qr-generator-*.zip

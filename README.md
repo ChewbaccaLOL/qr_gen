@@ -61,6 +61,26 @@ Animation variants (classic QR shown):
 - Optional for PNG/PDF/PS export: `cairosvg` (`pip install cairosvg`)
 - Optional for GIF export: `cairosvg` + `Pillow` (`pip install cairosvg pillow`)
 
+## Binaries (Releases)
+Prebuilt CLI binaries for Windows, macOS, and Linux are attached to GitHub Releases.
+- The release binaries include the core SVG generator (`segno`).
+- PNG/PDF/PS and GIF exports require extra dependencies (`cairosvg`, `Pillow`) and are not bundled by default.
+  Build from source or make your own release if you need those features in the binary.
+
+## Build a Binary Locally
+Install PyInstaller and build a onefile CLI executable:
+```bash
+python3 -m pip install --upgrade pip
+python3 -m pip install segno pyinstaller
+pyinstaller --onefile --name qr-generator qr_generator.py
+```
+
+Artifacts land in `dist/`:
+- macOS/Linux: `dist/qr-generator`
+- Windows: `dist/qr-generator.exe`
+
+If you prefer easier debugging (or a faster startup), switch to `--onedir` instead of `--onefile`.
+
 ## Usage
 ```bash
 python3 qr_generator.py "https://example.com" -o out/qr.svg
@@ -189,3 +209,6 @@ python3 qr_generator.py "https://example.com" --catalog --catalog-columns 4 --pn
 - If you override `--dark`, gradient variants fall back to the flat color.
 - Catalog output uses each variant's default styling.
 - Keep contrast high for scan reliability.
+
+## License
+MIT
