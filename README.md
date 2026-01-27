@@ -2,6 +2,32 @@
 
 A small CLI tool to generate designer-friendly QR codes as SVG. It focuses on flexible styling so your designer friend can pick a variant and tweak colors without touching the QR logic.
 
+## Variant Gallery (example outputs)
+Each QR below encodes `https://example.com` using the default settings for that variant.
+
+<table>
+  <tr>
+    <td align="center"><strong>classic</strong><br/><img src="docs/variants/classic.svg" width="140"/></td>
+    <td align="center"><strong>square</strong><br/><img src="docs/variants/square.svg" width="140"/></td>
+    <td align="center"><strong>rounded</strong><br/><img src="docs/variants/rounded.svg" width="140"/></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>dot</strong><br/><img src="docs/variants/dot.svg" width="140"/></td>
+    <td align="center"><strong>clear</strong><br/><img src="docs/variants/clear.svg" width="140"/></td>
+    <td align="center"><strong>clear-rounded</strong><br/><img src="docs/variants/clear-rounded.svg" width="140"/></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>clear-dot</strong><br/><img src="docs/variants/clear-dot.svg" width="140"/></td>
+    <td align="center"><strong>inverted</strong><br/><img src="docs/variants/inverted.svg" width="140"/></td>
+    <td align="center"><strong>midnight</strong><br/><img src="docs/variants/midnight.svg" width="140"/></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>sunset</strong><br/><img src="docs/variants/sunset.svg" width="140"/></td>
+    <td align="center"><strong>neon</strong><br/><img src="docs/variants/neon.svg" width="140"/></td>
+    <td align="center"></td>
+  </tr>
+</table>
+
 ## Why
 - Fast CLI workflow today, room for a GUI later.
 - A handful of standard styles plus playful, colorful variants.
@@ -14,7 +40,7 @@ A small CLI tool to generate designer-friendly QR codes as SVG. It focuses on fl
 
 ## Usage
 ```bash
-python3 qr_generator.py "https://example.com" -o qr.svg
+python3 qr_generator.py "https://example.com" -o out/qr.svg
 python3 qr_generator.py "hello" --variant rounded -o rounded.svg
 python3 qr_generator.py --variant neon --scale 12 --border 3 "Designer ready"
 python3 qr_generator.py --png "Preview me"
@@ -30,6 +56,9 @@ Standard:
 - `classic` (also `square`): black modules on white background
 - `rounded`: softened corners
 - `dot`: circular modules
+- `clear`: black modules on transparent background
+- `clear-rounded`: rounded modules on transparent background
+- `clear-dot`: dot modules on transparent background
 
 More playful:
 - `inverted`: white on black
@@ -71,6 +100,7 @@ python3 qr_generator.py "https://example.com" --catalog --catalog-columns 4 --pn
 
 ## Notes
 - Primary output is SVG; add `--png` for a bitmap preview.
+- Default output goes into `out/` (auto-created).
 - If you override `--dark`, gradient variants fall back to the flat color.
 - Catalog output uses each variant's default styling.
 - Keep contrast high for scan reliability.
