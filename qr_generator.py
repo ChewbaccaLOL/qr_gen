@@ -49,15 +49,17 @@ VARIANTS: Dict[str, Variant] = {
     ),
 }
 
+ANIMATION_VARIANTS = ("wave", "wave-loop")
+
 DEFAULT_GIF_FPS = 12
-DEFAULT_GIF_FRAMES = 20
-DEFAULT_GIF_HOLD = 12
+DEFAULT_GIF_FRAMES = 40
+DEFAULT_GIF_HOLD = 24
 DEFAULT_WAVE_AMP = 0.45
 DEFAULT_WAVE_PERIOD = 10.0
 
 READABLE_GIF_FPS = 12
-READABLE_GIF_FRAMES = 16
-READABLE_GIF_HOLD = 16
+READABLE_GIF_FRAMES = 32
+READABLE_GIF_HOLD = 32
 READABLE_WAVE_AMP = 0.28
 READABLE_WAVE_PERIOD = 14.0
 
@@ -116,7 +118,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--animation-variant",
         default=env_str("QR_ANIMATION_VARIANT"),
-        choices=["wave"],
+        choices=ANIMATION_VARIANTS,
         help="Animation variant (default: wave).",
     )
     parser.add_argument(
@@ -127,7 +129,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--gif-variant",
         default=None,
-        choices=["wave"],
+        choices=ANIMATION_VARIANTS,
         help="GIF animation variant (default: wave).",
     )
     parser.add_argument(
@@ -302,6 +304,10 @@ def main() -> None:
     if args.list_variants:
         for name in sorted(VARIANTS.keys()):
             print(name)
+        print()
+        print("Animations:")
+        for name in ANIMATION_VARIANTS:
+            print(name)
         return
 
     data = read_data(args)
@@ -467,6 +473,24 @@ def main() -> None:
                 frames=args.gif_frames,
                 hold=args.gif_hold,
                 render_svg=render_svg,
+                mode="still",
+            )
+        elif animation_variant == "wave-loop":
+            frames = build_wave_gif_frames(
+                qr.matrix,
+                scale=args.scale,
+                border=args.border,
+                dark=dark,
+                light=light,
+                shape=variant.shape,
+                radius=radius,
+                gradient=gradient,
+                wave_amp=args.wave_amp,
+                wave_period=args.wave_period,
+                frames=args.gif_frames,
+                hold=0,
+                render_svg=render_svg,
+                mode="loop",
             )
         else:
             print(

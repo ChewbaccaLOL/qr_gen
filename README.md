@@ -28,6 +28,17 @@ Each QR below encodes `https://example.com` using the default settings for that 
   </tr>
 </table>
 
+Animation variants (classic QR shown):
+- `wave`: eases into/out of motion and holds still before/after
+- `wave-loop`: always animated and perfectly looped
+
+<table>
+  <tr>
+    <td align="center"><strong>wave</strong><br/><img src="docs/variants/animation-wave.gif" width="220"/></td>
+    <td align="center"><strong>wave-loop</strong><br/><img src="docs/variants/animation-wave-loop.gif" width="220"/></td>
+  </tr>
+</table>
+
 ## Why
 - Fast CLI workflow today, room for a GUI later.
 - A handful of standard styles plus playful, colorful variants.
@@ -48,6 +59,7 @@ python3 qr_generator.py --png "Preview me"
 python3 qr_generator.py --png --png-scale 4 "Print-ready preview"
 python3 qr_generator.py --gif "Wave me"
 python3 qr_generator.py --animation --animation-variant wave "Wave me"
+python3 qr_generator.py --animation --animation-variant wave-loop "Always waving"
 python3 qr_generator.py --gif --readable-gif "Safer wave"
 python3 qr_generator.py --pdf "Photoshop friendly"
 ```
@@ -71,6 +83,7 @@ More playful:
 - `midnight`: pale modules on a deep blue background
 - `sunset`: rounded modules with a warm gradient
 - `neon`: dot modules with a high-contrast gradient
+
 
 List all variants:
 ```bash
@@ -105,13 +118,15 @@ Create an animated wave GIF based on the chosen variant (requires `cairosvg` + `
 ```bash
 python3 qr_generator.py "https://example.com" --gif
 python3 qr_generator.py "https://example.com" --animation --animation-variant wave
-python3 qr_generator.py "https://example.com" --gif --gif-fps 12 --gif-frames 20 --gif-hold 12
+python3 qr_generator.py "https://example.com" --animation --animation-variant wave-loop
+python3 qr_generator.py "https://example.com" --gif --gif-fps 12 --gif-frames 40 --gif-hold 24
 python3 qr_generator.py "https://example.com" --gif --wave-amp 0.3 --wave-period 14
 python3 qr_generator.py "https://example.com" --gif --readable-gif
 ```
 
 Notes:
-- The wave animates per column and holds still before/after the wave.
+- `wave` eases into/out of motion and holds still before/after the wave.
+- `wave-loop` is always animated and perfectly looped.
 - `--readable-gif` uses scan-safer defaults; you can still override any wave options.
 - `--gif` is an alias for `--animation --animation-format gif`.
 - Animation output is not supported with `--catalog`.
@@ -134,9 +149,9 @@ python3 qr_generator.py "https://example.com" --catalog --catalog-columns 4 --pn
 - `--png-scale`: scale multiplier for PNG export
 - `--animation`: render an animated output (default format: gif)
 - `--animation-format`: animation format (currently `gif`)
-- `--animation-variant`: animation style (currently `wave`)
+- `--animation-variant`: animation style (`wave`, `wave-loop`)
 - `--gif`: alias for `--animation --animation-format gif`
-- `--gif-variant`: GIF animation variant (currently `wave`)
+- `--gif-variant`: GIF animation variant (`wave`, `wave-loop`)
 - `--gif-fps`: frames per second for GIF
 - `--gif-frames`: number of wave animation frames
 - `--gif-hold`: number of still frames before/after the wave

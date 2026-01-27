@@ -21,6 +21,18 @@ print(" ".join(sorted(VARIANTS.keys())))
 PY
 )
 
+ANIMATIONS=$("$PYTHON" - <<'PY'
+from qr_generator import ANIMATION_VARIANTS
+print(" ".join(ANIMATION_VARIANTS))
+PY
+)
+
 for variant in $VARIANTS; do
   "$PYTHON" qr_generator.py "$DATA" --variant "$variant" -o "$OUT_DIR/${variant}.svg"
+done
+
+for animation in $ANIMATIONS; do
+  "$PYTHON" qr_generator.py "$DATA" --variant classic \
+    -o "$OUT_DIR/animation-${animation}.svg" \
+    --animation --animation-variant "$animation"
 done
