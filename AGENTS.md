@@ -1,0 +1,44 @@
+# Agent Notes
+
+## Project intent
+- Build a flexible CLI QR code generator for a designer-friendly workflow.
+- Keep the core generation in `qr_generator.py` and output SVG.
+- GUI is out of scope for now (but leave room to add later).
+
+## How to work here
+- Prefer updating `qr_generator.py` directly; keep the CLI stable.
+- When you add or change variants, update `VARIANTS` in `qr_generator.py` and the variants list in `README.md`.
+- Keep defaults scan-safe: high contrast, sensible quiet zone, and error correction.
+- The catalog output should include every variant with a readable label.
+- PNG export depends on `cairosvg`; keep it optional and fail fast with a clear message.
+- Default output goes to `out/` and that directory is gitignored.
+- `.env` is supported in the project root; command-line arguments always take precedence.
+
+## .env keys
+- `QR_DATA` text or URL to encode (used if no CLI arg and no stdin)
+- `QR_OUTPUT` output SVG path
+- `QR_PNG` set `true`/`false` for PNG export
+- `QR_PNG_OUTPUT` output PNG path
+- `QR_VARIANT` variant name
+- `QR_SCALE` integer module size
+- `QR_BORDER` integer quiet zone
+- `QR_ERROR` one of `l`, `m`, `q`, `h`
+- `QR_DARK` foreground color
+- `QR_LIGHT` background color
+- `QR_NO_BACKGROUND` set `true` for transparent background
+- `QR_RADIUS` float for rounded modules
+- `QR_CATALOG` set `true` to generate the catalog grid
+- `QR_CATALOG_COLUMNS` integer column count
+- `QR_CATALOG_BACKGROUND` catalog canvas background
+- `QR_CATALOG_LABEL_SIZE` label font size (0 = auto)
+
+## Quick commands
+```bash
+python3 qr_generator.py --help
+python3 qr_generator.py --list-variants
+python3 qr_generator.py --catalog --png
+```
+
+## Style goals
+- Provide at least a few standard variants (black/white, square, rounded).
+- Add more playful variants (color, gradients, or different shapes) but keep scanability in mind.
