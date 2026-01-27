@@ -1,9 +1,10 @@
 import argparse
+import io
 import math
 import os
 import sys
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import segno
 
@@ -44,6 +45,18 @@ VARIANTS: Dict[str, Variant] = {
         gradient={"id": "fg", "from": "#00f0ff", "to": "#6bff2e"},
     ),
 }
+
+DEFAULT_GIF_FPS = 12
+DEFAULT_GIF_FRAMES = 20
+DEFAULT_GIF_HOLD = 12
+DEFAULT_WAVE_AMP = 0.45
+DEFAULT_WAVE_PERIOD = 10.0
+
+READABLE_GIF_FPS = 12
+READABLE_GIF_FRAMES = 16
+READABLE_GIF_HOLD = 16
+READABLE_WAVE_AMP = 0.28
+READABLE_WAVE_PERIOD = 14.0
 
 def load_dotenv(path: str = ".env") -> None:
     if not os.path.isfile(path):
@@ -135,6 +148,77 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=env_float("QR_PNG_SCALE", 3.0),
         help="Scale factor for PNG export (default: 3.0).",
+    )
+    parser.add_argument(
+        "--gif",
+        action="store_true",
+        default=env_bool("QR_GIF", False),
+        help="Alias for --animation --animation-format gif.",
+    )
+    parser.add_argument(
+        "--animation",
+        action="store_true",
+        default=env_bool("QR_ANIMATION", False),
+        help="Also write an animated output (default format: gif).",
+    )
+    parser.add_argument(
+        "--animation-format",
+        default=env_str("QR_ANIMATION_FORMAT"),
+        choices=["gif"],
+        help="Animation format (default: gif).",
+    )
+    parser.add_argument(
+        "--animation-variant",
+        default=env_str("QR_ANIMATION_VARIANT"),
+        choices=["wave"],
+        help="Animation variant (default: wave).",
+    )
+    parser.add_argument(
+        "--gif-output",
+        default=None,
+        help="GIF output file (default: derived from --output).",
+    )
+    parser.add_argument(
+        "--gif-variant",
+        default=None,
+        choices=["wave"],
+        help="GIF animation variant (default: wave).",
+    )
+    parser.add_argument(
+        "--gif-fps",
+        type=int,
+        default=None,
+        help="Frames per second for GIF animation.",
+    )
+    parser.add_argument(
+        "--gif-frames",
+        type=int,
+        default=None,
+        help="Number of wave animation frames (loop segment).",
+    )
+    parser.add_argument(
+        "--gif-hold",
+        type=int,
+        default=None,
+        help="Number of still frames before/after the wave.",
+    )
+    parser.add_argument(
+        "--wave-amp",
+        type=float,
+        default=None,
+        help="Wave amplitude in module units (default: expressive).",
+    )
+    parser.add_argument(
+        "--wave-period",
+        type=float,
+        default=None,
+        help="Wave period in columns (modules).",
+    )
+    parser.add_argument(
+        "--readable-gif",
+        action="store_true",
+        default=env_bool("QR_READABLE_GIF", False),
+        help="Use scan-safer defaults for GIF wave settings.",
     )
     parser.add_argument(
         "--pdf",
@@ -288,14 +372,16 @@ def render_modules(
     shape: str,
     radius: float,
     offset: Tuple[int, int] = (0, 0),
+    column_offsets: Optional[List[float]] = None,
 ) -> Iterable[str]:
     offset_x, offset_y = offset
     if shape == "square":
         for y, row in enumerate(matrix):
             for x, cell in enumerate(row):
                 if cell:
+                    column_offset = column_offsets[x] if column_offsets else 0.0
                     px = (x + border) * scale + offset_x
-                    py = (y + border) * scale + offset_y
+                    py = (y + border) * scale + offset_y + column_offset
                     yield (
                         f'<rect x="{px}" y="{py}" width="{scale}" height="{scale}" fill="{fill}"/>'
                     )
@@ -304,8 +390,9 @@ def render_modules(
         for y, row in enumerate(matrix):
             for x, cell in enumerate(row):
                 if cell:
+                    column_offset = column_offsets[x] if column_offsets else 0.0
                     px = (x + border) * scale + offset_x
-                    py = (y + border) * scale + offset_y
+                    py = (y + border) * scale + offset_y + column_offset
                     yield (
                         f'<rect x="{px}" y="{py}" width="{scale}" height="{scale}" '
                         f'rx="{corner}" ry="{corner}" fill="{fill}"/>'
@@ -316,8 +403,9 @@ def render_modules(
         for y, row in enumerate(matrix):
             for x, cell in enumerate(row):
                 if cell:
+                    column_offset = column_offsets[x] if column_offsets else 0.0
                     cx = (x + border) * scale + offset_center + offset_x
-                    cy = (y + border) * scale + offset_center + offset_y
+                    cy = (y + border) * scale + offset_center + offset_y + column_offset
                     yield f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{fill}"/>'
     else:
         raise ValueError(f"Unknown shape: {shape}")
@@ -332,10 +420,14 @@ def render_svg(
     shape: str,
     radius: float,
     gradient: Optional[Dict[str, str]],
+    column_offsets: Optional[List[float]] = None,
+    extra_pad_y: int = 0,
 ) -> str:
     size = len(matrix)
     total_modules = size + border * 2
     dimension = total_modules * scale
+    width = dimension
+    height = dimension + extra_pad_y * 2
     shape_rendering = "crispEdges" if shape == "square" else "geometricPrecision"
     gradient_id = gradient.get("id", "fg") if gradient else None
     fill = module_fill(dark, gradient_id)
@@ -344,8 +436,8 @@ def render_svg(
         '<?xml version="1.0" encoding="UTF-8"?>',
         (
             f'<svg xmlns="http://www.w3.org/2000/svg" '
-            f'width="{dimension}" height="{dimension}" '
-            f'viewBox="0 0 {dimension} {dimension}" '
+            f'width="{width}" height="{height}" '
+            f'viewBox="0 0 {width} {height}" '
             f'shape-rendering="{shape_rendering}">'
         ),
     ]
@@ -365,6 +457,8 @@ def render_svg(
             fill=fill,
             shape=shape,
             radius=radius,
+            offset=(0, extra_pad_y),
+            column_offsets=column_offsets,
         )
     )
 
@@ -476,6 +570,18 @@ def require_cairosvg():
     return cairosvg
 
 
+def require_pillow():
+    try:
+        from PIL import Image
+    except ImportError:
+        print(
+            "error: GIF export requires Pillow (pip install pillow)",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    return Image
+
+
 def write_png(svg_text: str, output_path: str, scale: float) -> None:
     cairosvg = require_cairosvg()
     cairosvg.svg2png(
@@ -495,6 +601,68 @@ def write_ps(svg_text: str, output_path: str) -> None:
     cairosvg.svg2ps(bytestring=svg_text.encode("utf-8"), write_to=output_path)
 
 
+def svg_to_png_bytes(svg_text: str, scale: float = 1.0) -> bytes:
+    cairosvg = require_cairosvg()
+    return cairosvg.svg2png(bytestring=svg_text.encode("utf-8"), scale=scale)
+
+
+def compute_wave_offsets(size: int, amplitude_px: float, period: float, phase: float) -> List[float]:
+    if amplitude_px == 0:
+        return [0.0 for _ in range(size)]
+    return [
+        amplitude_px * math.sin((2 * math.pi * (x / period)) + phase)
+        for x in range(size)
+    ]
+
+
+def build_wave_gif_frames(
+    matrix,
+    scale: int,
+    border: int,
+    dark: str,
+    light: Optional[str],
+    shape: str,
+    radius: float,
+    gradient: Optional[Dict[str, str]],
+    wave_amp: float,
+    wave_period: float,
+    frames: int,
+    hold: int,
+) -> List["Image.Image"]:
+    Image = require_pillow()
+    size = len(matrix)
+    amplitude_px = wave_amp * scale
+    extra_pad_y = int(math.ceil(abs(amplitude_px))) + 1 if amplitude_px else 0
+    phase_step = (2 * math.pi) / frames if frames > 0 else 0.0
+    still_offsets = [0.0 for _ in range(size)]
+
+    images: List["Image.Image"] = []
+    total_frames = hold + frames + hold
+    for frame_index in range(total_frames):
+        if frame_index < hold or frame_index >= hold + frames:
+            offsets = still_offsets
+        else:
+            phase = phase_step * (frame_index - hold)
+            offsets = compute_wave_offsets(size, amplitude_px, wave_period, phase)
+        svg_frame = render_svg(
+            matrix,
+            scale=scale,
+            border=border,
+            dark=dark,
+            light=light,
+            shape=shape,
+            radius=radius,
+            gradient=gradient,
+            column_offsets=offsets,
+            extra_pad_y=extra_pad_y,
+        )
+        png_bytes = svg_to_png_bytes(svg_frame, scale=1.0)
+        image = Image.open(io.BytesIO(png_bytes))
+        image.load()
+        images.append(image)
+    return images
+
+
 def ensure_parent_dir(path: str) -> None:
     directory = os.path.dirname(path)
     if directory:
@@ -509,6 +677,10 @@ def main() -> None:
         return
 
     data = read_data(args)
+    animation_enabled = args.animation or args.gif
+    if args.catalog and animation_enabled:
+        print("error: animation output is not supported with --catalog", file=sys.stderr)
+        sys.exit(2)
     had_output_flag = args.output is not None
     env_output = os.getenv("QR_OUTPUT")
     default_output = env_output or "out/qr.svg"
@@ -522,6 +694,54 @@ def main() -> None:
         args.pdf_output = env_str("QR_PDF_OUTPUT")
     if args.ps_output is None:
         args.ps_output = env_str("QR_PS_OUTPUT")
+    if args.gif_output is None:
+        args.gif_output = env_str("QR_GIF_OUTPUT")
+    if args.gif_variant is None:
+        args.gif_variant = env_str("QR_GIF_VARIANT")
+    if args.gif_fps is None:
+        args.gif_fps = env_int("QR_GIF_FPS")
+    if args.gif_frames is None:
+        args.gif_frames = env_int("QR_GIF_FRAMES")
+    if args.gif_hold is None:
+        args.gif_hold = env_int("QR_GIF_HOLD")
+    if args.wave_amp is None:
+        args.wave_amp = env_float("QR_WAVE_AMP")
+    if args.wave_period is None:
+        args.wave_period = env_float("QR_WAVE_PERIOD")
+
+    animation_format = args.animation_format or "gif"
+    if args.gif and animation_format != "gif":
+        print("error: --gif can only be used with GIF output", file=sys.stderr)
+        sys.exit(2)
+    animation_variant = args.animation_variant or args.gif_variant or "wave"
+
+    if args.readable_gif:
+        gif_defaults = {
+            "fps": READABLE_GIF_FPS,
+            "frames": READABLE_GIF_FRAMES,
+            "hold": READABLE_GIF_HOLD,
+            "amp": READABLE_WAVE_AMP,
+            "period": READABLE_WAVE_PERIOD,
+        }
+    else:
+        gif_defaults = {
+            "fps": DEFAULT_GIF_FPS,
+            "frames": DEFAULT_GIF_FRAMES,
+            "hold": DEFAULT_GIF_HOLD,
+            "amp": DEFAULT_WAVE_AMP,
+            "period": DEFAULT_WAVE_PERIOD,
+        }
+
+    if args.gif_fps is None:
+        args.gif_fps = gif_defaults["fps"]
+    if args.gif_frames is None:
+        args.gif_frames = gif_defaults["frames"]
+    if args.gif_hold is None:
+        args.gif_hold = gif_defaults["hold"]
+    if args.wave_amp is None:
+        args.wave_amp = gif_defaults["amp"]
+    if args.wave_period is None:
+        args.wave_period = gif_defaults["period"]
 
     qr = segno.make(data, error=args.error)
 
@@ -575,6 +795,70 @@ def main() -> None:
         ensure_parent_dir(ps_path)
         write_ps(svg, ps_path)
         print(f"Saved {ps_path}")
+    if animation_enabled:
+        if animation_format != "gif":
+            print(
+                f"error: animation format '{animation_format}' is not supported yet",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        if args.gif_fps <= 0:
+            print("error: --gif-fps must be greater than 0", file=sys.stderr)
+            sys.exit(2)
+        if args.gif_frames <= 0:
+            print("error: --gif-frames must be greater than 0", file=sys.stderr)
+            sys.exit(2)
+        if args.gif_hold < 0:
+            print("error: --gif-hold must be 0 or greater", file=sys.stderr)
+            sys.exit(2)
+        if args.wave_amp < 0:
+            print("error: --wave-amp must be 0 or greater", file=sys.stderr)
+            sys.exit(2)
+        if args.wave_period <= 0:
+            print("error: --wave-period must be greater than 0", file=sys.stderr)
+            sys.exit(2)
+        gif_path = args.gif_output or derive_output_path(args.output, ".gif")
+        ensure_parent_dir(gif_path)
+        variant = VARIANTS[args.variant]
+        dark = args.dark or variant.dark
+        light = None if args.no_background else (args.light or variant.light)
+        radius = args.radius if args.radius is not None else variant.radius
+        gradient = None if args.dark else variant.gradient
+        if animation_variant == "wave":
+            frames = build_wave_gif_frames(
+                qr.matrix,
+                scale=args.scale,
+                border=args.border,
+                dark=dark,
+                light=light,
+                shape=variant.shape,
+                radius=radius,
+                gradient=gradient,
+                wave_amp=args.wave_amp,
+                wave_period=args.wave_period,
+                frames=args.gif_frames,
+                hold=args.gif_hold,
+            )
+        else:
+            print(
+                f"error: animation variant '{animation_variant}' is not supported yet",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        if not frames:
+            print("error: no GIF frames generated", file=sys.stderr)
+            sys.exit(2)
+        duration_ms = int(1000 / args.gif_fps)
+        frames[0].save(
+            gif_path,
+            save_all=True,
+            append_images=frames[1:],
+            duration=duration_ms,
+            loop=0,
+            disposal=2,
+            optimize=False,
+        )
+        print(f"Saved {gif_path}")
 
 
 if __name__ == "__main__":

@@ -37,6 +37,7 @@ Each QR below encodes `https://example.com` using the default settings for that 
 - Python 3.8+
 - `segno` (`pip install segno`)
 - Optional for PNG/PDF/PS export: `cairosvg` (`pip install cairosvg`)
+- Optional for GIF export: `cairosvg` + `Pillow` (`pip install cairosvg pillow`)
 
 ## Usage
 ```bash
@@ -45,6 +46,9 @@ python3 qr_generator.py "hello" --variant rounded -o rounded.svg
 python3 qr_generator.py --variant neon --scale 12 --border 3 "Designer ready"
 python3 qr_generator.py --png "Preview me"
 python3 qr_generator.py --png --png-scale 4 "Print-ready preview"
+python3 qr_generator.py --gif "Wave me"
+python3 qr_generator.py --animation --animation-variant wave "Wave me"
+python3 qr_generator.py --gif --readable-gif "Safer wave"
 python3 qr_generator.py --pdf "Photoshop friendly"
 ```
 
@@ -96,6 +100,22 @@ python3 qr_generator.py "https://example.com" --pdf
 python3 qr_generator.py "https://example.com" --ps
 ```
 
+## Animation (GIF Wave)
+Create an animated wave GIF based on the chosen variant (requires `cairosvg` + `Pillow`):
+```bash
+python3 qr_generator.py "https://example.com" --gif
+python3 qr_generator.py "https://example.com" --animation --animation-variant wave
+python3 qr_generator.py "https://example.com" --gif --gif-fps 12 --gif-frames 20 --gif-hold 12
+python3 qr_generator.py "https://example.com" --gif --wave-amp 0.3 --wave-period 14
+python3 qr_generator.py "https://example.com" --gif --readable-gif
+```
+
+Notes:
+- The wave animates per column and holds still before/after the wave.
+- `--readable-gif` uses scan-safer defaults; you can still override any wave options.
+- `--gif` is an alias for `--animation --animation-format gif`.
+- Animation output is not supported with `--catalog`.
+
 ## Catalog Grid
 Generate a single labeled grid showing all variants:
 ```bash
@@ -112,10 +132,22 @@ python3 qr_generator.py "https://example.com" --catalog --catalog-columns 4 --pn
 - `--no-background`: transparent background
 - `--radius`: rounded corner radius (0-0.5)
 - `--png-scale`: scale multiplier for PNG export
+- `--animation`: render an animated output (default format: gif)
+- `--animation-format`: animation format (currently `gif`)
+- `--animation-variant`: animation style (currently `wave`)
+- `--gif`: alias for `--animation --animation-format gif`
+- `--gif-variant`: GIF animation variant (currently `wave`)
+- `--gif-fps`: frames per second for GIF
+- `--gif-frames`: number of wave animation frames
+- `--gif-hold`: number of still frames before/after the wave
+- `--wave-amp`: wave amplitude (in modules)
+- `--wave-period`: wave period (in columns)
+- `--readable-gif`: scan-safer defaults for wave GIFs
 
 ## Notes
 - Primary output is SVG; add `--png` for a bitmap preview.
 - `--pdf` and `--ps` are available for Photoshop-friendly vector output.
+- GIF export uses `cairosvg` + `Pillow` and is optional.
 - Default output goes into `out/` (auto-created).
 - If you override `--dark`, gradient variants fall back to the flat color.
 - Catalog output uses each variant's default styling.

@@ -11,6 +11,7 @@
 - Keep defaults scan-safe: high contrast, sensible quiet zone, and error correction.
 - The catalog output should include every variant with a readable label.
 - PNG export depends on `cairosvg`; keep it optional and fail fast with a clear message.
+- GIF export depends on `cairosvg` + `Pillow`; keep it optional and fail fast with a clear message.
 - Default output goes to `out/` and that directory is gitignored.
 - `.env` is supported in the project root; command-line arguments always take precedence.
 
@@ -19,6 +20,18 @@
 - `QR_OUTPUT` output SVG path
 - `QR_PNG` set `true`/`false` for PNG export
 - `QR_PNG_OUTPUT` output PNG path
+- `QR_ANIMATION` set `true`/`false` to enable animation output
+- `QR_ANIMATION_FORMAT` animation format (currently `gif`)
+- `QR_ANIMATION_VARIANT` animation variant (currently `wave`)
+- `QR_GIF` set `true`/`false` for GIF export
+- `QR_GIF_OUTPUT` output GIF path
+- `QR_GIF_VARIANT` GIF animation variant (currently `wave`)
+- `QR_GIF_FPS` integer frames per second
+- `QR_GIF_FRAMES` integer wave animation frames
+- `QR_GIF_HOLD` integer still frames before/after wave
+- `QR_WAVE_AMP` float wave amplitude in modules
+- `QR_WAVE_PERIOD` float wave period in columns
+- `QR_READABLE_GIF` set `true` to prefer scan-safer wave defaults
 - `QR_VARIANT` variant name
 - `QR_SCALE` integer module size
 - `QR_BORDER` integer quiet zone
@@ -37,6 +50,8 @@
 python3 qr_generator.py --help
 python3 qr_generator.py --list-variants
 python3 qr_generator.py --catalog --png
+python3 qr_generator.py --gif "Wave me"
+python3 qr_generator.py --animation --animation-variant wave "Wave me"
 ```
 
 ## Style goals
