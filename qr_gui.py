@@ -21,7 +21,7 @@ from qr_generator import (
     Variant,
     VARIANTS,
 )
-from qr_export import write_pdf, write_png, write_ps
+from qr_export import prepare_cairo, write_pdf, write_png, write_ps
 from qr_render import render_svg
 
 
@@ -76,6 +76,7 @@ THEMES = {
 
 def try_svg_to_png_bytes(svg_text: str, scale: float = 1.0) -> bytes:
     try:
+        prepare_cairo()
         import cairosvg
     except Exception as exc:
         raise RuntimeError("cairosvg is required for previews and PNG export") from exc

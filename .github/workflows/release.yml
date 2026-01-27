@@ -67,52 +67,7 @@ jobs:
       - name: Build binaries (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
-        run: |
-          $candidatePaths = @(
-            "C:\Program Files\GTK3-Runtime Win64\bin",
-            "C:\Program Files\GTK3-Runtime\bin",
-            "C:\gtk\bin",
-            "$env:ChocolateyInstall\lib\gtk-runtime\tools\gtk3-runtime\bin",
-            "$env:ChocolateyInstall\lib\gtk-runtime\tools\bin"
-          )
-          $gtk = $null
-          foreach ($path in $candidatePaths) {
-            if (Test-Path $path) {
-              $gtk = $path
-              break
-            }
-          }
-          if (-not $gtk) {
-            $searchRoot = "$env:ChocolateyInstall\lib\gtk-runtime\tools"
-            if (Test-Path $searchRoot) {
-              $found = Get-ChildItem $searchRoot -Recurse -Filter "libcairo-2.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-              if ($found) {
-                $gtk = $found.DirectoryName
-              }
-            }
-          }
-          if (-not $gtk) {
-            $msys = "C:\msys64"
-            if (Test-Path $msys) {
-              & "$msys\usr\bin\bash.exe" -lc "pacman -S --noconfirm mingw-w64-x86_64-cairo mingw-w64-x86_64-pango mingw-w64-x86_64-gdk-pixbuf"
-              $msysBin = "$msys\mingw64\bin"
-              if (Test-Path $msysBin) {
-                $gtk = $msysBin
-              }
-            }
-          }
-          if (-not $gtk) {
-            Write-Error "GTK runtime not found (needed for cairo)."
-            exit 1
-          }
-          $dlls = Get-ChildItem $gtk -Filter *.dll
-          $args = @()
-          foreach ($dll in $dlls) {
-            $args += "--add-binary"
-            $args += "$($dll.FullName);."
-          }
-          pyinstaller --onefile --name qr-generator-cli qr_generator.py
-          pyinstaller --onefile --name qr-generator qr_gui.py @args
+        run: .\\scripts\\build_windows.ps1
 
       - name: Package (tar.gz)
         if: matrix.archive == 'tar'
@@ -130,6 +85,7 @@ jobs:
           New-Item -ItemType Directory -Path package | Out-Null
           Copy-Item dist/qr-generator-cli.exe package/
           Copy-Item dist/qr-generator.exe package/
+          Copy-Item dist/*.dll package/ -ErrorAction SilentlyContinue
           Copy-Item README.md, LICENSE package/
           Compress-Archive -Path package/* -DestinationPath qr-generator-${{ matrix.asset }}.zip
 

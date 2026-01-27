@@ -1,8 +1,30 @@
+import os
 import sys
+
+
+def prepare_cairo() -> None:
+    if sys.platform != "win32":
+        return
+    candidates = []
+    base = getattr(sys, "_MEIPASS", None)
+    if base and os.path.isdir(base):
+        candidates.append(base)
+    exe_dir = os.path.dirname(sys.executable)
+    if exe_dir and os.path.isdir(exe_dir):
+        candidates.append(exe_dir)
+    if not candidates:
+        return
+    for folder in candidates:
+        try:
+            os.add_dll_directory(folder)
+        except (AttributeError, OSError):
+            continue
+    os.environ["PATH"] = os.pathsep.join(candidates + [os.environ.get("PATH", "")])
 
 
 def require_cairosvg():
     try:
+        prepare_cairo()
         import cairosvg
     except Exception:
         print(

@@ -81,6 +81,15 @@ Artifacts land in `dist/`:
 
 If you prefer easier debugging (or a faster startup), switch to `--onedir` instead of `--onefile`.
 
+### Windows GUI build (with Cairo bundled)
+On Windows, previews/PNG require Cairo DLLs. Use the helper script to bundle them:
+```powershell
+choco install -y gtk-runtime msys2
+python -m pip install --upgrade pip
+python -m pip install pyinstaller segno cairosvg pillow
+.\scripts\build_windows.ps1
+```
+
 ## Usage
 ```bash
 python3 qr_generator.py "https://example.com" -o out/qr.svg
