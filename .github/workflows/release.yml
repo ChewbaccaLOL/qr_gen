@@ -35,10 +35,27 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install system deps (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0
+
+      - name: Install system deps (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install cairo pango gdk-pixbuf
+
+      - name: Install system deps (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          choco install -y gtk-runtime
+
       - name: Install build deps
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pyinstaller segno
+          python -m pip install pyinstaller segno cairosvg pillow
 
       - name: Build binary
         run: pyinstaller --onefile --name qr-generator qr_generator.py
