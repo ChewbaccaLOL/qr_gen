@@ -106,7 +106,7 @@ def env_bool(name: str, default: bool = False) -> bool:
 def parse_args() -> argparse.Namespace:
     load_dotenv()
     parser = argparse.ArgumentParser(
-        description="Generate stylized QR codes as SVG (optional PNG)."
+        description="Generate stylized QR codes as SVG (optional PNG/PDF/PS)."
     )
     parser.add_argument(
         "data",
@@ -129,6 +129,34 @@ def parse_args() -> argparse.Namespace:
         "--png-output",
         default=None,
         help="PNG output file (default: derived from --output).",
+    )
+    parser.add_argument(
+        "--png-scale",
+        type=float,
+        default=env_float("QR_PNG_SCALE", 3.0),
+        help="Scale factor for PNG export (default: 3.0).",
+    )
+    parser.add_argument(
+        "--pdf",
+        action="store_true",
+        default=env_bool("QR_PDF", False),
+        help="Also write a PDF file alongside the SVG (requires cairosvg).",
+    )
+    parser.add_argument(
+        "--pdf-output",
+        default=None,
+        help="PDF output file (default: derived from --output).",
+    )
+    parser.add_argument(
+        "--ps",
+        action="store_true",
+        default=env_bool("QR_PS", False),
+        help="Also write a PostScript file alongside the SVG (requires cairosvg).",
+    )
+    parser.add_argument(
+        "--ps-output",
+        default=None,
+        help="PostScript output file (default: derived from --output).",
     )
     parser.add_argument(
         "-v",
@@ -429,22 +457,42 @@ def render_catalog_svg(
     return "\n".join(parts)
 
 
-def derive_png_path(svg_path: str) -> str:
+def derive_output_path(svg_path: str, extension: str) -> str:
+    extension = extension if extension.startswith(".") else f".{extension}"
     if svg_path.lower().endswith(".svg"):
-        return f"{svg_path[:-4]}.png"
-    return f"{svg_path}.png"
+        return f"{svg_path[:-4]}{extension}"
+    return f"{svg_path}{extension}"
 
 
-def write_png(svg_text: str, output_path: str) -> None:
+def require_cairosvg():
     try:
         import cairosvg
     except ImportError:
         print(
-            "error: PNG output requires cairosvg (pip install cairosvg)",
+            "error: PNG/PDF/PS export requires cairosvg (pip install cairosvg)",
             file=sys.stderr,
         )
         sys.exit(2)
-    cairosvg.svg2png(bytestring=svg_text.encode("utf-8"), write_to=output_path)
+    return cairosvg
+
+
+def write_png(svg_text: str, output_path: str, scale: float) -> None:
+    cairosvg = require_cairosvg()
+    cairosvg.svg2png(
+        bytestring=svg_text.encode("utf-8"),
+        write_to=output_path,
+        scale=scale,
+    )
+
+
+def write_pdf(svg_text: str, output_path: str) -> None:
+    cairosvg = require_cairosvg()
+    cairosvg.svg2pdf(bytestring=svg_text.encode("utf-8"), write_to=output_path)
+
+
+def write_ps(svg_text: str, output_path: str) -> None:
+    cairosvg = require_cairosvg()
+    cairosvg.svg2ps(bytestring=svg_text.encode("utf-8"), write_to=output_path)
 
 
 def ensure_parent_dir(path: str) -> None:
@@ -470,6 +518,10 @@ def main() -> None:
 
     if args.png_output is None:
         args.png_output = env_str("QR_PNG_OUTPUT")
+    if args.pdf_output is None:
+        args.pdf_output = env_str("QR_PDF_OUTPUT")
+    if args.ps_output is None:
+        args.ps_output = env_str("QR_PS_OUTPUT")
 
     qr = segno.make(data, error=args.error)
 
@@ -506,10 +558,23 @@ def main() -> None:
     print(f"Saved {args.output}")
 
     if args.png:
-        png_path = args.png_output or derive_png_path(args.output)
+        if args.png_scale <= 0:
+            print("error: --png-scale must be greater than 0", file=sys.stderr)
+            sys.exit(2)
+        png_path = args.png_output or derive_output_path(args.output, ".png")
         ensure_parent_dir(png_path)
-        write_png(svg, png_path)
+        write_png(svg, png_path, args.png_scale)
         print(f"Saved {png_path}")
+    if args.pdf:
+        pdf_path = args.pdf_output or derive_output_path(args.output, ".pdf")
+        ensure_parent_dir(pdf_path)
+        write_pdf(svg, pdf_path)
+        print(f"Saved {pdf_path}")
+    if args.ps:
+        ps_path = args.ps_output or derive_output_path(args.output, ".ps")
+        ensure_parent_dir(ps_path)
+        write_ps(svg, ps_path)
+        print(f"Saved {ps_path}")
 
 
 if __name__ == "__main__":

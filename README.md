@@ -36,7 +36,7 @@ Each QR below encodes `https://example.com` using the default settings for that 
 ## Requirements
 - Python 3.8+
 - `segno` (`pip install segno`)
-- Optional for PNG export: `cairosvg` (`pip install cairosvg`)
+- Optional for PNG/PDF/PS export: `cairosvg` (`pip install cairosvg`)
 
 ## Usage
 ```bash
@@ -44,6 +44,8 @@ python3 qr_generator.py "https://example.com" -o out/qr.svg
 python3 qr_generator.py "hello" --variant rounded -o rounded.svg
 python3 qr_generator.py --variant neon --scale 12 --border 3 "Designer ready"
 python3 qr_generator.py --png "Preview me"
+python3 qr_generator.py --png --png-scale 4 "Print-ready preview"
+python3 qr_generator.py --pdf "Photoshop friendly"
 ```
 
 You can also pipe data:
@@ -77,9 +79,21 @@ Add `--png` to write a PNG alongside the SVG (requires `cairosvg`):
 python3 qr_generator.py "https://example.com" --png -o qr.svg
 ```
 
+Increase raster resolution with `--png-scale` (multiplies the SVG pixel size):
+```bash
+python3 qr_generator.py "https://example.com" --png --png-scale 4
+```
+
 You can also choose the PNG path:
 ```bash
 python3 qr_generator.py "https://example.com" --png --png-output preview.png
+```
+
+## PDF/PS Export
+Export vector formats that Photoshop can open (requires `cairosvg`):
+```bash
+python3 qr_generator.py "https://example.com" --pdf
+python3 qr_generator.py "https://example.com" --ps
 ```
 
 ## Catalog Grid
@@ -97,9 +111,11 @@ python3 qr_generator.py "https://example.com" --catalog --catalog-columns 4 --pn
 - `--light`: override background color
 - `--no-background`: transparent background
 - `--radius`: rounded corner radius (0-0.5)
+- `--png-scale`: scale multiplier for PNG export
 
 ## Notes
 - Primary output is SVG; add `--png` for a bitmap preview.
+- `--pdf` and `--ps` are available for Photoshop-friendly vector output.
 - Default output goes into `out/` (auto-created).
 - If you override `--dark`, gradient variants fall back to the flat color.
 - Catalog output uses each variant's default styling.
