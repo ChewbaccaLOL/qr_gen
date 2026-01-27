@@ -4,6 +4,7 @@
 - Build a flexible CLI QR code generator for a designer-friendly workflow.
 - Keep the core generation in `qr_generator.py` and output SVG.
 - GUI is out of scope for now (but leave room to add later).
+- `qr_generator.py` should stay focused on CLI + orchestration; rendering lives in `qr_render.py`.
 
 ## How to work here
 - Prefer updating `qr_generator.py` directly; keep the CLI stable.

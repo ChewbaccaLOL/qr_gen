@@ -1,12 +1,15 @@
 import argparse
-import io
-import math
 import os
 import sys
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Optional
 
 import segno
+
+from qr_animation import build_wave_gif_frames
+from qr_env import env_bool, env_float, env_int, env_str, load_dotenv
+from qr_export import write_pdf, write_png, write_ps
+from qr_render import render_catalog_svg, render_svg
 
 
 @dataclass(frozen=True)
@@ -57,63 +60,6 @@ READABLE_GIF_FRAMES = 16
 READABLE_GIF_HOLD = 16
 READABLE_WAVE_AMP = 0.28
 READABLE_WAVE_PERIOD = 14.0
-
-def load_dotenv(path: str = ".env") -> None:
-    if not os.path.isfile(path):
-        return
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            for raw_line in handle:
-                line = raw_line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, value = line.split("=", 1)
-                key = key.strip()
-                value = value.strip()
-                if not key:
-                    continue
-                if len(value) >= 2 and value[0] == value[-1] and value[0] in ("\"", "'"):
-                    value = value[1:-1]
-                if key not in os.environ:
-                    os.environ[key] = value
-    except OSError:
-        return
-
-
-def env_str(name: str, default: Optional[str] = None) -> Optional[str]:
-    return os.getenv(name, default)
-
-
-def env_int(name: str, default: Optional[int] = None) -> Optional[int]:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    try:
-        return int(value)
-    except ValueError:
-        return default
-
-
-def env_float(name: str, default: Optional[float] = None) -> Optional[float]:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    try:
-        return float(value)
-    except ValueError:
-        return default
-
-
-def env_bool(name: str, default: bool = False) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    value = value.strip().lower()
-    if value in ("1", "true", "yes", "y", "on", "t"):
-        return True
-    if value in ("0", "false", "no", "n", "off", "f"):
-        return False
-    return default
 
 
 def parse_args() -> argparse.Namespace:
@@ -334,221 +280,6 @@ def read_data(args: argparse.Namespace) -> str:
     sys.exit(2)
 
 
-def svg_gradient_def(
-    gradient: Optional[Dict[str, str]], gradient_id: Optional[str]
-) -> str:
-    if not gradient or not gradient_id:
-        return ""
-    color_from = gradient.get("from", "#000000")
-    color_to = gradient.get("to", "#ffffff")
-    return (
-        f"<linearGradient id=\"{gradient_id}\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">"
-        f"<stop offset=\"0%\" stop-color=\"{color_from}\"/>"
-        f"<stop offset=\"100%\" stop-color=\"{color_to}\"/>"
-        "</linearGradient>"
-    )
-
-
-def module_fill(dark: str, gradient_id: Optional[str]) -> str:
-    if gradient_id:
-        return f"url(#{gradient_id})"
-    return dark
-
-
-def escape_xml(text: str) -> str:
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )
-
-
-def render_modules(
-    matrix,
-    scale: int,
-    border: int,
-    fill: str,
-    shape: str,
-    radius: float,
-    offset: Tuple[int, int] = (0, 0),
-    column_offsets: Optional[List[float]] = None,
-) -> Iterable[str]:
-    offset_x, offset_y = offset
-    if shape == "square":
-        for y, row in enumerate(matrix):
-            for x, cell in enumerate(row):
-                if cell:
-                    column_offset = column_offsets[x] if column_offsets else 0.0
-                    px = (x + border) * scale + offset_x
-                    py = (y + border) * scale + offset_y + column_offset
-                    yield (
-                        f'<rect x="{px}" y="{py}" width="{scale}" height="{scale}" fill="{fill}"/>'
-                    )
-    elif shape == "rounded":
-        corner = max(0.0, min(radius, 0.5)) * scale
-        for y, row in enumerate(matrix):
-            for x, cell in enumerate(row):
-                if cell:
-                    column_offset = column_offsets[x] if column_offsets else 0.0
-                    px = (x + border) * scale + offset_x
-                    py = (y + border) * scale + offset_y + column_offset
-                    yield (
-                        f'<rect x="{px}" y="{py}" width="{scale}" height="{scale}" '
-                        f'rx="{corner}" ry="{corner}" fill="{fill}"/>'
-                    )
-    elif shape == "dot":
-        r = scale * 0.45
-        offset_center = scale / 2
-        for y, row in enumerate(matrix):
-            for x, cell in enumerate(row):
-                if cell:
-                    column_offset = column_offsets[x] if column_offsets else 0.0
-                    cx = (x + border) * scale + offset_center + offset_x
-                    cy = (y + border) * scale + offset_center + offset_y + column_offset
-                    yield f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{fill}"/>'
-    else:
-        raise ValueError(f"Unknown shape: {shape}")
-
-
-def render_svg(
-    matrix,
-    scale: int,
-    border: int,
-    dark: str,
-    light: Optional[str],
-    shape: str,
-    radius: float,
-    gradient: Optional[Dict[str, str]],
-    column_offsets: Optional[List[float]] = None,
-    extra_pad_y: int = 0,
-) -> str:
-    size = len(matrix)
-    total_modules = size + border * 2
-    dimension = total_modules * scale
-    width = dimension
-    height = dimension + extra_pad_y * 2
-    shape_rendering = "crispEdges" if shape == "square" else "geometricPrecision"
-    gradient_id = gradient.get("id", "fg") if gradient else None
-    fill = module_fill(dark, gradient_id)
-
-    parts = [
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        (
-            f'<svg xmlns="http://www.w3.org/2000/svg" '
-            f'width="{width}" height="{height}" '
-            f'viewBox="0 0 {width} {height}" '
-            f'shape-rendering="{shape_rendering}">'
-        ),
-    ]
-    gradient_def = svg_gradient_def(gradient, gradient_id)
-    if gradient_def:
-        parts.append(f"<defs>{gradient_def}</defs>")
-    if light is not None:
-        parts.append(
-            f'<rect width="100%" height="100%" fill="{light}"/>'
-        )
-
-    parts.extend(
-        render_modules(
-            matrix,
-            scale=scale,
-            border=border,
-            fill=fill,
-            shape=shape,
-            radius=radius,
-            offset=(0, extra_pad_y),
-            column_offsets=column_offsets,
-        )
-    )
-
-    parts.append("</svg>")
-    return "\n".join(parts)
-
-
-def render_catalog_svg(
-    matrix,
-    scale: int,
-    border: int,
-    variants: Iterable[Variant],
-    columns: int,
-    background: str,
-    label_size: int,
-) -> str:
-    variants = list(variants)
-    if not variants:
-        raise ValueError("No variants available for catalog.")
-
-    size = len(matrix)
-    tile_dim = (size + border * 2) * scale
-    padding = max(8, int(scale * 1.2))
-    if label_size <= 0:
-        label_size = max(10, int(scale * 1.4))
-    label_height = int(label_size * 1.6)
-    tile_total_height = tile_dim + label_height + padding
-    columns = max(1, columns)
-    rows = int(math.ceil(len(variants) / columns))
-    width = columns * tile_dim + (columns + 1) * padding
-    height = rows * tile_total_height + padding
-
-    parts = [
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        (
-            f'<svg xmlns="http://www.w3.org/2000/svg" '
-            f'width="{width}" height="{height}" '
-            f'viewBox="0 0 {width} {height}" '
-            'shape-rendering="geometricPrecision">'
-        ),
-    ]
-
-    gradient_defs = []
-    for variant in variants:
-        if variant.gradient:
-            gradient_id = f"fg-{variant.name}"
-            gradient_defs.append(svg_gradient_def(variant.gradient, gradient_id))
-    if gradient_defs:
-        parts.append(f"<defs>{''.join(gradient_defs)}</defs>")
-
-    parts.append(f'<rect width="100%" height="100%" fill="{background}"/>')
-
-    for index, variant in enumerate(variants):
-        col = index % columns
-        row = index // columns
-        origin_x = padding + col * (tile_dim + padding)
-        origin_y = padding + row * tile_total_height
-        tile_bg = variant.light if variant.light is not None else background
-        parts.append(
-            f'<rect x="{origin_x}" y="{origin_y}" '
-            f'width="{tile_dim}" height="{tile_dim}" fill="{tile_bg}"/>'
-        )
-
-        gradient_id = f"fg-{variant.name}" if variant.gradient else None
-        fill = module_fill(variant.dark, gradient_id)
-        parts.extend(
-            render_modules(
-                matrix,
-                scale=scale,
-                border=border,
-                fill=fill,
-                shape=variant.shape,
-                radius=variant.radius,
-                offset=(origin_x, origin_y),
-            )
-        )
-
-        label_x = origin_x + tile_dim / 2
-        label_y = origin_y + tile_dim + label_height * 0.75
-        parts.append(
-            f'<text x="{label_x}" y="{label_y}" '
-            f'font-size="{label_size}" '
-            'font-family="Helvetica, Arial, sans-serif" '
-            'fill="#1a1a1a" text-anchor="middle">'
-            f"{escape_xml(variant.name)}"
-            "</text>"
-        )
-
-    parts.append("</svg>")
-    return "\n".join(parts)
 
 
 def derive_output_path(svg_path: str, extension: str) -> str:
@@ -558,109 +289,6 @@ def derive_output_path(svg_path: str, extension: str) -> str:
     return f"{svg_path}{extension}"
 
 
-def require_cairosvg():
-    try:
-        import cairosvg
-    except ImportError:
-        print(
-            "error: PNG/PDF/PS export requires cairosvg (pip install cairosvg)",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-    return cairosvg
-
-
-def require_pillow():
-    try:
-        from PIL import Image
-    except ImportError:
-        print(
-            "error: GIF export requires Pillow (pip install pillow)",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-    return Image
-
-
-def write_png(svg_text: str, output_path: str, scale: float) -> None:
-    cairosvg = require_cairosvg()
-    cairosvg.svg2png(
-        bytestring=svg_text.encode("utf-8"),
-        write_to=output_path,
-        scale=scale,
-    )
-
-
-def write_pdf(svg_text: str, output_path: str) -> None:
-    cairosvg = require_cairosvg()
-    cairosvg.svg2pdf(bytestring=svg_text.encode("utf-8"), write_to=output_path)
-
-
-def write_ps(svg_text: str, output_path: str) -> None:
-    cairosvg = require_cairosvg()
-    cairosvg.svg2ps(bytestring=svg_text.encode("utf-8"), write_to=output_path)
-
-
-def svg_to_png_bytes(svg_text: str, scale: float = 1.0) -> bytes:
-    cairosvg = require_cairosvg()
-    return cairosvg.svg2png(bytestring=svg_text.encode("utf-8"), scale=scale)
-
-
-def compute_wave_offsets(size: int, amplitude_px: float, period: float, phase: float) -> List[float]:
-    if amplitude_px == 0:
-        return [0.0 for _ in range(size)]
-    return [
-        amplitude_px * math.sin((2 * math.pi * (x / period)) + phase)
-        for x in range(size)
-    ]
-
-
-def build_wave_gif_frames(
-    matrix,
-    scale: int,
-    border: int,
-    dark: str,
-    light: Optional[str],
-    shape: str,
-    radius: float,
-    gradient: Optional[Dict[str, str]],
-    wave_amp: float,
-    wave_period: float,
-    frames: int,
-    hold: int,
-) -> List["Image.Image"]:
-    Image = require_pillow()
-    size = len(matrix)
-    amplitude_px = wave_amp * scale
-    extra_pad_y = int(math.ceil(abs(amplitude_px))) + 1 if amplitude_px else 0
-    phase_step = (2 * math.pi) / frames if frames > 0 else 0.0
-    still_offsets = [0.0 for _ in range(size)]
-
-    images: List["Image.Image"] = []
-    total_frames = hold + frames + hold
-    for frame_index in range(total_frames):
-        if frame_index < hold or frame_index >= hold + frames:
-            offsets = still_offsets
-        else:
-            phase = phase_step * (frame_index - hold)
-            offsets = compute_wave_offsets(size, amplitude_px, wave_period, phase)
-        svg_frame = render_svg(
-            matrix,
-            scale=scale,
-            border=border,
-            dark=dark,
-            light=light,
-            shape=shape,
-            radius=radius,
-            gradient=gradient,
-            column_offsets=offsets,
-            extra_pad_y=extra_pad_y,
-        )
-        png_bytes = svg_to_png_bytes(svg_frame, scale=1.0)
-        image = Image.open(io.BytesIO(png_bytes))
-        image.load()
-        images.append(image)
-    return images
 
 
 def ensure_parent_dir(path: str) -> None:
@@ -838,6 +466,7 @@ def main() -> None:
                 wave_period=args.wave_period,
                 frames=args.gif_frames,
                 hold=args.gif_hold,
+                render_svg=render_svg,
             )
         else:
             print(
