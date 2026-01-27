@@ -57,13 +57,16 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pyinstaller segno cairosvg pillow
 
-      - name: Build binary
-        run: pyinstaller --onefile --name qr-generator qr_generator.py
+      - name: Build binaries
+        run: |
+          pyinstaller --onefile --name qr-generator-cli qr_generator.py
+          pyinstaller --onefile --name qr-generator qr_gui.py
 
       - name: Package (tar.gz)
         if: matrix.archive == 'tar'
         run: |
           mkdir -p package
+          cp dist/qr-generator-cli package/
           cp dist/qr-generator package/
           cp README.md LICENSE package/
           tar -czf qr-generator-${{ matrix.asset }}.tar.gz -C package .
@@ -73,6 +76,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path package | Out-Null
+          Copy-Item dist/qr-generator-cli.exe package/
           Copy-Item dist/qr-generator.exe package/
           Copy-Item README.md, LICENSE package/
           Compress-Archive -Path package/* -DestinationPath qr-generator-${{ matrix.asset }}.zip

@@ -103,6 +103,18 @@ You can also pipe data:
 echo "https://example.com" | python3 qr_generator.py -o piped.svg
 ```
 
+## GUI (experimental)
+Launch the minimal GUI wrapper:
+```bash
+python3 qr_gui.py
+```
+
+Notes:
+- Live previews require `cairosvg` (same dependency as PNG export).
+- GIF export from the GUI requires `cairosvg` + `Pillow`.
+- The copy button copies the variant SVG to your clipboard.
+- Presets saved in the GUI are stored in `qr_presets.json` (auto-loaded on launch).
+
 ## Variants
 Standard:
 - `classic` (also `square`): black modules on white background
