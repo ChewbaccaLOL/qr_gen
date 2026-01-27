@@ -32,7 +32,8 @@ function Find-CairoBin {
 
   $msys = "C:\msys64"
   if ((Test-Path $msys) -and (-not $NoPacman)) {
-    & "$msys\usr\bin\bash.exe" -lc "pacman -S --noconfirm mingw-w64-x86_64-cairo mingw-w64-x86_64-pango mingw-w64-x86_64-gdk-pixbuf" | Out-Host
+    & "$msys\usr\bin\bash.exe" -lc "pacman -Sy --noconfirm" | Out-Host
+    & "$msys\usr\bin\bash.exe" -lc "pacman -S --noconfirm mingw-w64-x86_64-cairo mingw-w64-x86_64-pango mingw-w64-x86_64-gdk-pixbuf2 || pacman -S --noconfirm mingw-w64-x86_64-gdk-pixbuf" | Out-Host
   }
   $msysBin = "$msys\mingw64\bin"
   if (Test-Path $msysBin) {
