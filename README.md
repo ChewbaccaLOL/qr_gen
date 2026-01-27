@@ -31,11 +31,22 @@ Each QR below encodes `https://example.com` using the default settings for that 
 Animation variants (classic QR shown):
 - `wave`: eases into/out of motion and holds still before/after
 - `wave-loop`: always animated and perfectly looped
+- `float`: gentle bob with a tilt applied after the motion
+- `float-tilt-first`: tilt is applied first, then a vertical cloth-like drift
+- `float-jagged`: snapped bobbing motion with a retro, stepped feel
 
 <table>
   <tr>
     <td align="center"><strong>wave</strong><br/><img src="docs/variants/animation-wave.gif" width="220"/></td>
     <td align="center"><strong>wave-loop</strong><br/><img src="docs/variants/animation-wave-loop.gif" width="220"/></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>float</strong><br/><img src="docs/variants/animation-float.gif" width="220"/></td>
+    <td align="center"><strong>float-tilt-first</strong><br/><img src="docs/variants/animation-float-tilt-first.gif" width="220"/></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>float-jagged</strong><br/><img src="docs/variants/animation-float-jagged.gif" width="220"/></td>
+    <td align="center"></td>
   </tr>
 </table>
 
@@ -60,6 +71,9 @@ python3 qr_generator.py --png --png-scale 4 "Print-ready preview"
 python3 qr_generator.py --gif "Wave me"
 python3 qr_generator.py --animation --animation-variant wave "Wave me"
 python3 qr_generator.py --animation --animation-variant wave-loop "Always waving"
+python3 qr_generator.py --animation --animation-variant float "Smooth float"
+python3 qr_generator.py --animation --animation-variant float-tilt-first "Vertical float"
+python3 qr_generator.py --animation --animation-variant float-jagged "Retro float"
 python3 qr_generator.py --gif --readable-gif "Safer wave"
 python3 qr_generator.py --pdf "Photoshop friendly"
 ```
@@ -113,21 +127,28 @@ python3 qr_generator.py "https://example.com" --pdf
 python3 qr_generator.py "https://example.com" --ps
 ```
 
-## Animation (GIF Wave)
-Create an animated wave GIF based on the chosen variant (requires `cairosvg` + `Pillow`):
+## Animation (GIF)
+Create an animated GIF based on the chosen variant (requires `cairosvg` + `Pillow`):
 ```bash
 python3 qr_generator.py "https://example.com" --gif
 python3 qr_generator.py "https://example.com" --animation --animation-variant wave
 python3 qr_generator.py "https://example.com" --animation --animation-variant wave-loop
+python3 qr_generator.py "https://example.com" --animation --animation-variant float
+python3 qr_generator.py "https://example.com" --animation --animation-variant float-tilt-first
+python3 qr_generator.py "https://example.com" --animation --animation-variant float-jagged
 python3 qr_generator.py "https://example.com" --gif --gif-fps 12 --gif-frames 40 --gif-hold 24
 python3 qr_generator.py "https://example.com" --gif --wave-amp 0.3 --wave-period 14
+python3 qr_generator.py "https://example.com" --animation --animation-variant float-tilt-first --float-angle 90
 python3 qr_generator.py "https://example.com" --gif --readable-gif
 ```
 
 Notes:
 - `wave` eases into/out of motion and holds still before/after the wave.
 - `wave-loop` is always animated and perfectly looped.
-- `--readable-gif` uses scan-safer defaults; you can still override any wave options.
+- `float` adds a subtle tilt after the motion is applied.
+- `float-tilt-first` tilts the QR first, then drifts vertically like cloth.
+- `float-jagged` uses snapped steps to mimic retro motion.
+- `--readable-gif` uses scan-safer defaults; you can still override any animation options.
 - `--gif` is an alias for `--animation --animation-format gif`.
 - Animation output is not supported with `--catalog`.
 
@@ -149,15 +170,16 @@ python3 qr_generator.py "https://example.com" --catalog --catalog-columns 4 --pn
 - `--png-scale`: scale multiplier for PNG export
 - `--animation`: render an animated output (default format: gif)
 - `--animation-format`: animation format (currently `gif`)
-- `--animation-variant`: animation style (`wave`, `wave-loop`)
+- `--animation-variant`: animation style (`wave`, `wave-loop`, `float`, `float-tilt-first`, `float-jagged`)
 - `--gif`: alias for `--animation --animation-format gif`
-- `--gif-variant`: GIF animation variant (`wave`, `wave-loop`)
+- `--gif-variant`: GIF animation variant (`wave`, `wave-loop`, `float`, `float-tilt-first`, `float-jagged`)
 - `--gif-fps`: frames per second for GIF
-- `--gif-frames`: number of wave animation frames
-- `--gif-hold`: number of still frames before/after the wave
-- `--wave-amp`: wave amplitude (in modules)
-- `--wave-period`: wave period (in columns)
-- `--readable-gif`: scan-safer defaults for wave GIFs
+- `--gif-frames`: number of animation frames
+- `--gif-hold`: number of still frames before/after the motion
+- `--wave-amp`: wave/bob amplitude (in modules)
+- `--wave-period`: wave period (in columns; used by wave + float variants)
+- `--float-angle`: float drift direction in degrees (90 = vertical)
+- `--readable-gif`: scan-safer defaults for animation GIFs
 
 ## Notes
 - Primary output is SVG; add `--png` for a bitmap preview.

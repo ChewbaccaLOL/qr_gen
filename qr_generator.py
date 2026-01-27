@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 import segno
 
-from qr_animation import build_wave_gif_frames
+from qr_animation import build_float_gif_frames, build_wave_gif_frames
 from qr_env import env_bool, env_float, env_int, env_str, load_dotenv
 from qr_export import write_pdf, write_png, write_ps
 from qr_render import render_catalog_svg, render_svg
@@ -49,13 +49,22 @@ VARIANTS: Dict[str, Variant] = {
     ),
 }
 
-ANIMATION_VARIANTS = ("wave", "wave-loop")
+ANIMATION_VARIANTS = (
+    "wave",
+    "wave-loop",
+    "float",
+    "float-tilt-first",
+    "float-jagged",
+)
 
 DEFAULT_GIF_FPS = 12
 DEFAULT_GIF_FRAMES = 40
 DEFAULT_GIF_HOLD = 24
 DEFAULT_WAVE_AMP = 0.45
 DEFAULT_WAVE_PERIOD = 10.0
+DEFAULT_FLOAT_JAGGED_SNAP = 0.25
+DEFAULT_FLOAT_TILT = 18.0
+DEFAULT_FLOAT_ANGLE = 90.0
 
 READABLE_GIF_FPS = 12
 READABLE_GIF_FRAMES = 32
@@ -142,13 +151,13 @@ def parse_args() -> argparse.Namespace:
         "--gif-frames",
         type=int,
         default=None,
-        help="Number of wave animation frames (loop segment).",
+        help="Number of animation frames (loop segment).",
     )
     parser.add_argument(
         "--gif-hold",
         type=int,
         default=None,
-        help="Number of still frames before/after the wave.",
+        help="Number of still frames before/after the motion.",
     )
     parser.add_argument(
         "--wave-amp",
@@ -161,6 +170,12 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=None,
         help="Wave period in columns (modules).",
+    )
+    parser.add_argument(
+        "--float-angle",
+        type=float,
+        default=None,
+        help="Float motion direction in degrees (90 = vertical).",
     )
     parser.add_argument(
         "--readable-gif",
@@ -342,6 +357,8 @@ def main() -> None:
         args.wave_amp = env_float("QR_WAVE_AMP")
     if args.wave_period is None:
         args.wave_period = env_float("QR_WAVE_PERIOD")
+    if args.float_angle is None:
+        args.float_angle = env_float("QR_FLOAT_ANGLE")
 
     animation_format = args.animation_format or "gif"
     if args.gif and animation_format != "gif":
@@ -491,6 +508,76 @@ def main() -> None:
                 hold=0,
                 render_svg=render_svg,
                 mode="loop",
+            )
+        elif animation_variant == "float":
+            float_angle = (
+                args.float_angle
+                if args.float_angle is not None
+                else DEFAULT_FLOAT_ANGLE + DEFAULT_FLOAT_TILT
+            )
+            frames = build_float_gif_frames(
+                qr.matrix,
+                scale=args.scale,
+                border=args.border,
+                dark=dark,
+                light=light,
+                shape=variant.shape,
+                radius=radius,
+                gradient=gradient,
+                float_amp=args.wave_amp,
+                float_period=args.wave_period,
+                float_angle_deg=float_angle,
+                frames=args.gif_frames,
+                hold=args.gif_hold,
+                render_svg=render_svg,
+                mode="still",
+                rotate_deg=DEFAULT_FLOAT_TILT,
+            )
+        elif animation_variant == "float-tilt-first":
+            float_angle = args.float_angle if args.float_angle is not None else DEFAULT_FLOAT_ANGLE
+            frames = build_float_gif_frames(
+                qr.matrix,
+                scale=args.scale,
+                border=args.border,
+                dark=dark,
+                light=light,
+                shape=variant.shape,
+                radius=radius,
+                gradient=gradient,
+                float_amp=args.wave_amp,
+                float_period=args.wave_period,
+                float_angle_deg=float_angle,
+                frames=args.gif_frames,
+                hold=args.gif_hold,
+                render_svg=render_svg,
+                mode="still",
+                rotate_deg=DEFAULT_FLOAT_TILT,
+                rotate_mode="before",
+            )
+        elif animation_variant == "float-jagged":
+            float_angle = (
+                args.float_angle
+                if args.float_angle is not None
+                else DEFAULT_FLOAT_ANGLE + DEFAULT_FLOAT_TILT
+            )
+            frames = build_float_gif_frames(
+                qr.matrix,
+                scale=args.scale,
+                border=args.border,
+                dark=dark,
+                light=light,
+                shape=variant.shape,
+                radius=radius,
+                gradient=gradient,
+                float_amp=args.wave_amp,
+                float_period=args.wave_period,
+                float_angle_deg=float_angle,
+                frames=args.gif_frames,
+                hold=args.gif_hold,
+                render_svg=render_svg,
+                mode="still",
+                snap=DEFAULT_FLOAT_JAGGED_SNAP,
+                rotate_deg=DEFAULT_FLOAT_TILT,
             )
         else:
             print(

@@ -1,5 +1,8 @@
 import math
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, Union
+
+
+ColumnOffset = Union[float, Tuple[float, float]]
 
 
 def svg_gradient_def(
@@ -32,6 +35,45 @@ def escape_xml(text: str) -> str:
     )
 
 
+def column_offset_value(
+    column_offsets: Optional[List[ColumnOffset]], index: int
+) -> Tuple[float, float]:
+    if not column_offsets:
+        return (0.0, 0.0)
+    if index >= len(column_offsets):
+        return (0.0, 0.0)
+    value = column_offsets[index]
+    if value is None:
+        return (0.0, 0.0)
+    if isinstance(value, (tuple, list)):
+        if len(value) >= 2:
+            return (float(value[0]), float(value[1]))
+        if len(value) == 1:
+            return (0.0, float(value[0]))
+        return (0.0, 0.0)
+    return (0.0, float(value))
+
+
+def module_element(
+    shape: str, px: float, py: float, scale: int, radius: float, fill: str
+) -> str:
+    if shape == "square":
+        return f'<rect x="{px}" y="{py}" width="{scale}" height="{scale}" fill="{fill}"/>'
+    if shape == "rounded":
+        corner = max(0.0, min(radius, 0.5)) * scale
+        return (
+            f'<rect x="{px}" y="{py}" width="{scale}" height="{scale}" '
+            f'rx="{corner}" ry="{corner}" fill="{fill}"/>'
+        )
+    if shape == "dot":
+        r = scale * 0.45
+        offset_center = scale / 2
+        cx = px + offset_center
+        cy = py + offset_center
+        return f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{fill}"/>'
+    raise ValueError(f"Unknown shape: {shape}")
+
+
 def render_modules(
     matrix: List[List[int]],
     scale: int,
@@ -40,43 +82,34 @@ def render_modules(
     shape: str,
     radius: float,
     offset: Tuple[int, int] = (0, 0),
-    column_offsets: Optional[List[float]] = None,
+    column_offsets: Optional[List[ColumnOffset]] = None,
 ) -> Iterable[str]:
     offset_x, offset_y = offset
-    if shape == "square":
-        for y, row in enumerate(matrix):
-            for x, cell in enumerate(row):
-                if cell:
-                    column_offset = column_offsets[x] if column_offsets else 0.0
-                    px = (x + border) * scale + offset_x
-                    py = (y + border) * scale + offset_y + column_offset
-                    yield (
-                        f'<rect x="{px}" y="{py}" width="{scale}" height="{scale}" fill="{fill}"/>'
-                    )
-    elif shape == "rounded":
-        corner = max(0.0, min(radius, 0.5)) * scale
-        for y, row in enumerate(matrix):
-            for x, cell in enumerate(row):
-                if cell:
-                    column_offset = column_offsets[x] if column_offsets else 0.0
-                    px = (x + border) * scale + offset_x
-                    py = (y + border) * scale + offset_y + column_offset
-                    yield (
-                        f'<rect x="{px}" y="{py}" width="{scale}" height="{scale}" '
-                        f'rx="{corner}" ry="{corner}" fill="{fill}"/>'
-                    )
-    elif shape == "dot":
-        r = scale * 0.45
-        offset_center = scale / 2
-        for y, row in enumerate(matrix):
-            for x, cell in enumerate(row):
-                if cell:
-                    column_offset = column_offsets[x] if column_offsets else 0.0
-                    cx = (x + border) * scale + offset_center + offset_x
-                    cy = (y + border) * scale + offset_center + offset_y + column_offset
-                    yield f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{fill}"/>'
-    else:
-        raise ValueError(f"Unknown shape: {shape}")
+    for y, row in enumerate(matrix):
+        for x, cell in enumerate(row):
+            if cell:
+                column_offset_x, column_offset_y = column_offset_value(column_offsets, x)
+                px = (x + border) * scale + offset_x + column_offset_x
+                py = (y + border) * scale + offset_y + column_offset_y
+                yield module_element(shape, px, py, scale, radius, fill)
+
+
+def render_modules_for_column(
+    matrix: List[List[int]],
+    scale: int,
+    border: int,
+    fill: str,
+    shape: str,
+    radius: float,
+    column_index: int,
+    offset: Tuple[int, int] = (0, 0),
+) -> Iterable[str]:
+    offset_x, offset_y = offset
+    for y, row in enumerate(matrix):
+        if row[column_index]:
+            px = (column_index + border) * scale + offset_x
+            py = (y + border) * scale + offset_y
+            yield module_element(shape, px, py, scale, radius, fill)
 
 
 def render_svg(
@@ -88,17 +121,28 @@ def render_svg(
     shape: str,
     radius: float,
     gradient: Optional[Dict[str, str]],
-    column_offsets: Optional[List[float]] = None,
+    column_offsets: Optional[List[ColumnOffset]] = None,
     extra_pad_y: int = 0,
+    extra_pad_x: int = 0,
+    rotate_deg: float = 0.0,
+    rotate_mode: str = "after",
 ) -> str:
     size = len(matrix)
     total_modules = size + border * 2
     dimension = total_modules * scale
-    width = dimension
-    height = dimension + extra_pad_y * 2
+    content_width = dimension + extra_pad_x * 2
+    content_height = dimension + extra_pad_y * 2
+    width = content_width
+    height = content_height
     shape_rendering = "crispEdges" if shape == "square" else "geometricPrecision"
     gradient_id = gradient.get("id", "fg") if gradient else None
     fill = module_fill(dark, gradient_id)
+    if rotate_deg:
+        angle = math.radians(rotate_deg)
+        cos_a = abs(math.cos(angle))
+        sin_a = abs(math.sin(angle))
+        width = content_width * cos_a + content_height * sin_a
+        height = content_width * sin_a + content_height * cos_a
 
     parts = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -115,18 +159,61 @@ def render_svg(
     if light is not None:
         parts.append(f'<rect width="100%" height="100%" fill="{light}"/>')
 
-    parts.extend(
-        render_modules(
-            matrix,
-            scale=scale,
-            border=border,
-            fill=fill,
-            shape=shape,
-            radius=radius,
-            offset=(0, extra_pad_y),
-            column_offsets=column_offsets,
+    translate_x = (width - content_width) / 2
+    translate_y = (height - content_height) / 2
+    parts.append(f'<g transform="translate({translate_x} {translate_y})">')
+    if rotate_mode not in ("after", "before"):
+        raise ValueError(f"Unknown rotate mode: {rotate_mode}")
+
+    center_x = content_width / 2
+    center_y = content_height / 2
+    base_offset = (extra_pad_x, extra_pad_y)
+
+    if rotate_mode == "before" and column_offsets:
+        for column_index in range(size):
+            column_offset_x, column_offset_y = column_offset_value(
+                column_offsets, column_index
+            )
+            if column_offset_x or column_offset_y:
+                parts.append(
+                    f'<g transform="translate({column_offset_x} {column_offset_y})">'
+                )
+            if rotate_deg:
+                parts.append(f'<g transform="rotate({rotate_deg} {center_x} {center_y})">')
+            parts.extend(
+                render_modules_for_column(
+                    matrix,
+                    scale=scale,
+                    border=border,
+                    fill=fill,
+                    shape=shape,
+                    radius=radius,
+                    column_index=column_index,
+                    offset=base_offset,
+                )
+            )
+            if rotate_deg:
+                parts.append("</g>")
+            if column_offset_x or column_offset_y:
+                parts.append("</g>")
+    else:
+        if rotate_deg:
+            parts.append(f'<g transform="rotate({rotate_deg} {center_x} {center_y})">')
+        parts.extend(
+            render_modules(
+                matrix,
+                scale=scale,
+                border=border,
+                fill=fill,
+                shape=shape,
+                radius=radius,
+                offset=base_offset,
+                column_offsets=column_offsets,
+            )
         )
-    )
+        if rotate_deg:
+            parts.append("</g>")
+    parts.append("</g>")
 
     parts.append("</svg>")
     return "\n".join(parts)

@@ -32,6 +32,7 @@
 - `QR_GIF_HOLD` integer still frames before/after wave
 - `QR_WAVE_AMP` float wave amplitude in modules
 - `QR_WAVE_PERIOD` float wave period in columns
+- `QR_FLOAT_ANGLE` float float drift angle in degrees
 - `QR_READABLE_GIF` set `true` to prefer scan-safer wave defaults
 - `QR_VARIANT` variant name
 - `QR_SCALE` integer module size

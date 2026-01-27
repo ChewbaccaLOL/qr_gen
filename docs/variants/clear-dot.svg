@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="330" height="330" viewBox="0 0 330 330" shape-rendering="geometricPrecision">
+<g transform="translate(0.0 0.0)">
 <circle cx="45.0" cy="45.0" r="4.5" fill="#111111"/>
 <circle cx="55.0" cy="45.0" r="4.5" fill="#111111"/>
 <circle cx="65.0" cy="45.0" r="4.5" fill="#111111"/>
@@ -338,4 +339,5 @@
 <circle cx="225.0" cy="285.0" r="4.5" fill="#111111"/>
 <circle cx="255.0" cy="285.0" r="4.5" fill="#111111"/>
 <circle cx="285.0" cy="285.0" r="4.5" fill="#111111"/>
+</g>
 </svg>
