@@ -10,6 +10,7 @@
 ## How to work here
 - Prefer updating `qr_generator.py` directly; keep the CLI stable.
 - When you add or change variants, update `VARIANTS` in `qr_generator.py` and the variants list in `README.md`.
+- Always add or update unit tests to cover new or changed code.
 - Keep defaults scan-safe: high contrast, sensible quiet zone, and error correction.
 - The catalog output should include every variant with a readable label.
 - PNG export depends on `cairosvg`; keep it optional and fail fast with a clear message.
