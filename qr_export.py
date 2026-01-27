@@ -4,9 +4,10 @@ import sys
 def require_cairosvg():
     try:
         import cairosvg
-    except ImportError:
+    except Exception:
         print(
-            "error: PNG/PDF/PS export requires cairosvg (pip install cairosvg)",
+            "error: PNG/PDF/PS export requires cairosvg + cairo (pip install cairosvg). "
+            "On Windows, the Cairo DLLs must be bundled or installed.",
             file=sys.stderr,
         )
         sys.exit(2)
