@@ -51,6 +51,7 @@ jobs:
         shell: pwsh
         run: |
           choco install -y gtk-runtime
+          choco install -y msys2
 
       - name: Install build deps
         run: |
@@ -87,6 +88,16 @@ jobs:
               $found = Get-ChildItem $searchRoot -Recurse -Filter "libcairo-2.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
               if ($found) {
                 $gtk = $found.DirectoryName
+              }
+            }
+          }
+          if (-not $gtk) {
+            $msys = "C:\msys64"
+            if (Test-Path $msys) {
+              & "$msys\usr\bin\bash.exe" -lc "pacman -S --noconfirm mingw-w64-x86_64-cairo mingw-w64-x86_64-pango mingw-w64-x86_64-gdk-pixbuf"
+              $msysBin = "$msys\mingw64\bin"
+              if (Test-Path $msysBin) {
+                $gtk = $msysBin
               }
             }
           }
