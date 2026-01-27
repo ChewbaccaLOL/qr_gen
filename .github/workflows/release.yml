@@ -57,10 +57,29 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pyinstaller segno cairosvg pillow
 
-      - name: Build binaries
+      - name: Build binaries (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         run: |
           pyinstaller --onefile --name qr-generator-cli qr_generator.py
           pyinstaller --onefile --name qr-generator qr_gui.py
+
+      - name: Build binaries (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $gtk = "C:\Program Files\GTK3-Runtime Win64\bin"
+          if (-not (Test-Path $gtk)) {
+            Write-Error "GTK runtime not found at $gtk"
+            exit 1
+          }
+          $dlls = Get-ChildItem $gtk -Filter *.dll
+          $args = @()
+          foreach ($dll in $dlls) {
+            $args += "--add-binary"
+            $args += "$($dll.FullName);."
+          }
+          pyinstaller --onefile --name qr-generator-cli qr_generator.py
+          pyinstaller --onefile --name qr-generator qr_gui.py @args
 
       - name: Package (tar.gz)
         if: matrix.archive == 'tar'
