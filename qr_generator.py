@@ -23,6 +23,9 @@ VARIANTS: Dict[str, Variant] = {
     "square": Variant("square", "square", "#000000", "#ffffff"),
     "rounded": Variant("rounded", "rounded", "#111111", "#ffffff", radius=0.28),
     "dot": Variant("dot", "dot", "#111111", "#ffffff"),
+    "clear": Variant("clear", "square", "#111111", None),
+    "clear-rounded": Variant("clear-rounded", "rounded", "#111111", None, radius=0.28),
+    "clear-dot": Variant("clear-dot", "dot", "#111111", None),
     "inverted": Variant("inverted", "square", "#ffffff", "#000000"),
     "midnight": Variant("midnight", "square", "#e6f1ff", "#0b1020"),
     "sunset": Variant(
