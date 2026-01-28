@@ -91,3 +91,9 @@ def test_strip_known_extension():
     assert qr_gui._strip_known_extension("my.qr.svg", extensions) == "my.qr"
     assert qr_gui._strip_known_extension("my.qr", extensions) == "my.qr"
     assert qr_gui._strip_known_extension("", extensions) == ""
+
+
+def test_clamp_zoom():
+    assert qr_gui._clamp_zoom(1.0, 0.5, 2.0) == 1.0
+    assert qr_gui._clamp_zoom(0.1, 0.5, 2.0) == 0.5
+    assert qr_gui._clamp_zoom(3.0, 0.5, 2.0) == 2.0

@@ -152,6 +152,10 @@ def _strip_known_extension(name: str, extensions: Tuple[str, ...]) -> str:
     return base
 
 
+def _clamp_zoom(value: float, minimum: float, maximum: float) -> float:
+    return max(minimum, min(float(value), maximum))
+
+
 def _import_cairosvg():
     try:
         prepare_cairo()
@@ -166,6 +170,121 @@ def _import_cairosvg():
 
 
 if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
+
+    class PreviewZoomDialog(QtWidgets.QDialog):
+        def __init__(
+            self,
+            parent: QtWidgets.QWidget,
+            *,
+            svg_text: str,
+            background_color: Optional[str],
+            render_pixmap,
+        ) -> None:
+            super().__init__(parent)
+            self.svg_text = svg_text
+            self.background_color = background_color
+            self.render_pixmap = render_pixmap
+            self.zoom = 1.0
+            self.min_zoom = 0.2
+            self.max_zoom = 6.0
+            self.base_fit_px: Optional[int] = None
+
+            self.setWindowTitle("QR Preview")
+            self.resize(940, 940)
+
+            layout = QtWidgets.QVBoxLayout(self)
+            layout.setContentsMargins(16, 16, 16, 16)
+            layout.setSpacing(10)
+
+            header = QtWidgets.QWidget()
+            header_layout = QtWidgets.QHBoxLayout(header)
+            header_layout.setContentsMargins(0, 0, 0, 0)
+            header_layout.setSpacing(10)
+
+            title = QtWidgets.QLabel("Preview")
+            title.setStyleSheet("font-weight: 600;")
+            hint = QtWidgets.QLabel("Scroll to zoom. Click anywhere to close.")
+            hint.setStyleSheet("color: #666666;")
+            close_btn = QtWidgets.QPushButton("X")
+            close_btn.setFixedWidth(32)
+            close_btn.clicked.connect(self.close)
+
+            header_layout.addWidget(title)
+            header_layout.addStretch(1)
+            header_layout.addWidget(hint)
+            header_layout.addWidget(close_btn)
+            layout.addWidget(header)
+
+            self.image_label = QtWidgets.QLabel()
+            self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+
+            self.scroll = QtWidgets.QScrollArea()
+            self.scroll.setWidget(self.image_label)
+            self.scroll.setWidgetResizable(False)
+            self.scroll.setAlignment(QtCore.Qt.AlignCenter)
+            layout.addWidget(self.scroll, 1)
+
+            for widget in (header, title, hint):
+                widget.installEventFilter(self)
+            self.scroll.viewport().installEventFilter(self)
+            self.image_label.installEventFilter(self)
+
+            self._render()
+
+        def _device_pixel_ratio(self, widget: QtWidgets.QWidget) -> float:
+            try:
+                return float(widget.devicePixelRatioF())
+            except AttributeError:
+                return 1.0
+
+        def _update_base_fit(self, force: bool = False) -> None:
+            if self.base_fit_px is not None and not force and abs(self.zoom - 1.0) > 0.01:
+                return
+            viewport = self.scroll.viewport().size()
+            base = min(viewport.width(), viewport.height())
+            self.base_fit_px = max(240, int(base))
+
+        def _render(self) -> None:
+            if not self.svg_text:
+                return
+            if self.base_fit_px is None:
+                self._update_base_fit(force=True)
+            fit_px = self.base_fit_px or 240
+            target_px = max(64, int(round(fit_px * self.zoom)))
+            dpr = self._device_pixel_ratio(self.scroll.viewport())
+            pixmap = self.render_pixmap(
+                self.svg_text,
+                target_px,
+                self.background_color,
+                dpr,
+            )
+            self.image_label.setPixmap(pixmap)
+            self.image_label.adjustSize()
+
+        def _apply_zoom(self, factor: float) -> None:
+            self.zoom = _clamp_zoom(self.zoom * factor, self.min_zoom, self.max_zoom)
+            self._render()
+
+        def eventFilter(self, obj, event) -> bool:
+            if event.type() == QtCore.QEvent.Wheel:
+                delta = event.angleDelta().y()
+                if delta:
+                    self._apply_zoom(1.15 if delta > 0 else 1 / 1.15)
+                    return True
+            if event.type() == QtCore.QEvent.MouseButtonPress:
+                self.close()
+                return True
+            return super().eventFilter(obj, event)
+
+        def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+            self.close()
+            event.accept()
+
+        def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
+            super().resizeEvent(event)
+            self._update_base_fit(force=True)
+            self._render()
+
 
     class QrGuiApp(QtWidgets.QMainWindow):
         def __init__(self) -> None:
@@ -293,6 +412,8 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
             self.preview_label.setFixedSize(self.detail_preview_size, self.detail_preview_size)
             self.preview_label.setAlignment(QtCore.Qt.AlignCenter)
             self.preview_label.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken)
+            self.preview_label.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+            self.preview_label.mousePressEvent = self._on_preview_clicked
             layout.addWidget(self.preview_label, alignment=QtCore.Qt.AlignCenter)
 
             self.copy_png_button = QtWidgets.QPushButton("Copy PNG")
@@ -678,6 +799,22 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
             )
             self.preview_label.setPixmap(pixmap)
             self.preview_label.setText("")
+
+        def _on_preview_clicked(self, _event: QtGui.QMouseEvent) -> None:
+            svg_text = self.get_variant_svg(self.selected_variant, use_custom=True)
+            if not svg_text:
+                return
+            base_variant = self.variant_map.get(self.selected_variant)
+            if not base_variant:
+                return
+            variant = self.build_custom_variant(base_variant)
+            dialog = PreviewZoomDialog(
+                self,
+                svg_text=svg_text,
+                background_color=variant.light,
+                render_pixmap=self._render_svg_to_pixmap,
+            )
+            dialog.exec()
 
         def _render_svg_to_pixmap(
             self,
