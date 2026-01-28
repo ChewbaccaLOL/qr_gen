@@ -1,12 +1,12 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 
+	"qr_generator/internal/cli"
 	"qr_generator/internal/config"
 )
 
@@ -15,19 +15,8 @@ const (
 )
 
 func main() {
-	var listVariants bool
-
-	flag.BoolVar(&listVariants, "list-variants", false, "List available variants and exit.")
-	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "Minimal Go CLI prototype for the QR generator.")
-		fmt.Fprintln(flag.CommandLine.Output())
-		fmt.Fprintln(flag.CommandLine.Output(), "Usage:")
-		fmt.Fprintln(flag.CommandLine.Output(), "  qr_generator --list-variants")
-		fmt.Fprintln(flag.CommandLine.Output())
-		flag.PrintDefaults()
-	}
-
-	flag.Parse()
+	env := cli.OSEnv{}
+	cli.LoadDotenv(".env", env)
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -42,7 +31,16 @@ func main() {
 		os.Exit(exitUsage)
 	}
 
-	if listVariants {
+	args, err := cli.ParseArgs(os.Args[1:], cfg, env, os.Stdin, isTerminal(os.Stdin))
+	if err != nil {
+		if usageErr, ok := err.(cli.ErrUsage); ok {
+			fmt.Fprintln(os.Stderr, usageErr.Usage)
+		}
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(exitUsage)
+	}
+
+	if args.ListVariants {
 		names := make([]string, 0, len(cfg.Variants))
 		for name := range cfg.Variants {
 			names = append(names, name)
@@ -59,6 +57,14 @@ func main() {
 		return
 	}
 
-	fmt.Fprintln(os.Stderr, "error: only --list-variants is implemented in the Go prototype")
+	fmt.Fprintln(os.Stderr, "error: rendering is not implemented in the Go CLI yet")
 	os.Exit(exitUsage)
+}
+
+func isTerminal(file *os.File) bool {
+	info, err := file.Stat()
+	if err != nil {
+		return true
+	}
+	return (info.Mode() & os.ModeCharDevice) != 0
 }

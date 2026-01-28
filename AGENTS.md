@@ -17,6 +17,7 @@
 - GIF export depends on `cairosvg` + `Pillow`; keep it optional and fail fast with a clear message.
 - Default output goes to `out/` and that directory is gitignored.
 - `.env` is supported in the project root; command-line arguments always take precedence.
+- Run relevant tests while developing changes; for Go use `go test ./...` and for Python use `pytest`.
 
 ## .env keys
 - `QR_DATA` text or URL to encode (used if no CLI arg and no stdin)

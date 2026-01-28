@@ -173,6 +173,17 @@ Minimal Go CLI for exploring a future port:
 go run ./cmd/qr_generator --list-variants
 ```
 
+Build a local binary:
+```bash
+go build -o bin/qr_generator ./cmd/qr_generator
+./bin/qr_generator --list-variants
+```
+
+Run Go tests:
+```bash
+go test ./...
+```
+
 ## Variants
 Variants (and animation defaults) are defined in `variants.json` to keep styling config shareable across future tooling.
 
