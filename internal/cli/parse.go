@@ -30,6 +30,7 @@ type Args struct {
 	GifHold           int
 	WaveAmp           float64
 	WavePeriod        float64
+	FloatCycles       int
 	FloatAngle        *float64
 	ReadableGif       bool
 	Pdf               bool
@@ -273,6 +274,18 @@ func ParseArgs(args []string, cfg *config.Config, env Env, stdin io.Reader, stdi
 	resolved.GifHold = gifHoldValue
 	resolved.WaveAmp = waveAmpValue
 	resolved.WavePeriod = wavePeriodValue
+
+	floatCycles := cfg.Defaults.FloatCycles
+	if floatCycles <= 0 {
+		floatCycles = 1
+	}
+	resolved.FloatCycles = floatCycles
+	_, gifHoldEnvSet := env.Lookup("QR_GIF_HOLD")
+	if strings.HasPrefix(resolved.AnimationVariant, "float") && !gifHoldSet && !gifHoldEnvSet {
+		if cfg.Defaults.FloatHold > 0 {
+			resolved.GifHold = cfg.Defaults.FloatHold
+		}
+	}
 
 	if resolved.ListVariants {
 		return resolved, nil

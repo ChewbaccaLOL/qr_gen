@@ -105,6 +105,8 @@
     "float_jagged_snap": 0.25,
     "float_tilt": 18.0,
     "float_angle": 90.0,
+    "float_hold": 8,
+    "float_cycles": 3,
     "readable_gif": {
       "gif_fps": 12,
       "gif_frames": 32,

@@ -39,6 +39,8 @@ type Defaults struct {
 	FloatJaggedSnap float64     `json:"float_jagged_snap"`
 	FloatTilt       float64     `json:"float_tilt"`
 	FloatAngle      float64     `json:"float_angle"`
+	FloatHold       int         `json:"float_hold"`
+	FloatCycles     int         `json:"float_cycles"`
 	ReadableGif     GifDefaults `json:"readable_gif"`
 }
 

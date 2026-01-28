@@ -100,6 +100,7 @@ func BuildFloatGIF(
 	floatAngleDeg float64,
 	frames int,
 	hold int,
+	cycles int,
 	mode string,
 	snap float64,
 	rotateDeg float64,
@@ -131,6 +132,7 @@ func BuildFloatGIF(
 		floatAngleDeg,
 		frames,
 		hold,
+		cycles,
 		mode,
 		snap,
 		rotateDeg,
@@ -221,6 +223,7 @@ func buildFloatOffsets(
 	floatAngleDeg float64,
 	frames int,
 	hold int,
+	cycles int,
 	mode string,
 	snap float64,
 	rotateDeg float64,
@@ -229,8 +232,14 @@ func buildFloatOffsets(
 	size := len(matrix)
 	amplitudePx := floatAmp * float64(scale)
 	looped := mode == "loop"
-	phaseDenominator := frames
+	if cycles <= 0 {
+		cycles = 1
+	}
 	if looped {
+		cycles = 1
+	}
+	phaseDenominator := frames
+	if looped || cycles > 1 {
 		phaseDenominator = maxInt(frames-1, 1)
 	}
 	phaseStep := (2 * math.Pi) / float64(phaseDenominator)
@@ -256,9 +265,13 @@ func buildFloatOffsets(
 		extraPadY = int(math.Ceil(maxOffsetY)) + 1
 	}
 
+	activeFrames := frames
+	if !looped {
+		activeFrames = frames * cycles
+	}
 	totalFrames := frames
 	if !looped {
-		totalFrames = hold + frames + hold
+		totalFrames = hold + activeFrames + hold
 	}
 	rampFrames := 0
 	if !looped {
@@ -277,12 +290,13 @@ func buildFloatOffsets(
 				offsets[x] = baseOffset + clothAmp*math.Sin((2*math.Pi*(float64(x)/floatPeriod))+phaseMod)
 			}
 		} else {
-			if frameIndex < hold || frameIndex >= hold+frames {
+			if frameIndex < hold || frameIndex >= hold+activeFrames {
 				offsets = stillOffsets
 			} else {
 				floatIndex := frameIndex - hold
-				phase := phaseStep * float64(floatIndex)
-				ramp := waveRampMultiplier(floatIndex, frames, rampFrames)
+				phaseIndex := floatIndex % frames
+				phase := phaseStep * float64(phaseIndex)
+				ramp := waveRampMultiplier(floatIndex, activeFrames, rampFrames)
 				baseOffset := amplitudePx * math.Sin(phase) * ramp
 				phaseMod := phase * 0.7
 				offsets = make([]float64, size)

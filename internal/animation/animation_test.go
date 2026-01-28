@@ -26,3 +26,15 @@ func TestQuantizeOffset(t *testing.T) {
 		t.Fatalf("unexpected quantized value: %v", value)
 	}
 }
+
+func TestBuildFloatOffsetsCycles(t *testing.T) {
+	matrix := make([][]bool, 3)
+	for i := range matrix {
+		matrix[i] = make([]bool, 3)
+	}
+	total, _, _, _ := buildFloatOffsets(matrix, 1, 0.4, 8, 90, 4, 2, 3, "still", 0, 0, "after")
+	expected := 2 + (4 * 3) + 2
+	if total != expected {
+		t.Fatalf("expected %d frames, got %d", expected, total)
+	}
+}

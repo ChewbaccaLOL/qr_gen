@@ -26,6 +26,8 @@ func testConfig() *config.Config {
 			FloatJaggedSnap: 0.25,
 			FloatTilt:       18,
 			FloatAngle:      90,
+			FloatHold:       8,
+			FloatCycles:     3,
 			ReadableGif: config.GifDefaults{
 				FPS:        12,
 				Frames:     32,
@@ -97,6 +99,33 @@ func TestParseReadableGifDefaults(t *testing.T) {
 	}
 	if args.WavePeriod != cfg.Defaults.ReadableGif.WavePeriod {
 		t.Fatalf("expected readable wave period %v, got %v", cfg.Defaults.ReadableGif.WavePeriod, args.WavePeriod)
+	}
+}
+
+func TestParseFloatDefaults(t *testing.T) {
+	cfg := testConfig()
+	env := &MapEnv{Values: map[string]string{}}
+	args, err := ParseArgs([]string{"--animation", "--animation-variant", "float", "hello"}, cfg, env, strings.NewReader(""), true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if args.GifHold != cfg.Defaults.FloatHold {
+		t.Fatalf("expected float hold %d, got %d", cfg.Defaults.FloatHold, args.GifHold)
+	}
+	if args.FloatCycles != cfg.Defaults.FloatCycles {
+		t.Fatalf("expected float cycles %d, got %d", cfg.Defaults.FloatCycles, args.FloatCycles)
+	}
+}
+
+func TestParseFloatHoldEnvOverride(t *testing.T) {
+	cfg := testConfig()
+	env := &MapEnv{Values: map[string]string{"QR_GIF_HOLD": "5"}}
+	args, err := ParseArgs([]string{"--animation", "--animation-variant", "float", "hello"}, cfg, env, strings.NewReader(""), true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if args.GifHold != 5 {
+		t.Fatalf("expected env gif hold 5, got %d", args.GifHold)
 	}
 }
 
