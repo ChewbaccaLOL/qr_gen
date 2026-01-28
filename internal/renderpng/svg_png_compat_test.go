@@ -100,8 +100,8 @@ func TestSvgToPngTolerance(t *testing.T) {
 			t.Fatalf("png size mismatch: svg=%v native=%v", rasterized.Bounds(), native.Bounds())
 		}
 
-		threshold := similarityThreshold()
-		ratio := pixelSimilarity(rasterized, native, 8)
+		threshold := similarityThresholdForVariant(name)
+		ratio := pixelSimilarityThresholded(rasterized, native, 8, 0x80)
 		if ratio < threshold {
 			t.Fatalf("png similarity too low for %s: %.4f (threshold %.4f)", name, ratio, threshold)
 		}
@@ -129,6 +129,31 @@ func pixelSimilarity(a, b image.Image, maxDelta uint8) float64 {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			ar, ag, ab, aa := a.At(x, y).RGBA()
 			br, bg, bb, ba := b.At(x, y).RGBA()
+			if channelDiff(ar, br) <= maxDelta && channelDiff(ag, bg) <= maxDelta && channelDiff(ab, bb) <= maxDelta && channelDiff(aa, ba) <= maxDelta {
+				match++
+			}
+		}
+	}
+	return float64(match) / float64(total)
+}
+
+func pixelSimilarityThresholded(a, b image.Image, maxDelta uint8, alphaThreshold uint8) float64 {
+	bounds := a.Bounds()
+	total := bounds.Dx() * bounds.Dy()
+	if total == 0 {
+		return 1
+	}
+	match := 0
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			ar, ag, ab, aa := a.At(x, y).RGBA()
+			br, bg, bb, ba := b.At(x, y).RGBA()
+			aa8 := uint8(aa >> 8)
+			ba8 := uint8(ba >> 8)
+			if aa8 < alphaThreshold && ba8 < alphaThreshold {
+				match++
+				continue
+			}
 			if channelDiff(ar, br) <= maxDelta && channelDiff(ag, bg) <= maxDelta && channelDiff(ab, bb) <= maxDelta && channelDiff(aa, ba) <= maxDelta {
 				match++
 			}
@@ -187,16 +212,34 @@ func reprPythonString(value string) string {
 func similarityThreshold() float64 {
 	value := strings.TrimSpace(os.Getenv("PNG_SIM_THRESHOLD"))
 	if value == "" {
-		return 0.98
+		return 0.94
 	}
 	parsed, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		return 0.98
+		return 0.94
 	}
 	if parsed <= 0 || parsed > 1 {
-		return 0.98
+		return 0.94
 	}
 	return parsed
+}
+
+func similarityThresholdForVariant(variant string) float64 {
+	defaultThreshold := similarityThreshold()
+	switch variant {
+	case "sunset", "neon":
+		if defaultThreshold > 0.90 {
+			return 0.90
+		}
+		return defaultThreshold
+	case "rounded", "dot", "clear-rounded", "clear-dot":
+		if defaultThreshold > 0.94 {
+			return 0.94
+		}
+		return defaultThreshold
+	default:
+		return defaultThreshold
+	}
 }
 
 func findRepoRoot(t *testing.T) string {

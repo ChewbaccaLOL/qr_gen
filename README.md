@@ -33,6 +33,7 @@ Animation variants (classic QR shown):
 - `wave-loop`: always animated and perfectly looped
 - `float`: gentle bob with a tilt applied after the motion
 - `float-tilt-first`: tilt is applied first, then a vertical cloth-like drift
+- `float-tilt-still`: tilted positions with axis-aligned squares (stylized drift)
 - `float-jagged`: snapped bobbing motion with a retro, stepped feel
 
 <table>
@@ -43,6 +44,7 @@ Animation variants (classic QR shown):
   <tr>
     <td align="center"><strong>float</strong><br/><img src="docs/variants/animation-float.gif" width="220"/></td>
     <td align="center"><strong>float-tilt-first</strong><br/><img src="docs/variants/animation-float-tilt-first.gif" width="220"/></td>
+    <td align="center"><strong>float-tilt-still</strong><br/><img src="docs/variants/animation-float-tilt-still.gif" width="220"/></td>
   </tr>
   <tr>
     <td align="center"><strong>float-jagged</strong><br/><img src="docs/variants/animation-float-jagged.gif" width="220"/></td>
@@ -139,6 +141,7 @@ python3 python/qr_generator.py --animation --animation-variant wave "Wave me"
 python3 python/qr_generator.py --animation --animation-variant wave-loop "Always waving"
 python3 python/qr_generator.py --animation --animation-variant float "Smooth float"
 python3 python/qr_generator.py --animation --animation-variant float-tilt-first "Vertical float"
+python3 python/qr_generator.py --animation --animation-variant float-tilt-still "Tilted positions"
 python3 python/qr_generator.py --animation --animation-variant float-jagged "Retro float"
 python3 python/qr_generator.py --gif --readable-gif "Safer wave"
 python3 python/qr_generator.py --pdf "Photoshop friendly"
@@ -186,6 +189,23 @@ go run ./cmd/qr_generator --png -o out/qr.svg "https://example.com"
 Generate a PNG catalog:
 ```bash
 go run ./cmd/qr_generator --catalog --png -o out/catalog.svg "https://example.com"
+```
+
+Export PDF/PS (requires `python3` + `cairosvg`):
+```bash
+go run ./cmd/qr_generator --pdf -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --ps -o out/qr.svg "https://example.com"
+```
+
+Animated GIF (native Go renderer):
+```bash
+go run ./cmd/qr_generator --gif -o out/qr.svg "Wave me"
+go run ./cmd/qr_generator --animation --animation-variant wave "Wave me"
+go run ./cmd/qr_generator --animation --animation-variant wave-loop "Always waving"
+go run ./cmd/qr_generator --animation --animation-variant float "Smooth float"
+go run ./cmd/qr_generator --animation --animation-variant float-tilt-first "Vertical float"
+go run ./cmd/qr_generator --animation --animation-variant float-tilt-still "Tilted positions (still squares)"
+go run ./cmd/qr_generator --animation --animation-variant float-jagged "Retro float"
 ```
 
 Build a local binary:
@@ -258,6 +278,7 @@ python3 python/qr_generator.py "https://example.com" --animation --animation-var
 python3 python/qr_generator.py "https://example.com" --animation --animation-variant wave-loop
 python3 python/qr_generator.py "https://example.com" --animation --animation-variant float
 python3 python/qr_generator.py "https://example.com" --animation --animation-variant float-tilt-first
+python3 python/qr_generator.py "https://example.com" --animation --animation-variant float-tilt-still
 python3 python/qr_generator.py "https://example.com" --animation --animation-variant float-jagged
 python3 python/qr_generator.py "https://example.com" --gif --gif-fps 12 --gif-frames 40 --gif-hold 24
 python3 python/qr_generator.py "https://example.com" --gif --wave-amp 0.3 --wave-period 14
@@ -270,6 +291,7 @@ Notes:
 - `wave-loop` is always animated and perfectly looped.
 - `float` adds a subtle tilt after the motion is applied.
 - `float-tilt-first` tilts the QR first, then drifts vertically like cloth.
+- `float-tilt-still` keeps modules axis-aligned while the QR drifts on a tilt.
 - `float-jagged` uses snapped steps to mimic retro motion.
 - `--readable-gif` uses scan-safer defaults; you can still override any animation options.
 - `--gif` is an alias for `--animation --animation-format gif`.
@@ -293,9 +315,9 @@ python3 python/qr_generator.py "https://example.com" --catalog --catalog-columns
 - `--png-scale`: scale multiplier for PNG export
 - `--animation`: render an animated output (default format: gif)
 - `--animation-format`: animation format (currently `gif`)
-- `--animation-variant`: animation style (`wave`, `wave-loop`, `float`, `float-tilt-first`, `float-jagged`)
+- `--animation-variant`: animation style (`wave`, `wave-loop`, `float`, `float-tilt-first`, `float-tilt-still`, `float-jagged`)
 - `--gif`: alias for `--animation --animation-format gif`
-- `--gif-variant`: GIF animation variant (`wave`, `wave-loop`, `float`, `float-tilt-first`, `float-jagged`)
+- `--gif-variant`: GIF animation variant (`wave`, `wave-loop`, `float`, `float-tilt-first`, `float-tilt-still`, `float-jagged`)
 - `--gif-fps`: frames per second for GIF
 - `--gif-frames`: number of animation frames
 - `--gif-hold`: number of still frames before/after the motion

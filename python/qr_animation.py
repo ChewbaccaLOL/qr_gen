@@ -155,6 +155,7 @@ def build_float_gif_frames(
     snap: float = 0.0,
     rotate_deg: float = 0.0,
     rotate_mode: str = "after",
+    rotate_modules: bool = True,
 ) -> List["Image.Image"]:
     Image = require_pillow()
     size = len(matrix)
@@ -247,6 +248,7 @@ def build_float_gif_frames(
             extra_pad_x=extra_pad_x,
             rotate_deg=rotate_deg,
             rotate_mode=rotate_mode,
+            rotate_modules=rotate_modules,
         )
         png_bytes = svg_to_png_bytes(svg_frame, scale=1.0)
         image = Image.open(io.BytesIO(png_bytes))

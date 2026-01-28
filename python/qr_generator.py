@@ -512,6 +512,32 @@ def main() -> None:
                 rotate_deg=DEFAULT_FLOAT_TILT,
                 rotate_mode="before",
             )
+        elif animation_variant == "float-tilt-still":
+            float_angle = (
+                args.float_angle
+                if args.float_angle is not None
+                else DEFAULT_FLOAT_ANGLE + DEFAULT_FLOAT_TILT
+            )
+            frames = build_float_gif_frames(
+                qr.matrix,
+                scale=args.scale,
+                border=args.border,
+                dark=dark,
+                light=light,
+                shape=variant.shape,
+                radius=radius,
+                gradient=gradient,
+                float_amp=args.wave_amp,
+                float_period=args.wave_period,
+                float_angle_deg=float_angle,
+                frames=args.gif_frames,
+                hold=args.gif_hold,
+                render_svg=render_svg,
+                mode="still",
+                rotate_deg=DEFAULT_FLOAT_TILT,
+                rotate_mode="after",
+                rotate_modules=False,
+            )
         elif animation_variant == "float-jagged":
             float_angle = (
                 args.float_angle

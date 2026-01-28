@@ -270,6 +270,7 @@ def test_main_wave_loop_variant(monkeypatch, tmp_path):
         ("float", "float_angle_deg", qr_generator.DEFAULT_FLOAT_ANGLE + qr_generator.DEFAULT_FLOAT_TILT),
         ("float-tilt-first", "rotate_mode", "before"),
         ("float-jagged", "snap", qr_generator.DEFAULT_FLOAT_JAGGED_SNAP),
+        ("float-tilt-still", "rotate_modules", False),
     ],
 )
 def test_main_float_variants(monkeypatch, tmp_path, variant, key, expected):

@@ -3,15 +3,19 @@ package main
 import (
 	"fmt"
 	"image"
+	"image/gif"
 	"image/png"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 
+	"qr_generator/internal/animation"
 	"qr_generator/internal/cli"
 	"qr_generator/internal/config"
+	"qr_generator/internal/export"
 	"qr_generator/internal/qr"
 	"qr_generator/internal/render"
 	"qr_generator/internal/renderpng"
@@ -64,10 +68,7 @@ func main() {
 		return
 	}
 
-	if args.Pdf || args.Ps || args.Animation || args.Gif {
-		fmt.Fprintln(os.Stderr, "error: PDF/PS/GIF output is not implemented in the Go CLI yet")
-		os.Exit(exitUsage)
-	}
+	animationEnabled := args.Animation || args.Gif
 
 	matrix, err := qr.EncodeMatrix(args.Data, args.ErrorLevel)
 	if err != nil {
@@ -217,6 +218,263 @@ func main() {
 			os.Exit(exitUsage)
 		}
 		fmt.Printf("Saved %s\n", pngPath)
+	}
+
+	if args.Pdf || args.Ps {
+		pythonPath, err := exec.LookPath("python3")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error: python3 is required for PDF/PS export")
+			os.Exit(exitUsage)
+		}
+		if err := export.EnsureCairoSVG(pythonPath); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		if args.Pdf {
+			pdfPath := args.PdfOutput
+			if pdfPath == "" {
+				pdfPath = deriveOutputPath(args.Output, ".pdf")
+			}
+			if err := ensureParentDir(pdfPath); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				os.Exit(exitUsage)
+			}
+			cmd, err := export.CairoSVGCommand(pythonPath, export.FormatPDF, args.Output, pdfPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				os.Exit(exitUsage)
+			}
+			cmd.Dir = cwd
+			if output, err := cmd.CombinedOutput(); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n%s\n", err, string(output))
+				os.Exit(exitUsage)
+			}
+			fmt.Printf("Saved %s\n", pdfPath)
+		}
+		if args.Ps {
+			psPath := args.PsOutput
+			if psPath == "" {
+				psPath = deriveOutputPath(args.Output, ".ps")
+			}
+			if err := ensureParentDir(psPath); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				os.Exit(exitUsage)
+			}
+			cmd, err := export.CairoSVGCommand(pythonPath, export.FormatPS, args.Output, psPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				os.Exit(exitUsage)
+			}
+			cmd.Dir = cwd
+			if output, err := cmd.CombinedOutput(); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n%s\n", err, string(output))
+				os.Exit(exitUsage)
+			}
+			fmt.Printf("Saved %s\n", psPath)
+		}
+	}
+
+	if animationEnabled {
+		if args.AnimationFormat != "gif" {
+			fmt.Fprintf(os.Stderr, "error: animation format '%s' is not supported yet\n", args.AnimationFormat)
+			os.Exit(exitUsage)
+		}
+		gifPath := args.GifOutput
+		if gifPath == "" {
+			gifPath = deriveOutputPath(args.Output, ".gif")
+		}
+		if err := ensureParentDir(gifPath); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+
+		variant := cfg.Variants[args.Variant]
+		dark := variant.Dark
+		if args.Dark != "" {
+			dark = args.Dark
+		}
+		var light *string
+		if !args.NoBackground {
+			if args.Light != "" {
+				light = &args.Light
+			} else {
+				light = variant.Light
+			}
+		}
+		radius := variant.Radius
+		if args.Radius != nil {
+			radius = *args.Radius
+		}
+		gradient := variant.Gradient
+		if args.Dark != "" {
+			gradient = nil
+		}
+
+		var gifOut *gif.GIF
+		switch args.AnimationVariant {
+		case "wave":
+			gifOut, err = animation.BuildWaveGIF(
+				matrix,
+				args.Scale,
+				args.Border,
+				dark,
+				light,
+				variant.Shape,
+				radius,
+				gradient,
+				args.WaveAmp,
+				args.WavePeriod,
+				args.GifFrames,
+				args.GifHold,
+				"still",
+				args.GifFps,
+				true,
+			)
+		case "wave-loop":
+			gifOut, err = animation.BuildWaveGIF(
+				matrix,
+				args.Scale,
+				args.Border,
+				dark,
+				light,
+				variant.Shape,
+				radius,
+				gradient,
+				args.WaveAmp,
+				args.WavePeriod,
+				args.GifFrames,
+				0,
+				"loop",
+				args.GifFps,
+				true,
+			)
+		case "float":
+			floatAngle := args.FloatAngle
+			if floatAngle == nil {
+				angle := cfg.Defaults.FloatAngle + cfg.Defaults.FloatTilt
+				floatAngle = &angle
+			}
+			gifOut, err = animation.BuildFloatGIF(
+				matrix,
+				args.Scale,
+				args.Border,
+				dark,
+				light,
+				variant.Shape,
+				radius,
+				gradient,
+				args.WaveAmp,
+				args.WavePeriod,
+				*floatAngle,
+				args.GifFrames,
+				args.GifHold,
+				"still",
+				0,
+				cfg.Defaults.FloatTilt,
+				"after",
+				args.GifFps,
+				true,
+			)
+		case "float-tilt-first":
+			floatAngle := args.FloatAngle
+			if floatAngle == nil {
+				angle := cfg.Defaults.FloatAngle
+				floatAngle = &angle
+			}
+			gifOut, err = animation.BuildFloatGIF(
+				matrix,
+				args.Scale,
+				args.Border,
+				dark,
+				light,
+				variant.Shape,
+				radius,
+				gradient,
+				args.WaveAmp,
+				args.WavePeriod,
+				*floatAngle,
+				args.GifFrames,
+				args.GifHold,
+				"still",
+				0,
+				cfg.Defaults.FloatTilt,
+				"before",
+				args.GifFps,
+				true,
+			)
+		case "float-jagged":
+			floatAngle := args.FloatAngle
+			if floatAngle == nil {
+				angle := cfg.Defaults.FloatAngle + cfg.Defaults.FloatTilt
+				floatAngle = &angle
+			}
+			gifOut, err = animation.BuildFloatGIF(
+				matrix,
+				args.Scale,
+				args.Border,
+				dark,
+				light,
+				variant.Shape,
+				radius,
+				gradient,
+				args.WaveAmp,
+				args.WavePeriod,
+				*floatAngle,
+				args.GifFrames,
+				args.GifHold,
+				"still",
+				cfg.Defaults.FloatJaggedSnap,
+				cfg.Defaults.FloatTilt,
+				"after",
+				args.GifFps,
+				true,
+			)
+		case "float-tilt-still":
+			floatAngle := args.FloatAngle
+			if floatAngle == nil {
+				angle := cfg.Defaults.FloatAngle + cfg.Defaults.FloatTilt
+				floatAngle = &angle
+			}
+			gifOut, err = animation.BuildFloatGIF(
+				matrix,
+				args.Scale,
+				args.Border,
+				dark,
+				light,
+				variant.Shape,
+				radius,
+				gradient,
+				args.WaveAmp,
+				args.WavePeriod,
+				*floatAngle,
+				args.GifFrames,
+				args.GifHold,
+				"still",
+				0,
+				cfg.Defaults.FloatTilt,
+				"after",
+				args.GifFps,
+				false,
+			)
+		default:
+			fmt.Fprintf(os.Stderr, "error: animation variant '%s' is not supported yet\n", args.AnimationVariant)
+			os.Exit(exitUsage)
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		file, err := os.Create(gifPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		defer file.Close()
+		if err := gif.EncodeAll(file, gifOut); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		fmt.Printf("Saved %s\n", gifPath)
 	}
 }
 

@@ -126,6 +126,7 @@ def render_svg(
     extra_pad_x: int = 0,
     rotate_deg: float = 0.0,
     rotate_mode: str = "after",
+    rotate_modules: bool = True,
 ) -> str:
     size = len(matrix)
     total_modules = size + border * 2
@@ -169,7 +170,32 @@ def render_svg(
     center_y = content_height / 2
     base_offset = (extra_pad_x, extra_pad_y)
 
-    if rotate_mode == "before" and column_offsets:
+    if rotate_deg and not rotate_modules:
+        angle = math.radians(rotate_deg)
+        cos_a = math.cos(angle)
+        sin_a = math.sin(angle)
+        base_offset = (extra_pad_x, extra_pad_y)
+        for y, row in enumerate(matrix):
+            for x, cell in enumerate(row):
+                if not cell:
+                    continue
+                column_offset_x, column_offset_y = column_offset_value(column_offsets, x)
+                px = (x + border) * scale + base_offset[0]
+                py = (y + border) * scale + base_offset[1]
+                if rotate_mode == "before":
+                    px += column_offset_x
+                    py += column_offset_y
+                dx = px - center_x
+                dy = py - center_y
+                rx = dx * cos_a - dy * sin_a
+                ry = dx * sin_a + dy * cos_a
+                px = rx + center_x
+                py = ry + center_y
+                if rotate_mode == "after":
+                    px += column_offset_x
+                    py += column_offset_y
+                parts.append(module_element(shape, px, py, scale, radius, fill))
+    elif rotate_mode == "before" and column_offsets:
         for column_index in range(size):
             column_offset_x, column_offset_y = column_offset_value(
                 column_offsets, column_index

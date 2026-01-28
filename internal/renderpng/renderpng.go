@@ -27,6 +27,40 @@ func RenderPNG(
 	radius float64,
 	gradient *config.Gradient,
 ) (*image.RGBA, error) {
+	return RenderPNGWithOffsets(
+		matrix,
+		scale,
+		border,
+		dark,
+		light,
+		shape,
+		radius,
+		gradient,
+		nil,
+		0,
+		0,
+		0,
+		"after",
+		false,
+	)
+}
+
+func RenderPNGWithOffsets(
+	matrix [][]bool,
+	scale int,
+	border int,
+	dark string,
+	light *string,
+	shape string,
+	radius float64,
+	gradient *config.Gradient,
+	columnOffsets []ColumnOffset,
+	extraPadX int,
+	extraPadY int,
+	rotateDeg float64,
+	rotateMode string,
+	rotateTiles bool,
+) (*image.RGBA, error) {
 	if scale <= 0 {
 		return nil, errors.New("scale must be greater than 0")
 	}
@@ -34,8 +68,24 @@ func RenderPNG(
 	if size == 0 {
 		return nil, errors.New("matrix is empty")
 	}
+	if rotateMode != "after" && rotateMode != "before" {
+		return nil, fmt.Errorf("unknown rotate mode: %s", rotateMode)
+	}
 	dim := (size + border*2) * scale
-	if dim <= 0 {
+	contentWidth := dim + extraPadX*2
+	contentHeight := dim + extraPadY*2
+	width := float64(contentWidth)
+	height := float64(contentHeight)
+	if rotateDeg != 0 {
+		angle := rotateDeg * math.Pi / 180
+		cosA := math.Abs(math.Cos(angle))
+		sinA := math.Abs(math.Sin(angle))
+		width = float64(contentWidth)*cosA + float64(contentHeight)*sinA
+		height = float64(contentWidth)*sinA + float64(contentHeight)*cosA
+	}
+	widthInt := int(math.Ceil(width))
+	heightInt := int(math.Ceil(height))
+	if widthInt <= 0 || heightInt <= 0 {
 		return nil, errors.New("image dimensions must be positive")
 	}
 
@@ -53,7 +103,7 @@ func RenderPNG(
 		lightColor = &parsed
 	}
 
-	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
+	img := image.NewRGBA(image.Rect(0, 0, widthInt, heightInt))
 	if lightColor != nil {
 		draw.Draw(img, img.Bounds(), &image.Uniform{C: *lightColor}, image.Point{}, draw.Src)
 	}
@@ -76,20 +126,113 @@ func RenderPNG(
 		gradientLUT = buildGradientLUT(scale, gradientDef.From, gradientDef.To)
 	}
 
+	centerX := float64(contentWidth) / 2
+	centerY := float64(contentHeight) / 2
+	translateX := (float64(widthInt) - float64(contentWidth)) / 2
+	translateY := (float64(heightInt) - float64(contentHeight)) / 2
+	baseOffsetX := float64(extraPadX)
+	baseOffsetY := float64(extraPadY)
+	angleRad := rotateDeg * math.Pi / 180
+	cosA := math.Cos(angleRad)
+	sinA := math.Sin(angleRad)
+
+	if rotateDeg != 0 && rotateTiles {
+		baseImg := image.NewRGBA(image.Rect(0, 0, contentWidth, contentHeight))
+		if lightColor != nil {
+			draw.Draw(baseImg, baseImg.Bounds(), &image.Uniform{C: *lightColor}, image.Point{}, draw.Src)
+		}
+		for y, row := range matrix {
+			for x, cell := range row {
+				if !cell {
+					continue
+				}
+				offset := columnOffsetValue(columnOffsets, x)
+				px := float64(x+border)*float64(scale) + baseOffsetX
+				py := float64(y+border)*float64(scale) + baseOffsetY
+				if rotateMode == "before" {
+					px += offset.X
+					py += offset.Y
+				} else if rotateMode == "after" {
+					px += offset.X
+					py += offset.Y
+				}
+				if err := drawModule(baseImg, int(math.Round(px)), int(math.Round(py)), scale, shape, radius, darkColor, gradientLUT); err != nil {
+					return nil, err
+				}
+			}
+		}
+		rotateInto(img, baseImg, translateX, translateY, centerX, centerY, cosA, sinA)
+		return img, nil
+	}
+
 	for y, row := range matrix {
 		for x, cell := range row {
 			if !cell {
 				continue
 			}
-			originX := (x + border) * scale
-			originY := (y + border) * scale
-			if err := drawModule(img, originX, originY, scale, shape, radius, darkColor, gradientLUT); err != nil {
+			offset := columnOffsetValue(columnOffsets, x)
+			baseX := float64(x+border)*float64(scale) + baseOffsetX
+			baseY := float64(y+border)*float64(scale) + baseOffsetY
+			px := baseX
+			py := baseY
+			if rotateMode == "before" {
+				px += offset.X
+				py += offset.Y
+			}
+			if rotateDeg != 0 {
+				dx := px - centerX
+				dy := py - centerY
+				rx := dx*cosA - dy*sinA
+				ry := dx*sinA + dy*cosA
+				px = rx + centerX
+				py = ry + centerY
+			}
+			if rotateMode == "after" {
+				px += offset.X
+				py += offset.Y
+			}
+			px += translateX
+			py += translateY
+			if err := drawModule(img, int(math.Round(px)), int(math.Round(py)), scale, shape, radius, darkColor, gradientLUT); err != nil {
 				return nil, err
 			}
 		}
 	}
 
 	return img, nil
+}
+
+type ColumnOffset struct {
+	X float64
+	Y float64
+}
+
+func columnOffsetValue(offsets []ColumnOffset, index int) ColumnOffset {
+	if len(offsets) == 0 || index >= len(offsets) {
+		return ColumnOffset{}
+	}
+	return offsets[index]
+}
+
+func rotateInto(dst *image.RGBA, src *image.RGBA, translateX float64, translateY float64, centerX float64, centerY float64, cosA float64, sinA float64) {
+	bounds := dst.Bounds()
+	srcBounds := src.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			fx := float64(x) - translateX
+			fy := float64(y) - translateY
+			dx := fx - centerX
+			dy := fy - centerY
+			sx := dx*cosA + dy*sinA + centerX
+			sy := -dx*sinA + dy*cosA + centerY
+			ix := int(math.Round(sx))
+			iy := int(math.Round(sy))
+			if ix < srcBounds.Min.X || iy < srcBounds.Min.Y || ix >= srcBounds.Max.X || iy >= srcBounds.Max.Y {
+				continue
+			}
+			dst.SetRGBA(x, y, src.RGBAAt(ix, iy))
+		}
+	}
 }
 
 func drawModule(
