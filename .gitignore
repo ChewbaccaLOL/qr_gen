@@ -1,5 +1,7 @@
 out/
 .venv/
+.coverage
+.coveragerc
 __pycache__/
 *.exe
 *.dll
