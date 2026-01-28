@@ -51,7 +51,7 @@ Animation variants (classic QR shown):
 </table>
 
 ## Why
-- Fast CLI workflow today, room for a GUI later.
+- Fast CLI workflow plus an optional GUI for exploration.
 - A handful of standard styles plus playful, colorful variants.
 - SVG output for easy editing in design tools.
 
@@ -62,8 +62,8 @@ Animation variants (classic QR shown):
 - Optional for GIF export: `cairosvg` + `Pillow` (`pip install cairosvg pillow`)
 
 ## Binaries (Releases)
-Prebuilt CLI binaries for Windows, macOS, and Linux are attached to GitHub Releases.
-- The release binaries include the core SVG generator (`segno`).
+Prebuilt CLI + GUI binaries for Windows, macOS, and Linux are attached to GitHub Releases.
+- The release binaries include the core SVG generator (`segno`) and the Qt GUI runtime.
 - PNG/PDF/PS and GIF exports require extra dependencies (`cairosvg`, `Pillow`) and are not bundled by default.
   Build from source or make your own release if you need those features in the binary.
 
@@ -81,12 +81,19 @@ Artifacts land in `dist/`:
 
 If you prefer easier debugging (or a faster startup), switch to `--onedir` instead of `--onefile`.
 
+### Build GUI (Qt) locally
+```bash
+python3 -m pip install --upgrade pip
+python3 -m pip install segno pyinstaller pyside6
+pyinstaller --onefile --name qr-generator qr_gui.py --collect-all PySide6 --hidden-import PySide6.QtSvg
+```
+
 ### Windows GUI build (with Cairo bundled)
 On Windows, previews/PNG require Cairo DLLs. Use the helper script to bundle them:
 ```powershell
 choco install -y gtk-runtime msys2
 python -m pip install --upgrade pip
-python -m pip install pyinstaller segno cairosvg pillow
+python -m pip install pyinstaller segno cairosvg pyside6
 .\scripts\build_windows.ps1
 ```
 The script outputs `dist/qr-generator.exe` and a `dist/cairo/` folder; keep that folder next to the EXE when distributing.
@@ -114,16 +121,22 @@ echo "https://example.com" | python3 qr_generator.py -o piped.svg
 ```
 
 ## GUI (experimental)
-Launch the minimal GUI wrapper:
+Launch the Qt GUI wrapper (requires PySide6):
 ```bash
 python3 qr_gui.py
 ```
 
 Notes:
-- Live previews require `cairosvg` (same dependency as PNG export).
-- GIF export from the GUI requires `cairosvg` + `Pillow`.
+- Live previews are built-in (no Cairo dependency).
+- PNG/PDF/PS export requires `cairosvg`.
 - The copy button copies the variant SVG to your clipboard.
 - Presets saved in the GUI are stored in `qr_presets.json` (auto-loaded on launch).
+- The right-side controls are scrollable if your window is small.
+
+Tkinter GUI (legacy):
+```bash
+python3 legacy/qr_gui_tk.py
+```
 
 ## Variants
 Standard:

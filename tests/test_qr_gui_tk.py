@@ -5,8 +5,14 @@ try:
 except Exception:  # pragma: no cover - optional runtime dependency
     tk = None
 
-import qr_gui
-from qr_gui import MAX_PREVIEW_INPUT_LEN, MAX_PREVIEW_MATRIX, QrGuiApp, ScrollableFrame, ui
+from legacy import qr_gui_tk as qr_gui
+from legacy.qr_gui_tk import (
+    MAX_PREVIEW_INPUT_LEN,
+    MAX_PREVIEW_MATRIX,
+    QrGuiApp,
+    ScrollableFrame,
+    ui,
+)
 
 
 class DummyStyle:
