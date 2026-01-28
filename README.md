@@ -67,6 +67,8 @@ Quick start:
 go run ./cmd/qr_generator --list-variants
 ```
 
+Note: the positional data argument must come last (after flags), or the Go flag parser will stop early.
+
 Generate an SVG (same defaults as the Python CLI):
 ```bash
 go run ./cmd/qr_generator -o out/qr.svg "https://example.com"
