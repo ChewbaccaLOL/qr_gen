@@ -1,6 +1,9 @@
 package animation
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestComputeWaveOffsetsSize(t *testing.T) {
 	offsets := computeWaveOffsets(5, 2.0, 10.0, 0.0)
@@ -36,5 +39,22 @@ func TestBuildFloatOffsetsCycles(t *testing.T) {
 	expected := 2 + (4 * 3) + 2
 	if total != expected {
 		t.Fatalf("expected %d frames, got %d", expected, total)
+	}
+}
+
+func TestBuildFloatOffsetsContinuousPhase(t *testing.T) {
+	matrix := [][]bool{{false}}
+	total, offsets, _, _ := buildFloatOffsets(matrix, 1, 1.0, 10, 0, 10, 0, 2, "still", 0, 0, "after")
+	if total != 20 {
+		t.Fatalf("expected 20 frames, got %d", total)
+	}
+	if len(offsets) <= 10 || len(offsets[10]) != 1 {
+		t.Fatalf("expected offsets for frame 10")
+	}
+	phase := 2 * math.Pi
+	expected := 0.4 * math.Sin(phase*0.7)
+	got := offsets[10][0].X
+	if math.Abs(got-expected) > 1e-4 {
+		t.Fatalf("expected offset %.4f, got %.4f", expected, got)
 	}
 }

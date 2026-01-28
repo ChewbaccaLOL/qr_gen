@@ -239,7 +239,7 @@ func buildFloatOffsets(
 		cycles = 1
 	}
 	phaseDenominator := frames
-	if looped || cycles > 1 {
+	if looped {
 		phaseDenominator = maxInt(frames-1, 1)
 	}
 	phaseStep := (2 * math.Pi) / float64(phaseDenominator)
@@ -294,8 +294,7 @@ func buildFloatOffsets(
 				offsets = stillOffsets
 			} else {
 				floatIndex := frameIndex - hold
-				phaseIndex := floatIndex % frames
-				phase := phaseStep * float64(phaseIndex)
+				phase := phaseStep * float64(floatIndex)
 				ramp := waveRampMultiplier(floatIndex, activeFrames, rampFrames)
 				baseOffset := amplitudePx * math.Sin(phase) * ramp
 				phaseMod := phase * 0.7
