@@ -9,7 +9,7 @@
 
 ## How to work here
 - Prefer updating `qr_generator.py` directly; keep the CLI stable.
-- When you add or change variants, update `VARIANTS` in `qr_generator.py` and the variants list in `README.md`.
+- When you add or change variants, update `variants.json` and the variants list in `README.md`.
 - Always add or update unit tests to cover new or changed code.
 - Keep defaults scan-safe: high contrast, sensible quiet zone, and error correction.
 - The catalog output should include every variant with a readable label.
@@ -61,3 +61,9 @@ python3 qr_generator.py --animation --animation-variant wave "Wave me"
 ## Style goals
 - Provide at least a few standard variants (black/white, square, rounded).
 - Add more playful variants (color, gradients, or different shapes) but keep scanability in mind.
+
+## Go migration plan (draft)
+- Keep `variants.json` as the shared source of truth for variants + animation defaults.
+- Python remains the reference CLI; Go CLI should be flag- and env-compatible before replacing anything.
+- Extract shared logic into config + tests first; only then port rendering/animation routines.
+- Plan for a thin GUI wrapper (Qt or similar) that calls the CLI/library without duplicating logic.

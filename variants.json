@@ -1,0 +1,115 @@
+{
+  "variants": [
+    {
+      "name": "classic",
+      "shape": "square",
+      "dark": "#000000",
+      "light": "#ffffff",
+      "radius": 0.0
+    },
+    {
+      "name": "square",
+      "shape": "square",
+      "dark": "#000000",
+      "light": "#ffffff",
+      "radius": 0.0
+    },
+    {
+      "name": "rounded",
+      "shape": "rounded",
+      "dark": "#111111",
+      "light": "#ffffff",
+      "radius": 0.28
+    },
+    {
+      "name": "dot",
+      "shape": "dot",
+      "dark": "#111111",
+      "light": "#ffffff",
+      "radius": 0.0
+    },
+    {
+      "name": "clear",
+      "shape": "square",
+      "dark": "#111111",
+      "light": null,
+      "radius": 0.0
+    },
+    {
+      "name": "clear-rounded",
+      "shape": "rounded",
+      "dark": "#111111",
+      "light": null,
+      "radius": 0.28
+    },
+    {
+      "name": "clear-dot",
+      "shape": "dot",
+      "dark": "#111111",
+      "light": null,
+      "radius": 0.0
+    },
+    {
+      "name": "inverted",
+      "shape": "square",
+      "dark": "#ffffff",
+      "light": "#000000",
+      "radius": 0.0
+    },
+    {
+      "name": "midnight",
+      "shape": "square",
+      "dark": "#e6f1ff",
+      "light": "#0b1020",
+      "radius": 0.0
+    },
+    {
+      "name": "sunset",
+      "shape": "rounded",
+      "dark": "#2a0a44",
+      "light": "#fff2e3",
+      "radius": 0.3,
+      "gradient": {
+        "id": "fg",
+        "from": "#ff7a59",
+        "to": "#7a2cff"
+      }
+    },
+    {
+      "name": "neon",
+      "shape": "dot",
+      "dark": "#00f0ff",
+      "light": "#06060a",
+      "radius": 0.0,
+      "gradient": {
+        "id": "fg",
+        "from": "#00f0ff",
+        "to": "#6bff2e"
+      }
+    }
+  ],
+  "animation_variants": [
+    "wave",
+    "wave-loop",
+    "float",
+    "float-tilt-first",
+    "float-jagged"
+  ],
+  "defaults": {
+    "gif_fps": 12,
+    "gif_frames": 40,
+    "gif_hold": 24,
+    "wave_amp": 0.45,
+    "wave_period": 10.0,
+    "float_jagged_snap": 0.25,
+    "float_tilt": 18.0,
+    "float_angle": 90.0,
+    "readable_gif": {
+      "gif_fps": 12,
+      "gif_frames": 32,
+      "gif_hold": 32,
+      "wave_amp": 0.28,
+      "wave_period": 14.0
+    }
+  }
+}

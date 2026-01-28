@@ -168,6 +168,8 @@ python3 legacy/qr_gui_tk.py
 ```
 
 ## Variants
+Variants (and animation defaults) are defined in `variants.json` to keep styling config shareable across future tooling.
+
 Standard:
 - `classic` (also `square`): black modules on white background
 - `rounded`: softened corners

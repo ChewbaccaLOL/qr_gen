@@ -1,8 +1,6 @@
 import argparse
 import os
 import sys
-from dataclasses import dataclass
-from typing import Dict, Optional
 
 import segno
 
@@ -10,67 +8,27 @@ from qr_animation import build_float_gif_frames, build_wave_gif_frames
 from qr_env import env_bool, env_float, env_int, env_str, load_dotenv
 from qr_export import write_pdf, write_png, write_ps
 from qr_render import render_catalog_svg, render_svg
+from qr_variants import Variant, load_variants_config
 
 
-@dataclass(frozen=True)
-class Variant:
-    name: str
-    shape: str
-    dark: str
-    light: Optional[str]
-    radius: float = 0.0
-    gradient: Optional[Dict[str, str]] = None
+CONFIG = load_variants_config()
+VARIANTS = CONFIG.variants
+ANIMATION_VARIANTS = CONFIG.animation_variants
 
+DEFAULT_GIF_FPS = CONFIG.defaults.gif.fps
+DEFAULT_GIF_FRAMES = CONFIG.defaults.gif.frames
+DEFAULT_GIF_HOLD = CONFIG.defaults.gif.hold
+DEFAULT_WAVE_AMP = CONFIG.defaults.gif.wave_amp
+DEFAULT_WAVE_PERIOD = CONFIG.defaults.gif.wave_period
+DEFAULT_FLOAT_JAGGED_SNAP = CONFIG.defaults.float_jagged_snap
+DEFAULT_FLOAT_TILT = CONFIG.defaults.float_tilt
+DEFAULT_FLOAT_ANGLE = CONFIG.defaults.float_angle
 
-VARIANTS: Dict[str, Variant] = {
-    "classic": Variant("classic", "square", "#000000", "#ffffff"),
-    "square": Variant("square", "square", "#000000", "#ffffff"),
-    "rounded": Variant("rounded", "rounded", "#111111", "#ffffff", radius=0.28),
-    "dot": Variant("dot", "dot", "#111111", "#ffffff"),
-    "clear": Variant("clear", "square", "#111111", None),
-    "clear-rounded": Variant("clear-rounded", "rounded", "#111111", None, radius=0.28),
-    "clear-dot": Variant("clear-dot", "dot", "#111111", None),
-    "inverted": Variant("inverted", "square", "#ffffff", "#000000"),
-    "midnight": Variant("midnight", "square", "#e6f1ff", "#0b1020"),
-    "sunset": Variant(
-        "sunset",
-        "rounded",
-        "#2a0a44",
-        "#fff2e3",
-        radius=0.3,
-        gradient={"id": "fg", "from": "#ff7a59", "to": "#7a2cff"},
-    ),
-    "neon": Variant(
-        "neon",
-        "dot",
-        "#00f0ff",
-        "#06060a",
-        gradient={"id": "fg", "from": "#00f0ff", "to": "#6bff2e"},
-    ),
-}
-
-ANIMATION_VARIANTS = (
-    "wave",
-    "wave-loop",
-    "float",
-    "float-tilt-first",
-    "float-jagged",
-)
-
-DEFAULT_GIF_FPS = 12
-DEFAULT_GIF_FRAMES = 40
-DEFAULT_GIF_HOLD = 24
-DEFAULT_WAVE_AMP = 0.45
-DEFAULT_WAVE_PERIOD = 10.0
-DEFAULT_FLOAT_JAGGED_SNAP = 0.25
-DEFAULT_FLOAT_TILT = 18.0
-DEFAULT_FLOAT_ANGLE = 90.0
-
-READABLE_GIF_FPS = 12
-READABLE_GIF_FRAMES = 32
-READABLE_GIF_HOLD = 32
-READABLE_WAVE_AMP = 0.28
-READABLE_WAVE_PERIOD = 14.0
+READABLE_GIF_FPS = CONFIG.defaults.readable_gif.fps
+READABLE_GIF_FRAMES = CONFIG.defaults.readable_gif.frames
+READABLE_GIF_HOLD = CONFIG.defaults.readable_gif.hold
+READABLE_WAVE_AMP = CONFIG.defaults.readable_gif.wave_amp
+READABLE_WAVE_PERIOD = CONFIG.defaults.readable_gif.wave_period
 
 
 def parse_args() -> argparse.Namespace:
