@@ -85,7 +85,8 @@ jobs:
           New-Item -ItemType Directory -Path package | Out-Null
           Copy-Item dist/qr-generator-cli.exe package/
           Copy-Item dist/qr-generator.exe package/
-          Copy-Item dist/*.dll package/ -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path package/cairo | Out-Null
+          Copy-Item dist/cairo/*.dll package/cairo/ -ErrorAction SilentlyContinue
           Copy-Item README.md, LICENSE package/
           Compress-Archive -Path package/* -DestinationPath qr-generator-${{ matrix.asset }}.zip
 

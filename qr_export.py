@@ -9,9 +9,15 @@ def prepare_cairo() -> None:
     base = getattr(sys, "_MEIPASS", None)
     if base and os.path.isdir(base):
         candidates.append(base)
+        cairo_dir = os.path.join(base, "cairo")
+        if os.path.isdir(cairo_dir):
+            candidates.append(cairo_dir)
     exe_dir = os.path.dirname(sys.executable)
     if exe_dir and os.path.isdir(exe_dir):
         candidates.append(exe_dir)
+        cairo_dir = os.path.join(exe_dir, "cairo")
+        if os.path.isdir(cairo_dir):
+            candidates.append(cairo_dir)
     if not candidates:
         return
     for folder in candidates:

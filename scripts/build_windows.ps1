@@ -56,7 +56,7 @@ $dlls = Get-ChildItem $gtk -Filter *.dll
 $args = @()
 foreach ($dll in $dlls) {
   $args += "--add-binary"
-  $args += "$($dll.FullName);."
+  $args += "$($dll.FullName);cairo"
 }
 
 Write-Host "Bundling Cairo DLLs from: $gtk"
@@ -64,6 +64,7 @@ Write-Host "Bundling Cairo DLLs from: $gtk"
 pyinstaller --onefile --name qr-generator-cli qr_generator.py @args
 pyinstaller --onefile --name qr-generator qr_gui.py @args
 
+New-Item -ItemType Directory -Path dist\\cairo -Force | Out-Null
 foreach ($dll in $dlls) {
-  Copy-Item $dll.FullName dist -Force
+  Copy-Item $dll.FullName dist\\cairo -Force
 }

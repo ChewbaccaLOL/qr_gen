@@ -89,6 +89,7 @@ python -m pip install --upgrade pip
 python -m pip install pyinstaller segno cairosvg pillow
 .\scripts\build_windows.ps1
 ```
+The script outputs `dist/qr-generator.exe` and a `dist/cairo/` folder; keep that folder next to the EXE when distributing.
 
 ## Usage
 ```bash

@@ -367,7 +367,7 @@ class QrGuiApp:
         self.root.grid_rowconfigure(1, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
 
-        top = ttk.Frame(self.root)
+        top = ttk.Frame(self.root, style="App.TFrame")
         top.grid(row=0, column=0, sticky="ew", padx=16, pady=12)
         top.grid_columnconfigure(1, weight=1)
 
@@ -394,7 +394,7 @@ class QrGuiApp:
         theme_box.grid(row=0, column=3, sticky="e")
         theme_box.bind("<<ComboboxSelected>>", self.on_theme_change)
 
-        content = ttk.Frame(self.root)
+        content = ttk.Frame(self.root, style="App.TFrame")
         content.grid(row=1, column=0, sticky="nsew", padx=16)
         content.grid_columnconfigure(0, weight=1)
         content.grid_rowconfigure(0, weight=1)
@@ -403,17 +403,19 @@ class QrGuiApp:
         self.scroll.grid(row=0, column=0, sticky="nsew")
         self.scroll.canvas.bind("<Configure>", lambda _event: self.update_grid_layout())
 
-        self.detail_panel = ttk.Frame(content)
+        self.detail_panel = ttk.Frame(content, style="App.TFrame")
         self.detail_panel.grid(row=0, column=1, sticky="ns", padx=(16, 0))
 
         self._build_cards()
         self._build_detail_panel()
 
-        export = ttk.LabelFrame(self.root, text="Export")
+        export = ttk.LabelFrame(self.root, text="Export", style="Panel.TLabelframe")
         export.grid(row=2, column=0, sticky="ew", padx=16, pady=12)
         export.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(export, text="Format").grid(row=0, column=0, sticky="w", padx=(12, 6), pady=(8, 4))
+        ttk.Label(export, text="Format", style="Panel.TLabel").grid(
+            row=0, column=0, sticky="w", padx=(12, 6), pady=(8, 4)
+        )
         format_box = ttk.Combobox(
             export,
             textvariable=self.format_var,
@@ -424,7 +426,9 @@ class QrGuiApp:
         format_box.grid(row=0, column=1, sticky="w", pady=(8, 4))
         format_box.bind("<<ComboboxSelected>>", self.on_format_change)
 
-        ttk.Label(export, text="Output").grid(row=0, column=2, sticky="w", padx=(16, 6), pady=(8, 4))
+        ttk.Label(export, text="Output", style="Panel.TLabel").grid(
+            row=0, column=2, sticky="w", padx=(16, 6), pady=(8, 4)
+        )
         output_entry = ttk.Entry(export, textvariable=self.output_path_var)
         output_entry.grid(row=0, column=3, sticky="ew", pady=(8, 4))
         ttk.Button(export, text="Browse", command=self.browse_output).grid(
@@ -434,22 +438,28 @@ class QrGuiApp:
             row=0, column=5, sticky="e", padx=(6, 12), pady=(8, 4)
         )
 
-        settings = ttk.Frame(export)
+        settings = ttk.Frame(export, style="Panel.TFrame")
         settings.grid(row=1, column=0, columnspan=6, sticky="ew", padx=12, pady=(4, 10))
         settings.grid_columnconfigure(2, weight=1)
 
-        qr_settings = ttk.LabelFrame(settings, text="QR settings")
+        qr_settings = ttk.LabelFrame(settings, text="QR settings", style="Panel.TLabelframe")
         qr_settings.grid(row=0, column=0, sticky="nw", padx=(0, 12), pady=4)
 
-        ttk.Label(qr_settings, text="Scale").grid(row=0, column=0, sticky="w", padx=8, pady=4)
+        ttk.Label(qr_settings, text="Scale", style="Panel.TLabel").grid(
+            row=0, column=0, sticky="w", padx=8, pady=4
+        )
         ttk.Spinbox(qr_settings, from_=1, to=40, width=6, textvariable=self.scale_var).grid(
             row=0, column=1, sticky="w", padx=8, pady=4
         )
-        ttk.Label(qr_settings, text="Border").grid(row=1, column=0, sticky="w", padx=8, pady=4)
+        ttk.Label(qr_settings, text="Border", style="Panel.TLabel").grid(
+            row=1, column=0, sticky="w", padx=8, pady=4
+        )
         ttk.Spinbox(qr_settings, from_=0, to=20, width=6, textvariable=self.border_var).grid(
             row=1, column=1, sticky="w", padx=8, pady=4
         )
-        ttk.Label(qr_settings, text="Error").grid(row=2, column=0, sticky="w", padx=8, pady=4)
+        ttk.Label(qr_settings, text="Error", style="Panel.TLabel").grid(
+            row=2, column=0, sticky="w", padx=8, pady=4
+        )
         ttk.Combobox(
             qr_settings,
             textvariable=self.error_var,
@@ -458,11 +468,13 @@ class QrGuiApp:
             width=4,
         ).grid(row=2, column=1, sticky="w", padx=8, pady=4)
 
-        self.format_settings = ttk.LabelFrame(settings, text="Format settings")
+        self.format_settings = ttk.LabelFrame(settings, text="Format settings", style="Panel.TLabelframe")
         self.format_settings.grid(row=0, column=1, sticky="nw", pady=4)
 
-        self.png_settings = ttk.Frame(self.format_settings)
-        ttk.Label(self.png_settings, text="PNG scale").grid(row=0, column=0, sticky="w", padx=8, pady=4)
+        self.png_settings = ttk.Frame(self.format_settings, style="Panel.TFrame")
+        ttk.Label(self.png_settings, text="PNG scale", style="Panel.TLabel").grid(
+            row=0, column=0, sticky="w", padx=8, pady=4
+        )
         ttk.Spinbox(
             self.png_settings,
             from_=0.5,
@@ -472,8 +484,10 @@ class QrGuiApp:
             textvariable=self.png_scale_var,
         ).grid(row=0, column=1, sticky="w", padx=8, pady=4)
 
-        self.gif_settings = ttk.Frame(self.format_settings)
-        ttk.Label(self.gif_settings, text="Variant").grid(row=0, column=0, sticky="w", padx=8, pady=4)
+        self.gif_settings = ttk.Frame(self.format_settings, style="Panel.TFrame")
+        ttk.Label(self.gif_settings, text="Variant", style="Panel.TLabel").grid(
+            row=0, column=0, sticky="w", padx=8, pady=4
+        )
         ttk.Combobox(
             self.gif_settings,
             textvariable=self.gif_variant_var,
@@ -481,19 +495,27 @@ class QrGuiApp:
             state="readonly",
             width=14,
         ).grid(row=0, column=1, sticky="w", padx=8, pady=4)
-        ttk.Label(self.gif_settings, text="FPS").grid(row=1, column=0, sticky="w", padx=8, pady=4)
+        ttk.Label(self.gif_settings, text="FPS", style="Panel.TLabel").grid(
+            row=1, column=0, sticky="w", padx=8, pady=4
+        )
         ttk.Spinbox(self.gif_settings, from_=1, to=60, width=6, textvariable=self.gif_fps_var).grid(
             row=1, column=1, sticky="w", padx=8, pady=4
         )
-        ttk.Label(self.gif_settings, text="Frames").grid(row=2, column=0, sticky="w", padx=8, pady=4)
+        ttk.Label(self.gif_settings, text="Frames", style="Panel.TLabel").grid(
+            row=2, column=0, sticky="w", padx=8, pady=4
+        )
         ttk.Spinbox(self.gif_settings, from_=2, to=120, width=6, textvariable=self.gif_frames_var).grid(
             row=2, column=1, sticky="w", padx=8, pady=4
         )
-        ttk.Label(self.gif_settings, text="Hold").grid(row=3, column=0, sticky="w", padx=8, pady=4)
+        ttk.Label(self.gif_settings, text="Hold", style="Panel.TLabel").grid(
+            row=3, column=0, sticky="w", padx=8, pady=4
+        )
         ttk.Spinbox(self.gif_settings, from_=0, to=120, width=6, textvariable=self.gif_hold_var).grid(
             row=3, column=1, sticky="w", padx=8, pady=4
         )
-        ttk.Label(self.gif_settings, text="Wave amp").grid(row=4, column=0, sticky="w", padx=8, pady=4)
+        ttk.Label(self.gif_settings, text="Wave amp", style="Panel.TLabel").grid(
+            row=4, column=0, sticky="w", padx=8, pady=4
+        )
         ttk.Spinbox(
             self.gif_settings,
             from_=0.0,
@@ -502,7 +524,9 @@ class QrGuiApp:
             width=6,
             textvariable=self.wave_amp_var,
         ).grid(row=4, column=1, sticky="w", padx=8, pady=4)
-        ttk.Label(self.gif_settings, text="Wave period").grid(row=5, column=0, sticky="w", padx=8, pady=4)
+        ttk.Label(self.gif_settings, text="Wave period", style="Panel.TLabel").grid(
+            row=5, column=0, sticky="w", padx=8, pady=4
+        )
         ttk.Spinbox(
             self.gif_settings,
             from_=2.0,
@@ -511,7 +535,9 @@ class QrGuiApp:
             width=6,
             textvariable=self.wave_period_var,
         ).grid(row=5, column=1, sticky="w", padx=8, pady=4)
-        ttk.Label(self.gif_settings, text="Float angle").grid(row=6, column=0, sticky="w", padx=8, pady=4)
+        ttk.Label(self.gif_settings, text="Float angle", style="Panel.TLabel").grid(
+            row=6, column=0, sticky="w", padx=8, pady=4
+        )
         ttk.Spinbox(
             self.gif_settings,
             from_=-180,
@@ -565,11 +591,11 @@ class QrGuiApp:
                 card.frame.grid(row=row, column=col, padx=ui(8), pady=ui(8), sticky="n")
 
     def _build_detail_panel(self) -> None:
-        preview_frame = ttk.LabelFrame(self.detail_panel, text="Selected style")
+        preview_frame = ttk.LabelFrame(self.detail_panel, text="Selected style", style="Panel.TLabelframe")
         preview_frame.grid(row=0, column=0, sticky="ew")
         preview_frame.grid_columnconfigure(0, weight=1)
 
-        self.selected_label = ttk.Label(preview_frame, text="")
+        self.selected_label = ttk.Label(preview_frame, text="", style="Panel.TLabel")
         self.selected_label.grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
 
         self.detail_canvas = tk.Canvas(
@@ -582,17 +608,19 @@ class QrGuiApp:
         self.detail_canvas.grid(row=1, column=0, padx=12, pady=(0, 8))
         self.detail_canvas.bind("<Button-1>", self.open_enlarged_preview)
 
-        preview_actions = ttk.Frame(preview_frame)
+        preview_actions = ttk.Frame(preview_frame, style="Panel.TFrame")
         preview_actions.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 10))
         ttk.Button(preview_actions, text="Copy SVG", command=self.copy_selected_svg).grid(
             row=0, column=0, sticky="w"
         )
 
-        customize_frame = ttk.LabelFrame(self.detail_panel, text="Customize")
+        customize_frame = ttk.LabelFrame(self.detail_panel, text="Customize", style="Panel.TLabelframe")
         customize_frame.grid(row=1, column=0, sticky="ew", pady=(12, 0))
         customize_frame.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(customize_frame, text="Shape").grid(row=0, column=0, sticky="w", padx=12, pady=6)
+        ttk.Label(customize_frame, text="Shape", style="Panel.TLabel").grid(
+            row=0, column=0, sticky="w", padx=12, pady=6
+        )
         ttk.Combobox(
             customize_frame,
             textvariable=self.custom_shape_var,
@@ -601,16 +629,20 @@ class QrGuiApp:
             width=10,
         ).grid(row=0, column=1, sticky="w", padx=12, pady=6)
 
-        ttk.Label(customize_frame, text="Dark").grid(row=1, column=0, sticky="w", padx=12, pady=6)
-        dark_row = ttk.Frame(customize_frame)
+        ttk.Label(customize_frame, text="Dark", style="Panel.TLabel").grid(
+            row=1, column=0, sticky="w", padx=12, pady=6
+        )
+        dark_row = ttk.Frame(customize_frame, style="Panel.TFrame")
         dark_row.grid(row=1, column=1, sticky="w", padx=12, pady=6)
         ttk.Entry(dark_row, textvariable=self.custom_dark_var, width=16).grid(row=0, column=0, sticky="w")
         ttk.Button(dark_row, text="Pick", command=lambda: self.pick_color(self.custom_dark_var)).grid(
             row=0, column=1, sticky="w", padx=(6, 0)
         )
 
-        ttk.Label(customize_frame, text="Light").grid(row=2, column=0, sticky="w", padx=12, pady=6)
-        light_row = ttk.Frame(customize_frame)
+        ttk.Label(customize_frame, text="Light", style="Panel.TLabel").grid(
+            row=2, column=0, sticky="w", padx=12, pady=6
+        )
+        light_row = ttk.Frame(customize_frame, style="Panel.TFrame")
         light_row.grid(row=2, column=1, sticky="w", padx=12, pady=6)
         self.custom_light_entry = ttk.Entry(light_row, textvariable=self.custom_light_var, width=16)
         self.custom_light_entry.grid(row=0, column=0, sticky="w")
@@ -624,9 +656,12 @@ class QrGuiApp:
             text="Transparent background",
             variable=self.custom_transparent_var,
             command=self.update_custom_field_states,
+            style="Panel.TCheckbutton",
         ).grid(row=3, column=0, columnspan=2, sticky="w", padx=12, pady=6)
 
-        ttk.Label(customize_frame, text="Radius").grid(row=4, column=0, sticky="w", padx=12, pady=6)
+        ttk.Label(customize_frame, text="Radius", style="Panel.TLabel").grid(
+            row=4, column=0, sticky="w", padx=12, pady=6
+        )
         ttk.Spinbox(
             customize_frame,
             from_=0.0,
@@ -641,18 +676,19 @@ class QrGuiApp:
             text="Use gradient",
             variable=self.custom_gradient_enabled_var,
             command=self.update_custom_field_states,
+            style="Panel.TCheckbutton",
         ).grid(row=5, column=0, columnspan=2, sticky="w", padx=12, pady=(6, 2))
 
-        gradient_row = ttk.Frame(customize_frame)
+        gradient_row = ttk.Frame(customize_frame, style="Panel.TFrame")
         gradient_row.grid(row=6, column=0, columnspan=2, sticky="w", padx=12, pady=(0, 6))
-        ttk.Label(gradient_row, text="From").grid(row=0, column=0, sticky="w")
+        ttk.Label(gradient_row, text="From", style="Panel.TLabel").grid(row=0, column=0, sticky="w")
         self.gradient_from_entry = ttk.Entry(gradient_row, textvariable=self.custom_gradient_from_var, width=10)
         self.gradient_from_entry.grid(row=0, column=1, sticky="w", padx=(6, 6))
         self.gradient_from_pick = ttk.Button(
             gradient_row, text="Pick", command=lambda: self.pick_color(self.custom_gradient_from_var)
         )
         self.gradient_from_pick.grid(row=0, column=2, sticky="w", padx=(0, 12))
-        ttk.Label(gradient_row, text="To").grid(row=0, column=3, sticky="w")
+        ttk.Label(gradient_row, text="To", style="Panel.TLabel").grid(row=0, column=3, sticky="w")
         self.gradient_to_entry = ttk.Entry(gradient_row, textvariable=self.custom_gradient_to_var, width=10)
         self.gradient_to_entry.grid(row=0, column=4, sticky="w", padx=(6, 6))
         self.gradient_to_pick = ttk.Button(
@@ -664,10 +700,12 @@ class QrGuiApp:
             row=7, column=0, columnspan=2, sticky="w", padx=12, pady=(8, 10)
         )
 
-        preset_frame = ttk.LabelFrame(self.detail_panel, text="Presets")
+        preset_frame = ttk.LabelFrame(self.detail_panel, text="Presets", style="Panel.TLabelframe")
         preset_frame.grid(row=2, column=0, sticky="ew", pady=(12, 0))
         preset_frame.grid_columnconfigure(1, weight=1)
-        ttk.Label(preset_frame, text="Name").grid(row=0, column=0, sticky="w", padx=12, pady=8)
+        ttk.Label(preset_frame, text="Name", style="Panel.TLabel").grid(
+            row=0, column=0, sticky="w", padx=12, pady=8
+        )
         ttk.Entry(preset_frame, textvariable=self.preset_name_var, width=18).grid(
             row=0, column=1, sticky="w", padx=12, pady=8
         )
@@ -750,6 +788,10 @@ class QrGuiApp:
             key = "system"
         self.colors = THEMES[key].copy()
         style = ttk.Style()
+        try:
+            style.theme_use("clam")
+        except tk.TclError:
+            pass
 
         self.root.configure(background=self.colors["bg"])
         style.configure("TFrame", background=self.colors["bg"])
@@ -758,8 +800,29 @@ class QrGuiApp:
         style.configure("TLabelFrame.Label", background=self.colors["bg"], foreground=self.colors["text"])
         style.configure("TEntry", fieldbackground=self.colors["surface"], foreground=self.colors["text"])
         style.configure("TButton", background=self.colors["surface"], foreground=self.colors["text"])
-        style.configure("TCombobox", fieldbackground=self.colors["surface"], foreground=self.colors["text"])
+        style.configure(
+            "TCombobox",
+            fieldbackground=self.colors["surface"],
+            background=self.colors["surface"],
+            foreground=self.colors["text"],
+            arrowcolor=self.colors["text"],
+        )
         style.configure("TCheckbutton", background=self.colors["bg"], foreground=self.colors["text"])
+        style.map(
+            "TCombobox",
+            fieldbackground=[("readonly", self.colors["surface"])],
+            foreground=[("readonly", self.colors["text"])],
+            background=[("readonly", self.colors["surface"])],
+        )
+
+        style.configure("App.TFrame", background=self.colors["bg"])
+        style.configure("Panel.TFrame", background=self.colors["surface"])
+        style.configure("Panel.TLabel", background=self.colors["surface"], foreground=self.colors["text"])
+        style.configure("Panel.TCheckbutton", background=self.colors["surface"], foreground=self.colors["text"])
+        style.configure("Panel.TLabelframe", background=self.colors["surface"], foreground=self.colors["text"])
+        style.configure(
+            "Panel.TLabelframe.Label", background=self.colors["surface"], foreground=self.colors["text"]
+        )
 
         self.scroll.apply_theme(self.colors)
         for card in self.cards.values():
@@ -812,7 +875,7 @@ class QrGuiApp:
         elif fmt == "GIF":
             self.gif_settings.grid(row=0, column=0, sticky="w")
         else:
-            placeholder = ttk.Label(self.format_settings, text="No extra settings")
+            placeholder = ttk.Label(self.format_settings, text="No extra settings", style="Panel.TLabel")
             placeholder.grid(row=0, column=0, sticky="w", padx=8, pady=8)
 
     def on_data_change(self) -> None:
