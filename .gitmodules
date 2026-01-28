@@ -1,0 +1,3 @@
+[submodule "legacy/python"]
+	path = legacy/python
+	url = https://github.com/ChewbaccaLOL/qr-gen-legacy

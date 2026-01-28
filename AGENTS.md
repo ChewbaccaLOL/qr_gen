@@ -2,13 +2,13 @@
 
 ## Project intent
 - Build a flexible CLI QR code generator for a designer-friendly workflow.
-- Keep the core generation in `python/qr_generator.py` and output SVG.
+- Legacy Python lives in the `legacy/python/` submodule (main Go workflow lives at repo root).
 - GUI is out of scope for now (but leave room to add later).
 - When a GUI is added, it should be a thin wrapper that calls the same core logic as the CLI.
-- `python/qr_generator.py` should stay focused on CLI + orchestration; rendering lives in `python/qr_render.py`.
+- `legacy/python/python/qr_generator.py` should stay focused on CLI + orchestration; rendering lives in `legacy/python/python/qr_render.py`.
 
 ## How to work here
-- Prefer updating `python/qr_generator.py` directly; keep the CLI stable.
+- Prefer updating `legacy/python/python/qr_generator.py` directly when touching the Python CLI.
 - When you add or change variants, update `variants.json` and the variants list in `README.md`.
 - Always add or update unit tests to cover new or changed code.
 - Keep defaults scan-safe: high contrast, sensible quiet zone, and error correction.
@@ -17,7 +17,7 @@
 - GIF export depends on `cairosvg` + `Pillow`; keep it optional and fail fast with a clear message.
 - Default output goes to `out/` and that directory is gitignored.
 - `.env` is supported in the project root; command-line arguments always take precedence.
-- Run relevant tests while developing changes; for Go use `go test ./...` and for Python use `pytest`.
+- Run relevant tests while developing changes; for Go use `go test ./...` and for Python use `pytest` from `legacy/python/`.
 
 ## .env keys
 - `QR_DATA` text or URL to encode (used if no CLI arg and no stdin)
@@ -52,11 +52,11 @@
 
 ## Quick commands
 ```bash
-python3 python/qr_generator.py --help
-python3 python/qr_generator.py --list-variants
-python3 python/qr_generator.py --catalog --png
-python3 python/qr_generator.py --gif "Wave me"
-python3 python/qr_generator.py --animation --animation-variant wave "Wave me"
+python3 legacy/python/python/qr_generator.py --help
+python3 legacy/python/python/qr_generator.py --list-variants
+python3 legacy/python/python/qr_generator.py --catalog --png
+python3 legacy/python/python/qr_generator.py --gif "Wave me"
+python3 legacy/python/python/qr_generator.py --animation --animation-variant wave "Wave me"
 ```
 
 ## Style goals

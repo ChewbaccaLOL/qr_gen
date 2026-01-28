@@ -7,7 +7,6 @@ import (
 	"image/png"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -15,10 +14,11 @@ import (
 	"qr_generator/internal/animation"
 	"qr_generator/internal/cli"
 	"qr_generator/internal/config"
-	"qr_generator/internal/export"
 	"qr_generator/internal/qr"
 	"qr_generator/internal/render"
+	"qr_generator/internal/renderpdf"
 	"qr_generator/internal/renderpng"
+	"qr_generator/internal/renderps"
 )
 
 const (
@@ -220,58 +220,108 @@ func main() {
 		fmt.Printf("Saved %s\n", pngPath)
 	}
 
-	if args.Pdf || args.Ps {
-		pythonPath, err := exec.LookPath("python3")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "error: python3 is required for PDF/PS export")
-			os.Exit(exitUsage)
+	if args.Pdf {
+		pdfPath := args.PdfOutput
+		if pdfPath == "" {
+			pdfPath = deriveOutputPath(args.Output, ".pdf")
 		}
-		if err := export.EnsureCairoSVG(pythonPath); err != nil {
+		if err := ensureParentDir(pdfPath); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(exitUsage)
 		}
-		if args.Pdf {
-			pdfPath := args.PdfOutput
-			if pdfPath == "" {
-				pdfPath = deriveOutputPath(args.Output, ".pdf")
+		var doc *renderpdf.PDFDocument
+		if args.Catalog {
+			names := make([]string, 0, len(cfg.Variants))
+			for name := range cfg.Variants {
+				names = append(names, name)
 			}
-			if err := ensureParentDir(pdfPath); err != nil {
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
-				os.Exit(exitUsage)
+			sort.Strings(names)
+			var variants []config.Variant
+			for _, name := range names {
+				variants = append(variants, cfg.Variants[name])
 			}
-			cmd, err := export.CairoSVGCommand(pythonPath, export.FormatPDF, args.Output, pdfPath)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
-				os.Exit(exitUsage)
-			}
-			cmd.Dir = cwd
-			if output, err := cmd.CombinedOutput(); err != nil {
-				fmt.Fprintf(os.Stderr, "error: %v\n%s\n", err, string(output))
-				os.Exit(exitUsage)
-			}
-			fmt.Printf("Saved %s\n", pdfPath)
+			doc, err = renderpdf.RenderCatalogPDF(
+				matrix,
+				args.Scale,
+				args.Border,
+				variants,
+				args.CatalogColumns,
+				args.CatalogBackground,
+				args.CatalogLabelSize,
+			)
+		} else {
+			doc, err = renderpdf.RenderPDF(
+				matrix,
+				args.Scale,
+				args.Border,
+				dark,
+				light,
+				variant.Shape,
+				radius,
+				gradient,
+			)
 		}
-		if args.Ps {
-			psPath := args.PsOutput
-			if psPath == "" {
-				psPath = deriveOutputPath(args.Output, ".ps")
-			}
-			if err := ensureParentDir(psPath); err != nil {
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
-				os.Exit(exitUsage)
-			}
-			cmd, err := export.CairoSVGCommand(pythonPath, export.FormatPS, args.Output, psPath)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
-				os.Exit(exitUsage)
-			}
-			cmd.Dir = cwd
-			if output, err := cmd.CombinedOutput(); err != nil {
-				fmt.Fprintf(os.Stderr, "error: %v\n%s\n", err, string(output))
-				os.Exit(exitUsage)
-			}
-			fmt.Printf("Saved %s\n", psPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
 		}
+		if err := doc.Write(pdfPath); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		fmt.Printf("Saved %s\n", pdfPath)
+	}
+
+	if args.Ps {
+		psPath := args.PsOutput
+		if psPath == "" {
+			psPath = deriveOutputPath(args.Output, ".ps")
+		}
+		if err := ensureParentDir(psPath); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		var doc *renderps.PSDocument
+		if args.Catalog {
+			names := make([]string, 0, len(cfg.Variants))
+			for name := range cfg.Variants {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+			var variants []config.Variant
+			for _, name := range names {
+				variants = append(variants, cfg.Variants[name])
+			}
+			doc, err = renderps.RenderCatalogPS(
+				matrix,
+				args.Scale,
+				args.Border,
+				variants,
+				args.CatalogColumns,
+				args.CatalogBackground,
+				args.CatalogLabelSize,
+			)
+		} else {
+			doc, err = renderps.RenderPS(
+				matrix,
+				args.Scale,
+				args.Border,
+				dark,
+				light,
+				variant.Shape,
+				radius,
+				gradient,
+			)
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		if err := doc.Write(psPath); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		fmt.Printf("Saved %s\n", psPath)
 	}
 
 	if animationEnabled {

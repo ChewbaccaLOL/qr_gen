@@ -57,121 +57,12 @@ Animation variants (classic QR shown):
 - A handful of standard styles plus playful, colorful variants.
 - SVG output for easy editing in design tools.
 
-## Requirements
-- Python 3.8+
-- `segno` (`pip install segno`)
-- Optional for PNG/PDF/PS export: `cairosvg` (`pip install cairosvg`)
-- Optional for GIF export: `cairosvg` + `Pillow` (`pip install cairosvg pillow`)
-- Optional for the Qt GUI: `PySide6` (`pip install pyside6`)
+## Go setup
+Requirements:
+- Go 1.20+ (module uses `go 1.20`)
 
-## Install from source
-Note: Windows is not a target platform for source builds right now. If there’s demand, it can be added later.
-Core CLI only:
-```bash
-python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-```
-
-Optional extras (PNG/PDF/PS, GIF, Qt GUI):
-```bash
-python3 -m pip install -r requirements-optional.txt
-```
-
-Dev/test tooling:
-```bash
-python3 -m pip install -r requirements-dev.txt
-```
-
-You can also use the minimal Makefile or the setup script:
-```bash
-make install
-make install-optional
-make install-dev
-./setup.sh --optional
-./setup.sh --dev
-./setup.sh --all
-```
-
-## Binaries (Releases)
-Prebuilt CLI + GUI binaries for Windows, macOS, and Linux are attached to GitHub Releases.
-- The release binaries include the core SVG generator (`segno`) and the Qt GUI runtime.
-- PNG/PDF/PS and GIF exports require extra dependencies (`cairosvg`, `Pillow`) and are not bundled by default.
-  Build from source or make your own release if you need those features in the binary.
-
-## Compile from source (binaries)
-Install PyInstaller and build a onefile CLI executable:
-```bash
-python3 -m pip install --upgrade pip
-python3 -m pip install segno pyinstaller
-pyinstaller --onefile --name qr-generator python/qr_generator.py
-```
-
-Artifacts land in `dist/`:
-- macOS/Linux: `dist/qr-generator`
-- Windows: `dist/qr-generator.exe`
-
-If you prefer easier debugging (or a faster startup), switch to `--onedir` instead of `--onefile`.
-
-### Build GUI (Qt) locally
-```bash
-python3 -m pip install --upgrade pip
-python3 -m pip install segno pyinstaller pyside6
-pyinstaller --onefile --windowed --name qr-generator python/qr_gui.py --collect-all PySide6 --hidden-import PySide6.QtSvg
-```
-
-### Windows GUI build (with Cairo bundled)
-On Windows, previews/PNG require Cairo DLLs. Use the helper script to bundle them:
-```powershell
-choco install -y gtk-runtime msys2
-python -m pip install --upgrade pip
-python -m pip install pyinstaller segno cairosvg pyside6
-.\scripts\build_windows.ps1
-```
-The script outputs `dist/qr-generator.exe` and a `dist/cairo/` folder; keep that folder next to the EXE when distributing.
-
-## Usage
-```bash
-python3 python/qr_generator.py "https://example.com" -o out/qr.svg
-python3 python/qr_generator.py "hello" --variant rounded -o rounded.svg
-python3 python/qr_generator.py --variant neon --scale 12 --border 3 "Designer ready"
-python3 python/qr_generator.py --png "Preview me"
-python3 python/qr_generator.py --png --png-scale 4 "Print-ready preview"
-python3 python/qr_generator.py --gif "Wave me"
-python3 python/qr_generator.py --animation --animation-variant wave "Wave me"
-python3 python/qr_generator.py --animation --animation-variant wave-loop "Always waving"
-python3 python/qr_generator.py --animation --animation-variant float "Smooth float"
-python3 python/qr_generator.py --animation --animation-variant float-tilt-first "Vertical float"
-python3 python/qr_generator.py --animation --animation-variant float-tilt-still "Tilted positions"
-python3 python/qr_generator.py --animation --animation-variant float-jagged "Retro float"
-python3 python/qr_generator.py --gif --readable-gif "Safer wave"
-python3 python/qr_generator.py --pdf "Photoshop friendly"
-```
-
-You can also pipe data:
-```bash
-echo "https://example.com" | python3 python/qr_generator.py -o piped.svg
-```
-
-## GUI (experimental)
-Launch the Qt GUI wrapper (requires PySide6):
-```bash
-python3 python/qr_gui.py
-```
-
-Notes:
-- Live previews are built-in (no Cairo dependency).
-- PNG/PDF/PS export requires `cairosvg`.
-- The copy button copies a PNG preview to your clipboard.
-- Presets saved in the GUI are stored in `qr_presets.json` (auto-loaded on launch).
-- The right-side controls are scrollable if your window is small.
-
-Tkinter GUI (legacy):
-```bash
-python3 python/legacy/qr_gui_tk.py
-```
-
-## Go CLI (prototype)
-Minimal Go CLI for exploring a future port:
+## Go CLI
+Quick start:
 ```bash
 go run ./cmd/qr_generator --list-variants
 ```
@@ -191,7 +82,7 @@ Generate a PNG catalog:
 go run ./cmd/qr_generator --catalog --png -o out/catalog.svg "https://example.com"
 ```
 
-Export PDF/PS (requires `python3` + `cairosvg`):
+Export PDF/PS (native Go output):
 ```bash
 go run ./cmd/qr_generator --pdf -o out/qr.svg "https://example.com"
 go run ./cmd/qr_generator --ps -o out/qr.svg "https://example.com"
@@ -224,6 +115,10 @@ Optional PNG tolerance test (requires `python3` + `cairosvg`):
 PNG_SIM_THRESHOLD=0.98 go test ./internal/renderpng -run SvgToPngTolerance
 ```
 
+## Legacy Python implementation
+The original Python CLI + GUI are kept for reference and compatibility in `python/`.
+See `docs/README-python.md` for setup and usage.
+
 ## Variants
 Variants (and animation defaults) are defined in `variants.json` to keep styling config shareable across future tooling.
 
@@ -244,46 +139,46 @@ More playful:
 
 List all variants:
 ```bash
-python3 python/qr_generator.py --list-variants
+go run ./cmd/qr_generator --list-variants
 ```
 
 ## PNG Export
-Add `--png` to write a PNG alongside the SVG (requires `cairosvg`):
+Add `--png` to write a PNG alongside the SVG:
 ```bash
-python3 python/qr_generator.py "https://example.com" --png -o qr.svg
+go run ./cmd/qr_generator --png -o out/qr.svg "https://example.com"
 ```
 
 Increase raster resolution with `--png-scale` (multiplies the SVG pixel size):
 ```bash
-python3 python/qr_generator.py "https://example.com" --png --png-scale 4
+go run ./cmd/qr_generator --png --png-scale 4 -o out/qr.svg "https://example.com"
 ```
 
 You can also choose the PNG path:
 ```bash
-python3 python/qr_generator.py "https://example.com" --png --png-output preview.png
+go run ./cmd/qr_generator --png --png-output out/preview.png -o out/qr.svg "https://example.com"
 ```
 
 ## PDF/PS Export
-Export vector formats that Photoshop can open (requires `cairosvg`):
+Export vector formats that Photoshop can open:
 ```bash
-python3 python/qr_generator.py "https://example.com" --pdf
-python3 python/qr_generator.py "https://example.com" --ps
+go run ./cmd/qr_generator --pdf -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --ps -o out/qr.svg "https://example.com"
 ```
 
 ## Animation (GIF)
-Create an animated GIF based on the chosen variant (requires `cairosvg` + `Pillow`):
+Create an animated GIF based on the chosen variant:
 ```bash
-python3 python/qr_generator.py "https://example.com" --gif
-python3 python/qr_generator.py "https://example.com" --animation --animation-variant wave
-python3 python/qr_generator.py "https://example.com" --animation --animation-variant wave-loop
-python3 python/qr_generator.py "https://example.com" --animation --animation-variant float
-python3 python/qr_generator.py "https://example.com" --animation --animation-variant float-tilt-first
-python3 python/qr_generator.py "https://example.com" --animation --animation-variant float-tilt-still
-python3 python/qr_generator.py "https://example.com" --animation --animation-variant float-jagged
-python3 python/qr_generator.py "https://example.com" --gif --gif-fps 12 --gif-frames 40 --gif-hold 24
-python3 python/qr_generator.py "https://example.com" --gif --wave-amp 0.3 --wave-period 14
-python3 python/qr_generator.py "https://example.com" --animation --animation-variant float-tilt-first --float-angle 90
-python3 python/qr_generator.py "https://example.com" --gif --readable-gif
+go run ./cmd/qr_generator --gif -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --animation --animation-variant wave -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --animation --animation-variant wave-loop -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --animation --animation-variant float -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --animation --animation-variant float-tilt-first -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --animation --animation-variant float-tilt-still -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --animation --animation-variant float-jagged -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --gif --gif-fps 12 --gif-frames 40 --gif-hold 24 -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --gif --wave-amp 0.3 --wave-period 14 -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --animation --animation-variant float-tilt-first --float-angle 90 -o out/qr.svg "https://example.com"
+go run ./cmd/qr_generator --gif --readable-gif -o out/qr.svg "https://example.com"
 ```
 
 Notes:
@@ -300,8 +195,8 @@ Notes:
 ## Catalog Grid
 Generate a single labeled grid showing all variants:
 ```bash
-python3 python/qr_generator.py "https://example.com" --catalog
-python3 python/qr_generator.py "https://example.com" --catalog --catalog-columns 4 --png
+go run ./cmd/qr_generator --catalog -o out/catalog.svg "https://example.com"
+go run ./cmd/qr_generator --catalog --catalog-columns 4 --png -o out/catalog.svg "https://example.com"
 ```
 
 ## Common Options
@@ -329,7 +224,6 @@ python3 python/qr_generator.py "https://example.com" --catalog --catalog-columns
 ## Notes
 - Primary output is SVG; add `--png` for a bitmap preview.
 - `--pdf` and `--ps` are available for Photoshop-friendly vector output.
-- GIF export uses `cairosvg` + `Pillow` and is optional.
 - Default output goes into `out/` (auto-created).
 - If you override `--dark`, gradient variants fall back to the flat color.
 - Catalog output uses each variant's default styling.
