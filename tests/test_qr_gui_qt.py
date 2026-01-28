@@ -64,3 +64,30 @@ def test_load_presets_rejects_non_list(tmp_path):
     file_path.write_text(json.dumps({"name": "bad"}), encoding="utf-8")
     loaded = qr_gui.load_presets(path=str(file_path))
     assert loaded == []
+
+
+def test_build_gradient_requires_enabled_and_colors():
+    assert qr_gui._build_gradient(False, "#111111", "#222222") is None
+    assert qr_gui._build_gradient(True, "", "#222222") is None
+    assert qr_gui._build_gradient(True, "#111111", "  ") is None
+    assert qr_gui._build_gradient(True, "#111111", "#222222") == {
+        "id": "fg",
+        "from": "#111111",
+        "to": "#222222",
+    }
+
+
+def test_should_reload_variant_respects_custom_dirty():
+    assert qr_gui._should_reload_variant("classic", "sunset", False) is True
+    assert qr_gui._should_reload_variant("classic", "classic", True) is False
+    assert qr_gui._should_reload_variant("classic", "classic", False) is True
+    assert qr_gui._should_reload_variant("classic", None, False) is False
+
+
+def test_strip_known_extension():
+    extensions = ("svg", "png", "pdf", "ps")
+    assert qr_gui._strip_known_extension("qr.svg", extensions) == "qr"
+    assert qr_gui._strip_known_extension("qr.PNG", extensions) == "qr"
+    assert qr_gui._strip_known_extension("my.qr.svg", extensions) == "my.qr"
+    assert qr_gui._strip_known_extension("my.qr", extensions) == "my.qr"
+    assert qr_gui._strip_known_extension("", extensions) == ""

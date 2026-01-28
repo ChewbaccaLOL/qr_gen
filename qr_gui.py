@@ -56,6 +56,28 @@ def _variant_from_preset(entry: Dict[str, str]) -> Optional[Variant]:
     return Variant(name=name, shape=shape, dark=dark, light=light, radius=radius, gradient=gradient)
 
 
+def _build_gradient(
+    enabled: bool, color_from: Optional[str], color_to: Optional[str]
+) -> Optional[Dict[str, str]]:
+    if not enabled:
+        return None
+    color_from = (color_from or "").strip()
+    color_to = (color_to or "").strip()
+    if not color_from or not color_to:
+        return None
+    return {"id": "fg", "from": color_from, "to": color_to}
+
+
+def _should_reload_variant(
+    current: Optional[str], new: Optional[str], custom_dirty: bool
+) -> bool:
+    if not new:
+        return False
+    if current != new:
+        return True
+    return not custom_dirty
+
+
 def load_presets(path: str = PRESET_FILE) -> List[Dict[str, str]]:
     try:
         with open(path, "r", encoding="utf-8") as handle:
@@ -118,6 +140,18 @@ def _default_output_path(variant_name: str, fmt: str) -> str:
     return os.path.join("out", f"qr-{variant_name}.{extension}")
 
 
+def _strip_known_extension(name: str, extensions: Tuple[str, ...]) -> str:
+    base = os.path.basename(name.strip())
+    if not base:
+        return ""
+    lower = base.lower()
+    for ext in extensions:
+        suffix = f".{ext}"
+        if lower.endswith(suffix):
+            return base[: -len(suffix)]
+    return base
+
+
 def _import_cairosvg():
     try:
         prepare_cairo()
@@ -149,10 +183,15 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
             self.variant_map, self.variant_order = build_variant_catalog(self.preset_entries)
             self.selected_variant = self.variant_order[0]
             self.suspend_custom_update = False
+            self.custom_dirty = False
+            self.suspend_output_name_update = False
+            self.output_name_dirty = False
+            self.output_name_default = f"qr-{self.selected_variant}"
 
             self._build_ui()
             self._populate_variants()
             self._load_variant_into_custom_fields(self.selected_variant)
+            self.selected_label.setText(self.selected_variant)
             self.data_edit.setPlainText(DEFAULT_GUI_DATA)
             self.schedule_preview_update()
 
@@ -358,16 +397,37 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
             self.png_scale_spin.setValue(3.0)
             layout.addWidget(self.png_scale_spin, 1, 1)
 
-            layout.addWidget(QtWidgets.QLabel("Output"), 2, 0)
-            self.output_edit = QtWidgets.QLineEdit()
-            layout.addWidget(self.output_edit, 2, 1)
+            layout.addWidget(QtWidgets.QLabel("Location"), 2, 0)
+            output_row = QtWidgets.QWidget()
+            output_layout = QtWidgets.QGridLayout(output_row)
+            output_layout.setContentsMargins(0, 0, 0, 0)
+            output_layout.setColumnStretch(0, 1)
+            output_layout.setColumnStretch(1, 0)
+
+            self.output_dir_edit = QtWidgets.QLineEdit("out")
+            self.output_dir_edit.setPlaceholderText("Folder")
+            output_layout.addWidget(self.output_dir_edit, 0, 0)
             browse_btn = QtWidgets.QPushButton("Browse")
             browse_btn.clicked.connect(self.browse_output)
-            layout.addWidget(browse_btn, 2, 2)
+            output_layout.addWidget(browse_btn, 0, 1)
+
+            name_row = QtWidgets.QWidget()
+            name_layout = QtWidgets.QHBoxLayout(name_row)
+            name_layout.setContentsMargins(0, 0, 0, 0)
+            self.output_name_edit = QtWidgets.QLineEdit(self.output_name_default)
+            self.output_name_edit.setPlaceholderText("File name")
+            self.output_name_edit.textChanged.connect(self._on_output_name_changed)
+            name_layout.addWidget(self.output_name_edit, 1)
+            self.output_ext_label = QtWidgets.QLabel(".svg")
+            name_layout.addWidget(self.output_ext_label)
+
+            layout.addWidget(output_row, 2, 1, 1, 2)
 
             export_btn = QtWidgets.QPushButton("Export")
             export_btn.clicked.connect(self.export_output)
-            layout.addWidget(export_btn, 3, 1, 1, 2, QtCore.Qt.AlignLeft)
+            layout.addWidget(QtWidgets.QLabel("File name"), 3, 0)
+            layout.addWidget(name_row, 3, 1, 1, 2)
+            layout.addWidget(export_btn, 4, 1, 1, 2, QtCore.Qt.AlignLeft)
 
             self._on_format_change()
             return panel
@@ -408,32 +468,75 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
                 self.gradient_from_edit.setText("")
                 self.gradient_to_edit.setText("")
             self.suspend_custom_update = False
+            self.custom_dirty = False
 
         def _on_variant_selected(self) -> None:
             current = self.variant_list.currentItem()
             if not current:
                 return
             name = current.data(QtCore.Qt.UserRole)
-            if name:
-                self.selected_variant = name
+            if not name:
+                return
+            if not _should_reload_variant(self.selected_variant, name, self.custom_dirty):
                 self.selected_label.setText(name)
-                self._load_variant_into_custom_fields(name)
-                self.schedule_preview_update()
+                return
+            self.selected_variant = name
+            self.selected_label.setText(name)
+            self._load_variant_into_custom_fields(name)
+            self._set_output_name_default()
+            self.schedule_preview_update()
 
         def _on_format_change(self) -> None:
             fmt = self.format_combo.currentText().lower()
             show_png = fmt == "png"
             self.png_scale_spin.setVisible(show_png)
-            if not self.output_edit.text().strip():
-                self.output_edit.setText(_default_output_path(self.selected_variant, fmt))
+            extension = self._output_extension(fmt)
+            self.output_ext_label.setText(f".{extension}")
+
+        def _output_extension(self, fmt: str) -> str:
+            return "svg" if fmt.lower() == "svg" else fmt.lower()
+
+        def _set_output_name_default(self) -> None:
+            default_name = f"qr-{self.selected_variant}"
+            self.output_name_default = default_name
+            if self.output_name_dirty and self.output_name_edit.text().strip():
+                return
+            self.suspend_output_name_update = True
+            self.output_name_edit.setText(default_name)
+            self.suspend_output_name_update = False
+            self.output_name_dirty = False
+
+        def _on_output_name_changed(self) -> None:
+            if self.suspend_output_name_update:
+                return
+            self.output_name_dirty = True
+
+        def _current_output_path(self) -> str:
+            fmt = self.format_combo.currentText().lower()
+            extension = self._output_extension(fmt)
+            output_dir = self.output_dir_edit.text().strip() or "out"
+            filename = self.output_name_edit.text().strip()
+            if not filename:
+                filename = self.output_name_default
+            filename = _strip_known_extension(
+                filename, ("svg", "png", "pdf", "ps")
+            )
+            if not filename:
+                filename = self.output_name_default
+            return os.path.join(output_dir, f"{filename}.{extension}")
 
         def pick_color(self, target: QtWidgets.QLineEdit) -> None:
             current = target.text().strip()
-            color = QtWidgets.QColorDialog.getColor(
-                QtGui.QColor(current) if current else QtGui.QColor("#000000"), self
-            )
-            if color.isValid():
-                target.setText(color.name())
+            initial = QtGui.QColor(current) if current else QtGui.QColor("#000000")
+            if not initial.isValid():
+                initial = QtGui.QColor("#000000")
+            dialog = QtWidgets.QColorDialog(initial, self)
+            dialog.setOption(QtWidgets.QColorDialog.ShowAlphaChannel, False)
+            dialog.setCurrentColor(initial)
+            if dialog.exec() == QtWidgets.QDialog.Accepted:
+                picked = dialog.selectedColor()
+                if picked.isValid():
+                    target.setText(picked.name(QtGui.QColor.HexRgb))
 
         def on_custom_change(self) -> None:
             if self.suspend_custom_update:
@@ -442,6 +545,7 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
                 self.suspend_custom_update = True
                 self.radius_spin.setValue(0.28)
                 self.suspend_custom_update = False
+            self.custom_dirty = True
             self.schedule_preview_update()
 
         def reset_custom_settings(self) -> None:
@@ -459,12 +563,11 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
                 radius = float(self.radius_spin.value())
             except (TypeError, ValueError):
                 radius = base.radius
-            gradient = None
-            if self.gradient_check.isChecked():
-                color_from = self.gradient_from_edit.text().strip()
-                color_to = self.gradient_to_edit.text().strip()
-                if color_from and color_to:
-                    gradient = {"id": "fg", "from": color_from, "to": color_to}
+            gradient = _build_gradient(
+                self.gradient_check.isChecked(),
+                self.gradient_from_edit.text(),
+                self.gradient_to_edit.text(),
+            )
             return Variant(
                 name=base.name,
                 shape=shape,
@@ -714,24 +817,14 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
             )
 
         def browse_output(self) -> None:
-            fmt = self.format_combo.currentText().lower()
-            extension = "svg" if fmt == "svg" else fmt
-            initial = _default_output_path(self.selected_variant, fmt)
-            dialog = QtWidgets.QFileDialog(self, "Save output")
-            dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-            dialog.setDefaultSuffix(extension)
-            dialog.selectFile(os.path.basename(initial))
-            if dialog.exec():
-                selected = dialog.selectedFiles()
-                if selected:
-                    self.output_edit.setText(selected[0])
+            initial = self.output_dir_edit.text().strip() or "out"
+            selected = QtWidgets.QFileDialog.getExistingDirectory(self, "Select output folder", initial)
+            if selected:
+                self.output_dir_edit.setText(selected)
 
         def export_output(self) -> None:
             fmt = self.format_combo.currentText().lower()
-            output_path = self.output_edit.text().strip()
-            if not output_path:
-                output_path = _default_output_path(self.selected_variant, fmt)
-                self.output_edit.setText(output_path)
+            output_path = self._current_output_path()
             svg_text = self.get_variant_svg(self.selected_variant, use_custom=True)
             if not svg_text:
                 return
