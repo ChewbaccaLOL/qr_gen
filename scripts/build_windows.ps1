@@ -61,8 +61,8 @@ foreach ($dll in $dlls) {
 
 Write-Host "Bundling Cairo DLLs from: $gtk"
 
-pyinstaller --onefile --name qr-generator-cli qr_generator.py @args
-pyinstaller --onefile --noconsole --name qr-generator qr_gui.py --collect-all PySide6 --hidden-import PySide6.QtSvg @args
+pyinstaller --onefile --name qr-generator-cli python/qr_generator.py @args
+pyinstaller --onefile --noconsole --name qr-generator python/qr_gui.py --collect-all PySide6 --hidden-import PySide6.QtSvg @args
 
 New-Item -ItemType Directory -Path dist\\cairo -Force | Out-Null
 foreach ($dll in $dlls) {

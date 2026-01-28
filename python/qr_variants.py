@@ -4,7 +4,9 @@ from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
 
-DEFAULT_VARIANTS_PATH = os.path.join(os.path.dirname(__file__), "variants.json")
+DEFAULT_VARIANTS_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "variants.json")
+)
 
 
 @dataclass(frozen=True)

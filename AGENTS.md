@@ -2,13 +2,13 @@
 
 ## Project intent
 - Build a flexible CLI QR code generator for a designer-friendly workflow.
-- Keep the core generation in `qr_generator.py` and output SVG.
+- Keep the core generation in `python/qr_generator.py` and output SVG.
 - GUI is out of scope for now (but leave room to add later).
 - When a GUI is added, it should be a thin wrapper that calls the same core logic as the CLI.
-- `qr_generator.py` should stay focused on CLI + orchestration; rendering lives in `qr_render.py`.
+- `python/qr_generator.py` should stay focused on CLI + orchestration; rendering lives in `python/qr_render.py`.
 
 ## How to work here
-- Prefer updating `qr_generator.py` directly; keep the CLI stable.
+- Prefer updating `python/qr_generator.py` directly; keep the CLI stable.
 - When you add or change variants, update `variants.json` and the variants list in `README.md`.
 - Always add or update unit tests to cover new or changed code.
 - Keep defaults scan-safe: high contrast, sensible quiet zone, and error correction.
@@ -51,11 +51,11 @@
 
 ## Quick commands
 ```bash
-python3 qr_generator.py --help
-python3 qr_generator.py --list-variants
-python3 qr_generator.py --catalog --png
-python3 qr_generator.py --gif "Wave me"
-python3 qr_generator.py --animation --animation-variant wave "Wave me"
+python3 python/qr_generator.py --help
+python3 python/qr_generator.py --list-variants
+python3 python/qr_generator.py --catalog --png
+python3 python/qr_generator.py --gif "Wave me"
+python3 python/qr_generator.py --animation --animation-variant wave "Wave me"
 ```
 
 ## Style goals
