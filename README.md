@@ -116,8 +116,8 @@ PNG_SIM_THRESHOLD=0.98 go test ./internal/renderpng -run SvgToPngTolerance
 ```
 
 ## Legacy Python implementation
-The original Python CLI + GUI are kept for reference and compatibility in `python/`.
-See `docs/README-python.md` for setup and usage.
+The original Python CLI + GUI live in the `legacy/python` submodule.
+See `legacy/python/README.md` for setup and usage.
 
 ## Variants
 Variants (and animation defaults) are defined in `variants.json` to keep styling config shareable across future tooling.
