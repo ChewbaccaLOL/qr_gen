@@ -10,3 +10,7 @@ __pycache__/
 /bin/
 /dist/
 /qr_generator
+/gui/build/
+/gui/frontend/dist/
+/gui/frontend/node_modules/
+/gui/frontend/wailsjs/

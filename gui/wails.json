@@ -1,0 +1,11 @@
+{
+  "name": "qr-generator",
+  "outputfilename": "qr-generator",
+  "frontend:dir": "frontend",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev": "npm run dev",
+  "author": {
+    "name": "QR Generator"
+  }
+}

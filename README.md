@@ -117,6 +117,33 @@ Optional PNG tolerance test (requires `python3` + `cairosvg`):
 PNG_SIM_THRESHOLD=0.98 go test ./internal/renderpng -run SvgToPngTolerance
 ```
 
+## Go GUI (Wails, experimental)
+The GUI is a thin wrapper around the Go renderer and uses the same `variants.json` config.
+
+Requirements:
+- Go 1.20+
+- Node.js 18+
+- Wails CLI v2.10+
+
+Install Wails:
+```bash
+go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.0
+```
+
+Run the GUI in dev mode:
+```bash
+cd gui
+wails dev
+```
+
+Build a local GUI binary:
+```bash
+cd gui
+wails build
+```
+
+Artifacts land in `gui/build/bin/` (for example `qr-generator`, `qr-generator.exe`, or `qr-generator.app`).
+
 ## Legacy Python implementation
 The original Python CLI + GUI live in the `legacy/python` submodule.
 See `legacy/python/README.md` for setup and usage.

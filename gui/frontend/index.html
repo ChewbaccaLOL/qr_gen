@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QR Generator</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Wails Lab</p>
+          <h1>QR Generator</h1>
+          <p class="subtitle">Play with variants, tune quiet zones, and export SVG/PNG in one click.</p>
+        </div>
+        <div class="hero-chip">
+          <span>Go + Wails</span>
+          <span>Designer-safe defaults</span>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="card controls">
+          <div class="field">
+            <label for="data">Data</label>
+            <textarea id="data" rows="3" placeholder="https://example.com"></textarea>
+          </div>
+
+          <div class="grid">
+            <div class="field">
+              <label for="variant">Variant</label>
+              <select id="variant"></select>
+            </div>
+            <div class="field">
+              <label for="error">Error level</label>
+              <select id="error">
+                <option value="l">L</option>
+                <option value="m" selected>M</option>
+                <option value="q">Q</option>
+                <option value="h">H</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="scale">Scale</label>
+              <input id="scale" type="number" min="1" value="10" />
+            </div>
+            <div class="field">
+              <label for="border">Quiet zone</label>
+              <input id="border" type="number" min="0" value="4" />
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="field">
+              <label for="dark">Dark override</label>
+              <input id="dark" type="text" placeholder="#111111" />
+            </div>
+            <div class="field">
+              <label for="light">Light override</label>
+              <input id="light" type="text" placeholder="#ffffff" />
+            </div>
+            <div class="field">
+              <label for="radius">Radius</label>
+              <input id="radius" type="number" min="0" step="0.1" placeholder="variant default" />
+            </div>
+            <div class="field checkbox">
+              <label for="transparent">
+                <input id="transparent" type="checkbox" />
+                Transparent background
+              </label>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="field">
+              <label for="pngScale">PNG scale</label>
+              <input id="pngScale" type="number" min="1" step="0.5" value="3" />
+            </div>
+            <div class="field">
+              <label>Variants config</label>
+              <div id="variantsPath" class="hint">Loading…</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="refresh" class="primary">Refresh Preview</button>
+            <button id="exportSvg">Export SVG</button>
+            <button id="exportPng">Export PNG</button>
+          </div>
+
+          <div id="status" class="status" role="status"></div>
+        </section>
+
+        <section class="card preview">
+          <div class="preview-header">
+            <h2>Preview</h2>
+            <div class="meta">Live SVG render</div>
+          </div>
+          <div class="preview-frame">
+            <img id="preview" alt="QR preview" />
+          </div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

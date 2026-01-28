@@ -30,52 +30,61 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          python-version: "3.11"
+          go-version: "1.20.x"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
       - name: Install system deps (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config
+          if [ ! -f /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.0.pc ] && [ -f /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc ]; then
+            sudo ln -s /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.0.pc
+          fi
 
-      - name: Install system deps (macOS)
-        if: matrix.os == 'macos-latest'
+      - name: Install Wails CLI
+        shell: bash
         run: |
-          brew install cairo pango gdk-pixbuf
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.0
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
-      - name: Install system deps (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          choco install -y gtk-runtime
-          choco install -y msys2
-
-      - name: Install build deps
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install pyinstaller segno cairosvg pillow pyside6
-
-      - name: Build binaries (Linux/macOS)
+      - name: Build CLI (Linux/macOS)
         if: matrix.os != 'windows-latest'
         run: |
-          pyinstaller --onefile --name qr-generator-cli qr_generator.py
-          pyinstaller --onefile --windowed --name qr-generator qr_gui.py --collect-all PySide6 --hidden-import PySide6.QtSvg
+          mkdir -p build
+          go build -o build/qr-generator-cli ./cmd/qr_generator
 
-      - name: Build binaries (Windows)
+      - name: Build CLI (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
-        run: .\\scripts\\build_windows.ps1
+        run: |
+          New-Item -ItemType Directory -Path build | Out-Null
+          go build -o build\qr-generator-cli.exe .\cmd\qr_generator
+
+      - name: Build GUI
+        shell: bash
+        run: |
+          cd gui
+          wails build
 
       - name: Package (tar.gz)
         if: matrix.archive == 'tar'
         run: |
           mkdir -p package
-          cp dist/qr-generator-cli package/
-          cp dist/qr-generator package/
-          cp README.md LICENSE package/
+          cp build/qr-generator-cli package/
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            cp -R gui/build/bin/qr-generator.app package/
+          else
+            cp gui/build/bin/qr-generator package/
+          fi
+          cp variants.json README.md LICENSE package/
           tar -czf qr-generator-${{ matrix.asset }}.tar.gz -C package .
 
       - name: Package (zip)
@@ -83,11 +92,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path package | Out-Null
-          Copy-Item dist/qr-generator-cli.exe package/
-          Copy-Item dist/qr-generator.exe package/
-          New-Item -ItemType Directory -Path package/cairo | Out-Null
-          Copy-Item dist/cairo/*.dll package/cairo/ -ErrorAction SilentlyContinue
-          Copy-Item README.md, LICENSE package/
+          Copy-Item build\qr-generator-cli.exe package/
+          Copy-Item gui\build\bin\qr-generator.exe package/
+          Copy-Item variants.json, README.md, LICENSE package/
           Compress-Archive -Path package/* -DestinationPath qr-generator-${{ matrix.asset }}.zip
 
       - name: Upload artifacts
