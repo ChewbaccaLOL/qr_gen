@@ -167,6 +167,12 @@ Tkinter GUI (legacy):
 python3 legacy/qr_gui_tk.py
 ```
 
+## Go CLI (prototype)
+Minimal Go CLI for exploring a future port:
+```bash
+go run ./cmd/qr_generator --list-variants
+```
+
 ## Variants
 Variants (and animation defaults) are defined in `variants.json` to keep styling config shareable across future tooling.
 
