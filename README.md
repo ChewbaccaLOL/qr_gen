@@ -85,7 +85,7 @@ If you prefer easier debugging (or a faster startup), switch to `--onedir` inste
 ```bash
 python3 -m pip install --upgrade pip
 python3 -m pip install segno pyinstaller pyside6
-pyinstaller --onefile --name qr-generator qr_gui.py --collect-all PySide6 --hidden-import PySide6.QtSvg
+pyinstaller --onefile --windowed --name qr-generator qr_gui.py --collect-all PySide6 --hidden-import PySide6.QtSvg
 ```
 
 ### Windows GUI build (with Cairo bundled)
