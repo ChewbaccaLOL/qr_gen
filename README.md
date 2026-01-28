@@ -129,7 +129,7 @@ python3 qr_gui.py
 Notes:
 - Live previews are built-in (no Cairo dependency).
 - PNG/PDF/PS export requires `cairosvg`.
-- The copy button copies the variant SVG to your clipboard.
+- The copy button copies a PNG preview to your clipboard.
 - Presets saved in the GUI are stored in `qr_presets.json` (auto-loaded on launch).
 - The right-side controls are scrollable if your window is small.
 

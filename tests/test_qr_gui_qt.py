@@ -4,6 +4,10 @@ import qr_gui
 from qr_generator import Variant
 
 
+def test_default_gui_data_value():
+    assert qr_gui.DEFAULT_GUI_DATA.startswith("https://")
+
+
 def test_variant_from_preset_builds_variant():
     entry = {
         "name": "custom",

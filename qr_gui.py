@@ -16,6 +16,7 @@ MAX_PREVIEW_INPUT_LEN = 512
 PREVIEW_SKIPPED_MESSAGE = "Preview skipped for large data"
 PREVIEW_TOO_LONG_MESSAGE = "Preview skipped for long input"
 PRESET_FILE = "qr_presets.json"
+DEFAULT_GUI_DATA = "https://example.com"
 
 QT_AVAILABLE = False
 QT_IMPORT_ERROR = None
@@ -152,6 +153,7 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
             self._build_ui()
             self._populate_variants()
             self._load_variant_into_custom_fields(self.selected_variant)
+            self.data_edit.setPlainText(DEFAULT_GUI_DATA)
             self.schedule_preview_update()
 
         def showEvent(self, event: QtGui.QShowEvent) -> None:
@@ -187,8 +189,6 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
             right_layout.addWidget(self._build_preset_panel())
             right_layout.addWidget(self._build_export_panel())
 
-            self.status_label = QtWidgets.QLabel("")
-            right_layout.addWidget(self.status_label)
             right_layout.addStretch(1)
 
             right_scroll = QtWidgets.QScrollArea()
@@ -197,6 +197,7 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
             right_scroll.setWidget(right)
             layout.addWidget(right_scroll, 3)
             self.setCentralWidget(root)
+            self.setStatusBar(QtWidgets.QStatusBar())
 
             self.preview_timer = QtCore.QTimer(self)
             self.preview_timer.setSingleShot(True)
@@ -255,9 +256,9 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
             self.preview_label.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken)
             layout.addWidget(self.preview_label, alignment=QtCore.Qt.AlignCenter)
 
-            self.copy_svg_button = QtWidgets.QPushButton("Copy SVG")
-            self.copy_svg_button.clicked.connect(self.copy_selected_svg)
-            layout.addWidget(self.copy_svg_button, alignment=QtCore.Qt.AlignLeft)
+            self.copy_png_button = QtWidgets.QPushButton("Copy PNG")
+            self.copy_png_button.clicked.connect(self.copy_selected_png)
+            layout.addWidget(self.copy_png_button, alignment=QtCore.Qt.AlignLeft)
 
             return panel
 
@@ -629,6 +630,22 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
             QtWidgets.QApplication.clipboard().setText(svg_text)
             self.show_status(f"Copied {self.selected_variant} SVG to clipboard")
 
+        def copy_selected_png(self) -> None:
+            svg_text = self.get_variant_svg(self.selected_variant, use_custom=True)
+            if not svg_text:
+                return
+            renderer = QtSvg.QSvgRenderer(bytearray(svg_text.encode("utf-8")))
+            size = renderer.defaultSize()
+            if not size.isValid():
+                size = QtCore.QSize(self.detail_preview_size, self.detail_preview_size)
+            image = QtGui.QImage(size, QtGui.QImage.Format_ARGB32)
+            image.fill(QtCore.Qt.transparent)
+            painter = QtGui.QPainter(image)
+            renderer.render(painter)
+            painter.end()
+            QtWidgets.QApplication.clipboard().setImage(image)
+            self.show_status(f"Copied {self.selected_variant} PNG to clipboard")
+
         def save_preset(self) -> None:
             name = self.preset_name_edit.text().strip()
             if not name:
@@ -756,8 +773,10 @@ if QT_AVAILABLE:  # pragma: no cover - GUI code exercised manually
             self.show_status(f"Saved {output_path}")
 
         def show_status(self, message: str) -> None:
-            self.status_label.setText(message)
-            QtCore.QTimer.singleShot(2200, lambda: self.status_label.setText(""))
+            status = self.statusBar()
+            if status is None:
+                return
+            status.showMessage(message, 2200)
 
 
 
@@ -771,7 +790,6 @@ def main() -> None:
             message += f"\nImport error: {QT_IMPORT_ERROR}"
         print(message, file=sys.stderr)
         return
-    QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
     app = QtWidgets.QApplication(sys.argv)
     window = QrGuiApp()
     window.show()
