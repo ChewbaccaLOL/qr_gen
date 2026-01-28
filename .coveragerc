@@ -1,4 +1,0 @@
-[run]
-omit =
-    tests/*
-    qr_gui.py
