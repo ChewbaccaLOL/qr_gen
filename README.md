@@ -60,6 +60,34 @@ Animation variants (classic QR shown):
 - `segno` (`pip install segno`)
 - Optional for PNG/PDF/PS export: `cairosvg` (`pip install cairosvg`)
 - Optional for GIF export: `cairosvg` + `Pillow` (`pip install cairosvg pillow`)
+- Optional for the Qt GUI: `PySide6` (`pip install pyside6`)
+
+## Install from source
+Core CLI only:
+```bash
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+```
+
+Optional extras (PNG/PDF/PS, GIF, Qt GUI):
+```bash
+python3 -m pip install -r requirements-optional.txt
+```
+
+Dev/test tooling:
+```bash
+python3 -m pip install -r requirements-dev.txt
+```
+
+You can also use the minimal Makefile or the setup script:
+```bash
+make install
+make install-optional
+make install-dev
+./setup.sh --optional
+./setup.sh --dev
+./setup.sh --all
+```
 
 ## Binaries (Releases)
 Prebuilt CLI + GUI binaries for Windows, macOS, and Linux are attached to GitHub Releases.
@@ -67,7 +95,7 @@ Prebuilt CLI + GUI binaries for Windows, macOS, and Linux are attached to GitHub
 - PNG/PDF/PS and GIF exports require extra dependencies (`cairosvg`, `Pillow`) and are not bundled by default.
   Build from source or make your own release if you need those features in the binary.
 
-## Build a Binary Locally
+## Compile from source (binaries)
 Install PyInstaller and build a onefile CLI executable:
 ```bash
 python3 -m pip install --upgrade pip
