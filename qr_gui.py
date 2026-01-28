@@ -100,12 +100,26 @@ class ScrollableFrame(ttk.Frame):
 
         self.inner.bind("<Configure>", self._on_inner_configure)
         self.canvas.bind("<Configure>", self._on_canvas_configure)
-        self.canvas.bind("<MouseWheel>", self._on_mousewheel)
-        self.canvas.bind("<Control-MouseWheel>", self._on_control_mousewheel)
-        self.canvas.bind("<Button-4>", self._on_button4)
-        self.canvas.bind("<Button-5>", self._on_button5)
-        self.canvas.bind("<Control-Button-4>", self._on_control_button4)
-        self.canvas.bind("<Control-Button-5>", self._on_control_button5)
+        self._bind_global_scroll()
+
+    def _bind_global_scroll(self) -> None:
+        self.canvas.bind_all("<MouseWheel>", self._on_global_mousewheel, add="+")
+        self.canvas.bind_all("<Control-MouseWheel>", self._on_global_control_mousewheel, add="+")
+        self.canvas.bind_all("<Button-4>", self._on_global_button4, add="+")
+        self.canvas.bind_all("<Button-5>", self._on_global_button5, add="+")
+        self.canvas.bind_all("<Control-Button-4>", self._on_global_control_button4, add="+")
+        self.canvas.bind_all("<Control-Button-5>", self._on_global_control_button5, add="+")
+
+    def _event_in_scroll_area(self, widget: Optional[tk.Widget]) -> bool:
+        return self._is_descendant(widget, self.canvas) or self._is_descendant(widget, self.inner)
+
+    def _is_descendant(self, widget: Optional[tk.Widget], ancestor: tk.Widget) -> bool:
+        current = widget
+        while current is not None:
+            if current is ancestor:
+                return True
+            current = current.master
+        return False
 
     def _on_inner_configure(self, _event: tk.Event) -> None:
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -113,27 +127,67 @@ class ScrollableFrame(ttk.Frame):
     def _on_canvas_configure(self, event: tk.Event) -> None:
         self.canvas.itemconfigure(self.inner_id, width=event.width)
 
-    def _on_mousewheel(self, event: tk.Event) -> None:
+    def _on_mousewheel(self, event: tk.Event) -> Optional[str]:
         if event.delta:
             self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            return "break"
+        return None
 
-    def _on_control_mousewheel(self, event: tk.Event) -> None:
+    def _on_control_mousewheel(self, event: tk.Event) -> Optional[str]:
         if self.zoom_callback and event.delta:
             self.zoom_callback(1 if event.delta > 0 else -1)
+            return "break"
+        return None
 
-    def _on_button4(self, _event: tk.Event) -> None:
+    def _on_button4(self, _event: tk.Event) -> str:
         self.canvas.yview_scroll(-1, "units")
+        return "break"
 
-    def _on_button5(self, _event: tk.Event) -> None:
+    def _on_button5(self, _event: tk.Event) -> str:
         self.canvas.yview_scroll(1, "units")
+        return "break"
 
-    def _on_control_button4(self, _event: tk.Event) -> None:
+    def _on_control_button4(self, _event: tk.Event) -> Optional[str]:
         if self.zoom_callback:
             self.zoom_callback(1)
+            return "break"
+        return None
 
-    def _on_control_button5(self, _event: tk.Event) -> None:
+    def _on_control_button5(self, _event: tk.Event) -> Optional[str]:
         if self.zoom_callback:
             self.zoom_callback(-1)
+            return "break"
+        return None
+
+    def _on_global_mousewheel(self, event: tk.Event) -> Optional[str]:
+        if not self._event_in_scroll_area(event.widget):
+            return None
+        return self._on_mousewheel(event)
+
+    def _on_global_control_mousewheel(self, event: tk.Event) -> Optional[str]:
+        if not self._event_in_scroll_area(event.widget):
+            return None
+        return self._on_control_mousewheel(event)
+
+    def _on_global_button4(self, event: tk.Event) -> Optional[str]:
+        if not self._event_in_scroll_area(event.widget):
+            return None
+        return self._on_button4(event)
+
+    def _on_global_button5(self, event: tk.Event) -> Optional[str]:
+        if not self._event_in_scroll_area(event.widget):
+            return None
+        return self._on_button5(event)
+
+    def _on_global_control_button4(self, event: tk.Event) -> Optional[str]:
+        if not self._event_in_scroll_area(event.widget):
+            return None
+        return self._on_control_button4(event)
+
+    def _on_global_control_button5(self, event: tk.Event) -> Optional[str]:
+        if not self._event_in_scroll_area(event.widget):
+            return None
+        return self._on_control_button5(event)
 
     def apply_theme(self, colors: Dict[str, str]) -> None:
         self.canvas.configure(bg=colors["bg"])
@@ -359,6 +413,7 @@ class QrGuiApp:
         self._load_presets()
         self._build_variant_catalog()
         self._build_ui()
+        self.root.after_idle(lambda: self.update_grid_layout(force=True))
         self.apply_theme("System")
         self.select_variant(self.selected_variant)
         self.schedule_preview_update()
@@ -580,7 +635,13 @@ class QrGuiApp:
             return
         card_width = self.preview_size + ui(40)
         columns = max(1, int(canvas_width // max(1, card_width)))
-        if columns != self.card_columns or force:
+        needs_layout = force or columns != self.card_columns
+        if not needs_layout:
+            for card in self.cards.values():
+                if not card.frame.winfo_manager():
+                    needs_layout = True
+                    break
+        if needs_layout:
             self.card_columns = columns
             for index, name in enumerate(self.variant_order):
                 card = self.cards.get(name)
