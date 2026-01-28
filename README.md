@@ -63,6 +63,7 @@ Animation variants (classic QR shown):
 - Optional for the Qt GUI: `PySide6` (`pip install pyside6`)
 
 ## Install from source
+Note: Windows is not a target platform for source builds right now. If there’s demand, it can be added later.
 Core CLI only:
 ```bash
 python3 -m pip install --upgrade pip
