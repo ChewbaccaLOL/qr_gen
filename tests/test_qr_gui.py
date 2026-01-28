@@ -52,3 +52,11 @@ def test_update_grid_layout_regrids_unmanaged_cards():
     assert any(card.frame.winfo_manager() == "grid" for card in app.cards.values())
 
     root.destroy()
+
+
+def test_disable_preview_renderer_sets_flag():
+    root = _make_root()
+    app = QrGuiApp(root)
+    app.disable_preview_renderer("boom")
+    assert app.preview_renderer_ok is False
+    root.destroy()

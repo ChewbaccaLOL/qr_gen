@@ -80,7 +80,10 @@ def try_svg_to_png_bytes(svg_text: str, scale: float = 1.0) -> bytes:
         import cairosvg
     except Exception as exc:
         raise RuntimeError("cairosvg is required for previews and PNG export") from exc
-    return cairosvg.svg2png(bytestring=svg_text.encode("utf-8"), scale=scale)
+    try:
+        return cairosvg.svg2png(bytestring=svg_text.encode("utf-8"), scale=scale)
+    except Exception as exc:
+        raise RuntimeError(f"Preview renderer failed: {exc}") from exc
 
 
 class ScrollableFrame(ttk.Frame):
@@ -284,16 +287,29 @@ class VariantCard:
             if transparent:
                 self._draw_transparent_badge()
             return
-        try:
-            png_bytes = try_svg_to_png_bytes(svg_text, scale=1.0)
-        except RuntimeError as exc:
+        if not self.app.preview_renderer_ok:
             self.canvas.create_text(
                 self.preview_size / 2,
                 self.preview_size / 2,
-                text="Install cairosvg",
+                text="Preview unavailable",
                 fill=self.app.colors["muted"],
             )
-            self.app.show_status(str(exc))
+            return
+        try:
+            png_bytes = try_svg_to_png_bytes(svg_text, scale=1.0)
+        except RuntimeError as exc:
+            message = str(exc)
+            if "cairosvg is required" in message:
+                display = "Install cairosvg"
+            else:
+                display = "Preview unavailable"
+            self.canvas.create_text(
+                self.preview_size / 2,
+                self.preview_size / 2,
+                text=display,
+                fill=self.app.colors["muted"],
+            )
+            self.app.disable_preview_renderer(message)
             return
         self.photo = tk.PhotoImage(data=base64.b64encode(png_bytes))
         image_x = self.preview_size / 2
@@ -366,6 +382,7 @@ class QrGuiApp:
 
         self.colors = THEMES["system"].copy()
         self.preview_job: Optional[str] = None
+        self.preview_renderer_ok = True
         self.suspend_custom_trace = False
 
         self.preview_zoom = 1.0
@@ -417,6 +434,12 @@ class QrGuiApp:
         self.apply_theme("System")
         self.select_variant(self.selected_variant)
         self.schedule_preview_update()
+
+    def disable_preview_renderer(self, message: str) -> None:
+        if not self.preview_renderer_ok:
+            return
+        self.preview_renderer_ok = False
+        self.show_status(message)
 
     def _build_ui(self) -> None:
         self.root.grid_rowconfigure(1, weight=1)
@@ -953,6 +976,11 @@ class QrGuiApp:
 
     def update_previews(self) -> None:
         self.preview_job = None
+        if not self.preview_renderer_ok:
+            for card in self.cards.values():
+                card.update_preview(None, placeholder="Preview unavailable")
+            self.update_selected_preview()
+            return
         data = self.data_var.get().strip()
         if not data:
             for card in self.cards.values():
@@ -1081,6 +1109,14 @@ class QrGuiApp:
             return
         self.detail_canvas.delete("all")
         self.detail_canvas.configure(background=self.colors["preview_bg"])
+        if not self.preview_renderer_ok:
+            self.detail_canvas.create_text(
+                DETAIL_PREVIEW_SIZE / 2,
+                DETAIL_PREVIEW_SIZE / 2,
+                text="Preview unavailable",
+                fill=self.colors["muted"],
+            )
+            return
         if not self.live_preview_var.get():
             self.detail_canvas.create_text(
                 DETAIL_PREVIEW_SIZE / 2,
@@ -1123,13 +1159,15 @@ class QrGuiApp:
         try:
             png_bytes = try_svg_to_png_bytes(svg, scale=1.0)
         except RuntimeError as exc:
+            message = str(exc)
+            display = "Install cairosvg" if "cairosvg is required" in message else "Preview unavailable"
             self.detail_canvas.create_text(
                 DETAIL_PREVIEW_SIZE / 2,
                 DETAIL_PREVIEW_SIZE / 2,
-                text="Install cairosvg",
+                text=display,
                 fill=self.colors["muted"],
             )
-            self.show_status(str(exc))
+            self.disable_preview_renderer(message)
             return
         self.detail_photo = tk.PhotoImage(data=base64.b64encode(png_bytes))
         self.detail_canvas.create_image(
@@ -1182,6 +1220,9 @@ class QrGuiApp:
         if self.enlarged_window and self.enlarged_window.winfo_exists():
             self.close_enlarged_preview()
             return
+        if not self.preview_renderer_ok:
+            self.show_status("Preview renderer unavailable")
+            return
         data = self.data_var.get().strip()
         if not data:
             self.show_status("Enter data first")
@@ -1214,7 +1255,7 @@ class QrGuiApp:
         try:
             png_bytes = try_svg_to_png_bytes(svg, scale=1.0)
         except RuntimeError as exc:
-            self.show_status(str(exc))
+            self.disable_preview_renderer(str(exc))
             return
 
         win = tk.Toplevel(self.root)
