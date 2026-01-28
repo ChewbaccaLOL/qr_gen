@@ -173,6 +173,21 @@ Minimal Go CLI for exploring a future port:
 go run ./cmd/qr_generator --list-variants
 ```
 
+Generate an SVG (same defaults as the Python CLI):
+```bash
+go run ./cmd/qr_generator -o out/qr.svg "https://example.com"
+```
+
+Generate a PNG (native renderer):
+```bash
+go run ./cmd/qr_generator --png -o out/qr.svg "https://example.com"
+```
+
+Generate a PNG catalog:
+```bash
+go run ./cmd/qr_generator --catalog --png -o out/catalog.svg "https://example.com"
+```
+
 Build a local binary:
 ```bash
 go build -o bin/qr_generator ./cmd/qr_generator
@@ -182,6 +197,11 @@ go build -o bin/qr_generator ./cmd/qr_generator
 Run Go tests:
 ```bash
 go test ./...
+```
+
+Optional PNG tolerance test (requires `python3` + `cairosvg`):
+```bash
+PNG_SIM_THRESHOLD=0.98 go test ./internal/renderpng -run SvgToPngTolerance
 ```
 
 ## Variants

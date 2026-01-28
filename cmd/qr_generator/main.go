@@ -2,12 +2,19 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/png"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"qr_generator/internal/cli"
 	"qr_generator/internal/config"
+	"qr_generator/internal/qr"
+	"qr_generator/internal/render"
+	"qr_generator/internal/renderpng"
 )
 
 const (
@@ -57,8 +64,160 @@ func main() {
 		return
 	}
 
-	fmt.Fprintln(os.Stderr, "error: rendering is not implemented in the Go CLI yet")
-	os.Exit(exitUsage)
+	if args.Pdf || args.Ps || args.Animation || args.Gif {
+		fmt.Fprintln(os.Stderr, "error: PDF/PS/GIF output is not implemented in the Go CLI yet")
+		os.Exit(exitUsage)
+	}
+
+	matrix, err := qr.EncodeMatrix(args.Data, args.ErrorLevel)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(exitUsage)
+	}
+
+	var svg string
+	var variant config.Variant
+	var dark string
+	var light *string
+	var radius float64
+	var gradient *config.Gradient
+	if args.Catalog {
+		names := make([]string, 0, len(cfg.Variants))
+		for name := range cfg.Variants {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		var variants []config.Variant
+		for _, name := range names {
+			variants = append(variants, cfg.Variants[name])
+		}
+		svg, err = render.RenderCatalogSVG(
+			matrix,
+			args.Scale,
+			args.Border,
+			variants,
+			args.CatalogColumns,
+			args.CatalogBackground,
+			args.CatalogLabelSize,
+		)
+	} else {
+		variant = cfg.Variants[args.Variant]
+		dark = variant.Dark
+		if args.Dark != "" {
+			dark = args.Dark
+		}
+		if !args.NoBackground {
+			if args.Light != "" {
+				light = &args.Light
+			} else {
+				light = variant.Light
+			}
+		}
+		radius = variant.Radius
+		if args.Radius != nil {
+			radius = *args.Radius
+		}
+		gradient = variant.Gradient
+		if args.Dark != "" {
+			gradient = nil
+		}
+		svg, err = render.RenderSVG(
+			matrix,
+			args.Scale,
+			args.Border,
+			dark,
+			light,
+			variant.Shape,
+			radius,
+			gradient,
+			nil,
+			0,
+			0,
+			0,
+			"after",
+		)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(exitUsage)
+	}
+
+	if err := ensureParentDir(args.Output); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(exitUsage)
+	}
+	if err := os.WriteFile(args.Output, []byte(svg), 0o644); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(exitUsage)
+	}
+	fmt.Printf("Saved %s\n", args.Output)
+
+	if args.Png {
+		scale := int(math.Round(float64(args.Scale) * args.PngScale))
+		if scale <= 0 {
+			fmt.Fprintln(os.Stderr, "error: --png-scale must be greater than 0")
+			os.Exit(exitUsage)
+		}
+		pngPath := args.PngOutput
+		if pngPath == "" {
+			pngPath = deriveOutputPath(args.Output, ".png")
+		}
+		var pngImage *image.RGBA
+		if args.Catalog {
+			labelSize := args.CatalogLabelSize
+			if labelSize > 0 {
+				labelSize = int(math.Round(float64(labelSize) * args.PngScale))
+			}
+			names := make([]string, 0, len(cfg.Variants))
+			for name := range cfg.Variants {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+			var variants []config.Variant
+			for _, name := range names {
+				variants = append(variants, cfg.Variants[name])
+			}
+			pngImage, err = renderpng.RenderCatalogPNG(
+				matrix,
+				scale,
+				args.Border,
+				variants,
+				args.CatalogColumns,
+				args.CatalogBackground,
+				labelSize,
+			)
+		} else {
+			pngImage, err = renderpng.RenderPNG(
+				matrix,
+				scale,
+				args.Border,
+				dark,
+				light,
+				variant.Shape,
+				radius,
+				gradient,
+			)
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		if err := ensureParentDir(pngPath); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		file, err := os.Create(pngPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		defer file.Close()
+		if err := png.Encode(file, pngImage); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(exitUsage)
+		}
+		fmt.Printf("Saved %s\n", pngPath)
+	}
 }
 
 func isTerminal(file *os.File) bool {
@@ -67,4 +226,24 @@ func isTerminal(file *os.File) bool {
 		return true
 	}
 	return (info.Mode() & os.ModeCharDevice) != 0
+}
+
+func ensureParentDir(path string) error {
+	dir := filepath.Dir(path)
+	if dir == "." || dir == "" {
+		return nil
+	}
+	return os.MkdirAll(dir, 0o755)
+}
+
+func deriveOutputPath(path string, extension string) string {
+	ext := extension
+	if !strings.HasPrefix(ext, ".") {
+		ext = "." + ext
+	}
+	lower := strings.ToLower(path)
+	if strings.HasSuffix(lower, ".svg") {
+		return path[:len(path)-4] + ext
+	}
+	return path + ext
 }
