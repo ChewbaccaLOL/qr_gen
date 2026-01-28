@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import sys
 import tkinter as tk
 from tkinter import colorchooser, filedialog, messagebox, ttk
 from typing import Dict, List, Optional
@@ -25,7 +26,11 @@ from qr_export import prepare_cairo, write_pdf, write_png, write_ps
 from qr_render import render_svg
 
 
-UI_SCALE = 1.25
+OS_NAME = os.name
+PLATFORM = sys.platform
+DEFAULT_UI_SCALE = 1.25
+WINDOWS_UI_SCALE = 1.0
+UI_SCALE = WINDOWS_UI_SCALE if OS_NAME == "nt" else DEFAULT_UI_SCALE
 MAX_PREVIEW_MATRIX = 90
 MAX_PREVIEW_DARK_MODULES = 9000
 PREVIEW_SKIPPED_MESSAGE = "Preview skipped for large data"
@@ -89,6 +94,80 @@ def try_svg_to_png_bytes(svg_text: str, scale: float = 1.0) -> bytes:
         return cairosvg.svg2png(bytestring=svg_text.encode("utf-8"), scale=scale)
     except Exception as exc:
         raise RuntimeError(f"Preview renderer failed: {exc}") from exc
+
+
+def _is_windows() -> bool:
+    return OS_NAME == "nt"
+
+
+def _is_macos() -> bool:
+    return PLATFORM == "darwin"
+
+
+def _enable_windows_dpi_awareness() -> bool:
+    if not _is_windows():
+        return False
+    try:
+        import ctypes
+
+        user32 = ctypes.windll.user32
+        if hasattr(user32, "SetProcessDpiAwarenessContext"):
+            dpi_context_per_monitor_v2 = ctypes.c_void_p(-4)
+            return bool(user32.SetProcessDpiAwarenessContext(dpi_context_per_monitor_v2))
+        shcore = ctypes.windll.shcore
+        if hasattr(shcore, "SetProcessDpiAwareness"):
+            # 2 = PROCESS_PER_MONITOR_DPI_AWARE
+            return shcore.SetProcessDpiAwareness(2) == 0
+        if hasattr(user32, "SetProcessDPIAware"):
+            return bool(user32.SetProcessDPIAware())
+    except Exception:
+        return False
+    return False
+
+
+def _compute_tk_scaling(dpi: Optional[float], *, is_windows: Optional[bool] = None) -> float:
+    if is_windows is None:
+        is_windows = _is_windows()
+    if is_windows and dpi:
+        return dpi / 72.0
+    return UI_SCALE
+
+
+def _select_ttk_theme(
+    style: ttk.Style,
+    prefer_native: bool,
+    *,
+    os_name: Optional[str] = None,
+    platform: Optional[str] = None,
+) -> str:
+    os_name = OS_NAME if os_name is None else os_name
+    platform = PLATFORM if platform is None else platform
+    themes = set(style.theme_names())
+
+    if prefer_native:
+        if os_name == "nt":
+            for name in ("vista", "xpnative", "winnative"):
+                if name in themes:
+                    style.theme_use(name)
+                    return name
+        if platform == "darwin" and "aqua" in themes:
+            style.theme_use("aqua")
+            return "aqua"
+
+    for name in ("clam", "default"):
+        if name in themes:
+            style.theme_use(name)
+            return name
+
+    style.theme_use()
+    return style.theme_use()
+
+
+def _is_native_theme(theme: str) -> bool:
+    return theme in {"vista", "xpnative", "winnative", "aqua"}
+
+
+_WINDOWS_DPI_AWARE = _enable_windows_dpi_awareness()
 
 
 class ScrollableFrame(ttk.Frame):
@@ -382,7 +461,7 @@ class QrGuiApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("QR Generator")
-        self.root.tk.call("tk", "scaling", UI_SCALE)
+        self._apply_tk_scaling()
         self.root.geometry(f"{ui(1120)}x{ui(860)}")
 
         self.colors = THEMES["system"].copy()
@@ -447,6 +526,18 @@ class QrGuiApp:
             return
         self.preview_renderer_ok = False
         self.show_status(message)
+
+    def _apply_tk_scaling(self) -> None:
+        dpi = None
+        try:
+            dpi = self.root.winfo_fpixels("1i")
+        except tk.TclError:
+            pass
+        scale = _compute_tk_scaling(dpi)
+        try:
+            self.root.tk.call("tk", "scaling", scale)
+        except tk.TclError:
+            pass
 
     def _preview_too_large(self, size: int, dark_modules: Optional[int] = None) -> bool:
         if size > MAX_PREVIEW_MATRIX:
@@ -676,7 +767,9 @@ class QrGuiApp:
     def update_grid_layout(self, force: bool = False) -> None:
         canvas_width = self.scroll.canvas.winfo_width()
         if canvas_width <= 1:
-            return
+            canvas_width = self.scroll.canvas.winfo_reqwidth()
+        if canvas_width <= 1:
+            canvas_width = self.preview_size + ui(40)
         card_width = self.preview_size + ui(40)
         columns = max(1, int(canvas_width // max(1, card_width)))
         needs_layout = force or columns != self.card_columns
@@ -893,32 +986,34 @@ class QrGuiApp:
             key = "system"
         self.colors = THEMES[key].copy()
         style = ttk.Style()
-        try:
-            style.theme_use("clam")
-        except tk.TclError:
-            pass
+        prefer_native = key == "system"
+        theme_name = _select_ttk_theme(style, prefer_native)
+        native_theme = prefer_native and _is_native_theme(theme_name)
 
         self.root.configure(background=self.colors["bg"])
         style.configure("TFrame", background=self.colors["bg"])
         style.configure("TLabel", background=self.colors["bg"], foreground=self.colors["text"])
         style.configure("TLabelFrame", background=self.colors["bg"], foreground=self.colors["text"])
         style.configure("TLabelFrame.Label", background=self.colors["bg"], foreground=self.colors["text"])
-        style.configure("TEntry", fieldbackground=self.colors["surface"], foreground=self.colors["text"])
-        style.configure("TButton", background=self.colors["surface"], foreground=self.colors["text"])
-        style.configure(
-            "TCombobox",
-            fieldbackground=self.colors["surface"],
-            background=self.colors["surface"],
-            foreground=self.colors["text"],
-            arrowcolor=self.colors["text"],
-        )
-        style.configure("TCheckbutton", background=self.colors["bg"], foreground=self.colors["text"])
-        style.map(
-            "TCombobox",
-            fieldbackground=[("readonly", self.colors["surface"])],
-            foreground=[("readonly", self.colors["text"])],
-            background=[("readonly", self.colors["surface"])],
-        )
+        if native_theme:
+            style.configure("TCheckbutton", background=self.colors["bg"], foreground=self.colors["text"])
+        else:
+            style.configure("TEntry", fieldbackground=self.colors["surface"], foreground=self.colors["text"])
+            style.configure("TButton", background=self.colors["surface"], foreground=self.colors["text"])
+            style.configure(
+                "TCombobox",
+                fieldbackground=self.colors["surface"],
+                background=self.colors["surface"],
+                foreground=self.colors["text"],
+                arrowcolor=self.colors["text"],
+            )
+            style.configure("TCheckbutton", background=self.colors["bg"], foreground=self.colors["text"])
+            style.map(
+                "TCombobox",
+                fieldbackground=[("readonly", self.colors["surface"])],
+                foreground=[("readonly", self.colors["text"])],
+                background=[("readonly", self.colors["surface"])],
+            )
 
         style.configure("App.TFrame", background=self.colors["bg"])
         style.configure("Panel.TFrame", background=self.colors["surface"])

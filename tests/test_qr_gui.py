@@ -9,6 +9,21 @@ import qr_gui
 from qr_gui import MAX_PREVIEW_INPUT_LEN, MAX_PREVIEW_MATRIX, QrGuiApp, ScrollableFrame, ui
 
 
+class DummyStyle:
+    def __init__(self, themes):
+        self._themes = list(themes)
+        self.used = None
+
+    def theme_names(self):
+        return list(self._themes)
+
+    def theme_use(self, name=None):
+        if name is None:
+            return self.used or (self._themes[0] if self._themes else "")
+        self.used = name
+        return name
+
+
 def _make_root():
     if tk is None:
         pytest.skip("tkinter not available")
@@ -90,3 +105,21 @@ def test_update_previews_skips_long_input(monkeypatch):
     app.update_previews()
     assert app.preview_skip_token == ("len", MAX_PREVIEW_INPUT_LEN + 1)
     root.destroy()
+
+
+def test_compute_tk_scaling_uses_dpi_for_windows():
+    scale = qr_gui._compute_tk_scaling(144.0, is_windows=True)
+    assert scale == 2.0
+
+
+def test_select_ttk_theme_prefers_native_on_windows():
+    style = DummyStyle(["clam", "vista", "alt"])
+    theme = qr_gui._select_ttk_theme(style, prefer_native=True, os_name="nt", platform="win32")
+    assert theme == "vista"
+    assert style.used == "vista"
+
+
+def test_select_ttk_theme_falls_back_to_clam():
+    style = DummyStyle(["clam", "alt"])
+    theme = qr_gui._select_ttk_theme(style, prefer_native=False, os_name="nt", platform="win32")
+    assert theme == "clam"
