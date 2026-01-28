@@ -5,7 +5,8 @@ try:
 except Exception:  # pragma: no cover - optional runtime dependency
     tk = None
 
-from qr_gui import QrGuiApp, ScrollableFrame, ui
+import qr_gui
+from qr_gui import MAX_PREVIEW_INPUT_LEN, MAX_PREVIEW_MATRIX, QrGuiApp, ScrollableFrame, ui
 
 
 def _make_root():
@@ -59,4 +60,33 @@ def test_disable_preview_renderer_sets_flag():
     app = QrGuiApp(root)
     app.disable_preview_renderer("boom")
     assert app.preview_renderer_ok is False
+    root.destroy()
+
+
+def test_update_previews_skips_large_data(monkeypatch):
+    root = _make_root()
+    app = QrGuiApp(root)
+    app.data_var.set("x")
+
+    class DummyQR:
+        def __init__(self, size):
+            self.matrix = [[1] * size for _ in range(size)]
+
+    monkeypatch.setattr(qr_gui.segno, "make", lambda _data, error: DummyQR(MAX_PREVIEW_MATRIX + 1))
+    app.update_previews()
+    assert app.preview_skip_size == MAX_PREVIEW_MATRIX + 1
+    root.destroy()
+
+
+def test_update_previews_skips_long_input(monkeypatch):
+    root = _make_root()
+    app = QrGuiApp(root)
+    app.data_var.set("x" * (MAX_PREVIEW_INPUT_LEN + 1))
+
+    def fail_make(_data, error):
+        raise AssertionError("segno.make should not be called for long input")
+
+    monkeypatch.setattr(qr_gui.segno, "make", fail_make)
+    app.update_previews()
+    assert app.preview_skip_token == ("len", MAX_PREVIEW_INPUT_LEN + 1)
     root.destroy()

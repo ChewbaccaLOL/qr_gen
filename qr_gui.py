@@ -26,6 +26,11 @@ from qr_render import render_svg
 
 
 UI_SCALE = 1.25
+MAX_PREVIEW_MATRIX = 90
+MAX_PREVIEW_DARK_MODULES = 9000
+PREVIEW_SKIPPED_MESSAGE = "Preview skipped for large data"
+MAX_PREVIEW_INPUT_LEN = 512
+PREVIEW_TOO_LONG_MESSAGE = "Preview skipped for long input"
 
 
 def ui(value: float) -> int:
@@ -383,6 +388,8 @@ class QrGuiApp:
         self.colors = THEMES["system"].copy()
         self.preview_job: Optional[str] = None
         self.preview_renderer_ok = True
+        self.preview_skip_size: Optional[int] = None
+        self.preview_skip_token: Optional[tuple] = None
         self.suspend_custom_trace = False
 
         self.preview_zoom = 1.0
@@ -440,6 +447,20 @@ class QrGuiApp:
             return
         self.preview_renderer_ok = False
         self.show_status(message)
+
+    def _preview_too_large(self, size: int, dark_modules: Optional[int] = None) -> bool:
+        if size > MAX_PREVIEW_MATRIX:
+            return True
+        if dark_modules is None:
+            return False
+        return dark_modules > MAX_PREVIEW_DARK_MODULES
+
+    def _preview_too_long(self, data: str) -> bool:
+        return len(data) > MAX_PREVIEW_INPUT_LEN
+
+    @staticmethod
+    def _count_dark_modules(matrix: List[List[int]]) -> int:
+        return sum(sum(row) for row in matrix)
 
     def _build_ui(self) -> None:
         self.root.grid_rowconfigure(1, weight=1)
@@ -983,15 +1004,43 @@ class QrGuiApp:
             return
         data = self.data_var.get().strip()
         if not data:
+            self.preview_skip_size = None
+            self.preview_skip_token = None
             for card in self.cards.values():
                 card.update_preview(None, placeholder="Enter text")
+            self.update_selected_preview()
+            return
+        if self._preview_too_long(data):
+            token = ("len", len(data))
+            if self.preview_skip_token != token:
+                self.show_status(f"{PREVIEW_TOO_LONG_MESSAGE} ({len(data)} chars).")
+                self.preview_skip_token = token
+            for card in self.cards.values():
+                card.update_preview(None, placeholder=PREVIEW_TOO_LONG_MESSAGE)
             self.update_selected_preview()
             return
         try:
             qr = segno.make(data, error=self.error_var.get())
         except Exception as exc:
+            self.preview_skip_size = None
+            self.preview_skip_token = None
             self.show_status(f"Invalid data: {exc}")
             return
+        size = len(qr.matrix)
+        dark_modules = self._count_dark_modules(qr.matrix)
+        if self._preview_too_large(size, dark_modules):
+            if self.preview_skip_size != size:
+                self.show_status(
+                    f"{PREVIEW_SKIPPED_MESSAGE} ({size}x{size}, {dark_modules} modules)."
+                )
+                self.preview_skip_size = size
+                self.preview_skip_token = ("size", size)
+            for card in self.cards.values():
+                card.update_preview(None, placeholder=PREVIEW_SKIPPED_MESSAGE)
+            self.update_selected_preview()
+            return
+        self.preview_skip_size = None
+        self.preview_skip_token = None
         preview_scale = self._compute_preview_scale(len(qr.matrix))
         border = self.border_var.get()
         for name, card in self.cards.items():
@@ -1134,10 +1183,28 @@ class QrGuiApp:
                 fill=self.colors["muted"],
             )
             return
+        if self._preview_too_long(data):
+            self.detail_canvas.create_text(
+                DETAIL_PREVIEW_SIZE / 2,
+                DETAIL_PREVIEW_SIZE / 2,
+                text=PREVIEW_TOO_LONG_MESSAGE,
+                fill=self.colors["muted"],
+            )
+            return
         try:
             qr = segno.make(data, error=self.error_var.get())
         except Exception as exc:
             self.show_status(f"Invalid data: {exc}")
+            return
+        size = len(qr.matrix)
+        dark_modules = self._count_dark_modules(qr.matrix)
+        if self._preview_too_large(size, dark_modules):
+            self.detail_canvas.create_text(
+                DETAIL_PREVIEW_SIZE / 2,
+                DETAIL_PREVIEW_SIZE / 2,
+                text=PREVIEW_SKIPPED_MESSAGE,
+                fill=self.colors["muted"],
+            )
             return
         base_variant = self.variant_map.get(self.selected_variant)
         if not base_variant:
@@ -1227,10 +1294,20 @@ class QrGuiApp:
         if not data:
             self.show_status("Enter data first")
             return
+        if self._preview_too_long(data):
+            self.show_status(f"{PREVIEW_TOO_LONG_MESSAGE} ({len(data)} chars).")
+            return
         try:
             qr = segno.make(data, error=self.error_var.get())
         except Exception as exc:
             self.show_status(f"Invalid data: {exc}")
+            return
+        size = len(qr.matrix)
+        dark_modules = self._count_dark_modules(qr.matrix)
+        if self._preview_too_large(size, dark_modules):
+            self.show_status(
+                f"{PREVIEW_SKIPPED_MESSAGE} ({size}x{size}, {dark_modules} modules)."
+            )
             return
         base_variant = self.variant_map.get(self.selected_variant)
         if not base_variant:
