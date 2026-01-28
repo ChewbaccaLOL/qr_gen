@@ -1,3 +1,12 @@
 out/
 .venv/
 __pycache__/
+*.exe
+*.dll
+*.dylib
+*.so
+*.test
+*.out
+/bin/
+/dist/
+/qr_generator
