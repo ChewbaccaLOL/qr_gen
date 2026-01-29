@@ -70,6 +70,10 @@ func (a *App) GetVariantCatalog() ([]guicore.VariantInfo, error) {
 	return guicore.ListVariants(a.baseVariants, a.customVariants)
 }
 
+func (a *App) IsWSL() bool {
+	return guicore.IsWSL()
+}
+
 func (a *App) GenerateSVG(req guicore.RenderRequest) (string, error) {
 	if a.cfg == nil {
 		return "", errors.New("variants config not loaded")

@@ -64,7 +64,8 @@ const state = {
   variantMap: new Map(),
   previewCache: new Map(),
   selectedVariant: "",
-  debounceTimer: null
+  debounceTimer: null,
+  isWSL: false
 };
 
 const defaultData = "https://example.com";
@@ -440,12 +441,15 @@ async function copyPngToClipboard() {
     setStatus("Clipboard image copy is not supported in this environment.", "error");
     return;
   }
-  setStatus("Copying PNG…");
+  const wslNote = state.isWSL
+    ? " (WSL: Windows clipboard may not update.)"
+    : "";
+  setStatus(`Copying PNG…${wslNote}`, state.isWSL ? "warning" : "");
   try {
     const pngBase64 = await GeneratePNG(buildRequest());
     const blob = base64ToBlob(pngBase64, "image/png");
     await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-    setStatus("Copied PNG to clipboard.");
+    setStatus(`Copied PNG to clipboard.${wslNote}`, state.isWSL ? "warning" : "");
   } catch (error) {
     setStatus(error.message || String(error), "error");
   }
@@ -680,7 +684,20 @@ async function deleteCustomVariant() {
   }
 }
 
+async function detectWSL() {
+  const wslCheck = window.go?.main?.App?.IsWSL;
+  if (!wslCheck) {
+    return;
+  }
+  try {
+    state.isWSL = await wslCheck();
+  } catch {
+    state.isWSL = false;
+  }
+}
+
 async function init() {
+  await detectWSL();
   try {
     await loadVariants();
   } catch (error) {

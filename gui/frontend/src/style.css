@@ -272,6 +272,10 @@ button.danger:hover {
   color: #c0392b;
 }
 
+.status.warning {
+  color: #b35c00;
+}
+
 .preview {
   display: flex;
   flex-direction: column;
