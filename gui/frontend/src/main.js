@@ -65,8 +65,12 @@ const state = {
   previewCache: new Map(),
   selectedVariant: "",
   debounceTimer: null,
+  isRendering: false,
+  pendingRender: false,
   isWSL: false
 };
+
+const angleControls = new Map();
 
 const defaultData = "https://example.com";
 const defaultGradientAngle = 45;
@@ -138,6 +142,225 @@ function parseFloatOr(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function clampValue(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function stepPrecision(step) {
+  if (!Number.isFinite(step) || step <= 0) {
+    return 0;
+  }
+  const parts = String(step).split(".");
+  return parts[1] ? parts[1].length : 0;
+}
+
+function updateAngleControl(targetId) {
+  const control = angleControls.get(targetId);
+  if (!control) {
+    return;
+  }
+  control.update();
+  control.updateColors?.();
+}
+
+function setAngleControlEnabled(targetId, enabled) {
+  angleControls.get(targetId)?.setEnabled(enabled);
+}
+
+function updateAngleControlColors(targetId) {
+  angleControls.get(targetId)?.updateColors?.();
+}
+
+function updateAngleControlColorsForInput(inputId) {
+  if (inputId === "gradientFrom" || inputId === "gradientTo") {
+    updateAngleControlColors("gradientAngle");
+  }
+  if (inputId === "bgGradientFrom" || inputId === "bgGradientTo") {
+    updateAngleControlColors("bgGradientAngle");
+  }
+}
+
+function setupAngleControl(control) {
+  const targetId = control.dataset.target;
+  if (!targetId) {
+    return null;
+  }
+  const input = document.getElementById(targetId);
+  const dial = control.querySelector(".angle-dial");
+  const fromInput = control.dataset.from ? document.getElementById(control.dataset.from) : null;
+  const toInput = control.dataset.to ? document.getElementById(control.dataset.to) : null;
+  if (!input || !dial) {
+    return null;
+  }
+
+  const min = parseFloatOr(input.min, 0);
+  const max = parseFloatOr(input.max, 360);
+
+  if (control.dataset.label) {
+    dial.setAttribute("aria-label", control.dataset.label);
+  }
+  dial.setAttribute("aria-valuemin", String(min));
+  dial.setAttribute("aria-valuemax", String(max));
+
+  const updateDial = () => {
+    const value = parseFloatOr(input.value, min);
+    dial.style.setProperty("--angle", `${value}deg`);
+    dial.setAttribute("aria-valuenow", String(Math.round(value)));
+    dial.setAttribute("aria-valuetext", `${Math.round(value)} degrees`);
+  };
+
+  const resolveControlColor = (colorInput) => {
+    if (!colorInput) {
+      return "";
+    }
+    return colorInput.value.trim() || colorInput.placeholder || "";
+  };
+
+  const updateColors = () => {
+    const fromColor = resolveControlColor(fromInput);
+    const toColor = resolveControlColor(toInput);
+    if (fromColor) {
+      dial.style.setProperty("--angle-from", fromColor);
+    } else {
+      dial.style.removeProperty("--angle-from");
+    }
+    if (toColor) {
+      dial.style.setProperty("--angle-to", toColor);
+    } else {
+      dial.style.removeProperty("--angle-to");
+    }
+  };
+
+  const applyAngle = (rawAngle) => {
+    const step = parseFloatOr(input.step, 1);
+    const precision = stepPrecision(step);
+    const snapped = step ? Math.round(rawAngle / step) * step : rawAngle;
+    const clamped = clampValue(snapped, min, max);
+    const value = precision ? clamped.toFixed(precision) : String(Math.round(clamped));
+    input.value = value;
+    updateDial();
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+
+  const angleFromPointer = (event) => {
+    const rect = dial.getBoundingClientRect();
+    const dx = event.clientX - (rect.left + rect.width / 2);
+    const dy = event.clientY - (rect.top + rect.height / 2);
+    if (dx === 0 && dy === 0) {
+      return null;
+    }
+    const radians = Math.atan2(dy, dx);
+    const degrees = (radians * 180) / Math.PI;
+    return (degrees + 360) % 360;
+  };
+
+  let dragging = false;
+  dial.addEventListener("pointerdown", (event) => {
+    if (input.disabled || event.button !== 0) {
+      return;
+    }
+    dragging = true;
+    dial.setPointerCapture(event.pointerId);
+    const angle = angleFromPointer(event);
+    if (angle !== null) {
+      applyAngle(angle);
+    }
+    event.preventDefault();
+  });
+
+  dial.addEventListener("pointermove", (event) => {
+    if (!dragging) {
+      return;
+    }
+    const angle = angleFromPointer(event);
+    if (angle !== null) {
+      applyAngle(angle);
+    }
+  });
+
+  dial.addEventListener("pointerup", (event) => {
+    if (!dragging) {
+      return;
+    }
+    dragging = false;
+    dial.releasePointerCapture(event.pointerId);
+  });
+
+  dial.addEventListener("pointercancel", () => {
+    dragging = false;
+  });
+
+  dial.addEventListener("wheel", (event) => {
+    if (input.disabled) {
+      return;
+    }
+    event.preventDefault();
+    const delta = Math.sign(event.deltaY);
+    if (!delta) {
+      return;
+    }
+    const step = parseFloatOr(input.step, 1);
+    const current = parseFloatOr(input.value, min);
+    applyAngle(current - delta * step);
+  }, { passive: false });
+
+  dial.addEventListener("keydown", (event) => {
+    if (input.disabled) {
+      return;
+    }
+    const step = parseFloatOr(input.step, 1);
+    const current = parseFloatOr(input.value, min);
+    switch (event.key) {
+      case "ArrowUp":
+      case "ArrowRight":
+        applyAngle(current + step);
+        event.preventDefault();
+        break;
+      case "ArrowDown":
+      case "ArrowLeft":
+        applyAngle(current - step);
+        event.preventDefault();
+        break;
+      case "Home":
+        applyAngle(min);
+        event.preventDefault();
+        break;
+      case "End":
+        applyAngle(max);
+        event.preventDefault();
+        break;
+      default:
+        break;
+    }
+  });
+
+  input.addEventListener("input", updateDial);
+  fromInput?.addEventListener("input", updateColors);
+  toInput?.addEventListener("input", updateColors);
+  updateDial();
+  updateColors();
+
+  const setEnabled = (enabled) => {
+    control.classList.toggle("disabled", !enabled);
+    dial.tabIndex = enabled ? 0 : -1;
+    dial.setAttribute("aria-disabled", String(!enabled));
+  };
+
+  setEnabled(!input.disabled);
+
+  return { targetId, update: updateDial, updateColors, setEnabled };
+}
+
+function setupAngleControls() {
+  const controls = document.querySelectorAll(".angle-control");
+  controls.forEach((control) => {
+    const handle = setupAngleControl(control);
+    if (handle) {
+      angleControls.set(handle.targetId, handle);
+    }
+  });
+}
+
 function setStatus(message, type = "") {
   elements.status.textContent = message;
   elements.status.className = type ? `status ${type}` : "status";
@@ -170,12 +393,15 @@ function updateGradientFields(variant) {
   elements.gradientEnabled.checked = Boolean(variant?.hasGradient);
   elements.gradientFrom.placeholder = variant?.gradientFrom || variant?.dark || "#ff7a59";
   elements.gradientTo.placeholder = variant?.gradientTo || variant?.dark || "#7a2cff";
+  elements.gradientFrom.value = variant?.hasGradient ? (variant?.gradientFrom || "") : "";
+  elements.gradientTo.value = variant?.hasGradient ? (variant?.gradientTo || "") : "";
   if (elements.gradientScope) {
-    elements.gradientScope.value = variant?.gradientScope || "module";
+    elements.gradientScope.value = variant?.gradientScope || "global";
   }
   if (elements.gradientAngle) {
     elements.gradientAngle.value = String(variant?.gradientAngle ?? defaultGradientAngle);
     updateRangeValue(elements.gradientAngle, elements.gradientAngleValue, (value) => `${Math.round(value)}°`);
+    updateAngleControl("gradientAngle");
   }
   if (elements.gradientFromStop) {
     elements.gradientFromStop.value = String(variant?.gradientFromStop ?? defaultGradientFromStop);
@@ -197,9 +423,12 @@ function updateBackgroundGradientFields(variant) {
   elements.bgGradientEnabled.checked = Boolean(variant?.hasBgGradient);
   elements.bgGradientFrom.placeholder = variant?.bgGradientFrom || variant?.light || "#ffffff";
   elements.bgGradientTo.placeholder = variant?.bgGradientTo || variant?.light || "#f0f0f0";
+  elements.bgGradientFrom.value = variant?.hasBgGradient ? (variant?.bgGradientFrom || "") : "";
+  elements.bgGradientTo.value = variant?.hasBgGradient ? (variant?.bgGradientTo || "") : "";
   if (elements.bgGradientAngle) {
     elements.bgGradientAngle.value = String(variant?.bgGradientAngle ?? defaultGradientAngle);
     updateRangeValue(elements.bgGradientAngle, elements.bgGradientAngleValue, (value) => `${Math.round(value)}°`);
+    updateAngleControl("bgGradientAngle");
   }
   if (elements.bgGradientFromStop) {
     elements.bgGradientFromStop.value = String(variant?.bgGradientFromStop ?? defaultGradientFromStop);
@@ -319,7 +548,7 @@ function buildRequest() {
     gradientAngle: gradientEnabled ? parseFloatOr(elements.gradientAngle?.value, defaultGradientAngle) : null,
     gradientFromStop: gradientEnabled ? parseFloatOr(elements.gradientFromStop?.value, defaultGradientFromStop) : null,
     gradientToStop: gradientEnabled ? parseFloatOr(elements.gradientToStop?.value, defaultGradientToStop) : null,
-    gradientScope: gradientEnabled ? (elements.gradientScope?.value || "module") : "",
+    gradientScope: gradientEnabled ? (elements.gradientScope?.value || "global") : "",
     bgGradientEnabled,
     bgGradientFrom,
     bgGradientTo,
@@ -379,7 +608,7 @@ function buildCustomVariantRequest() {
     gradientAngle: gradientEnabled ? parseFloatOr(elements.gradientAngle?.value, defaultGradientAngle) : null,
     gradientFromStop: gradientEnabled ? parseFloatOr(elements.gradientFromStop?.value, defaultGradientFromStop) : null,
     gradientToStop: gradientEnabled ? parseFloatOr(elements.gradientToStop?.value, defaultGradientToStop) : null,
-    gradientScope: gradientEnabled ? (elements.gradientScope?.value || "module") : "",
+    gradientScope: gradientEnabled ? (elements.gradientScope?.value || "global") : "",
     bgGradientEnabled,
     bgGradientFrom,
     bgGradientTo,
@@ -390,6 +619,11 @@ function buildCustomVariantRequest() {
 }
 
 async function refreshPreview() {
+  if (state.isRendering) {
+    state.pendingRender = true;
+    return;
+  }
+  state.isRendering = true;
   setStatus("Rendering preview…");
   updatePreviewFrame();
   try {
@@ -398,6 +632,14 @@ async function refreshPreview() {
     setStatus("Preview updated.");
   } catch (error) {
     setStatus(error.message || String(error), "error");
+  } finally {
+    state.isRendering = false;
+    if (state.pendingRender) {
+      state.pendingRender = false;
+      requestAnimationFrame(() => {
+        refreshPreview();
+      });
+    }
   }
 }
 
@@ -589,6 +831,7 @@ function updateGradientState() {
     }
     input.disabled = !enabled;
   });
+  setAngleControlEnabled("gradientAngle", enabled);
 }
 
 function updateBackgroundGradientState() {
@@ -611,6 +854,7 @@ function updateBackgroundGradientState() {
     }
     input.disabled = !enabled;
   });
+  setAngleControlEnabled("bgGradientAngle", enabled);
 }
 
 function setPickerDefault(textInput, colorInput, fallback) {
@@ -706,8 +950,37 @@ async function init() {
   await refreshPreview();
 }
 
-[elements.data, elements.shape, elements.error, elements.scale, elements.border, elements.dark, elements.light, elements.radius, elements.transparent, elements.gradientEnabled, elements.gradientFrom, elements.gradientTo, elements.gradientScope, elements.gradientAngle, elements.gradientFromStop, elements.gradientToStop, elements.bgGradientEnabled, elements.bgGradientFrom, elements.bgGradientTo, elements.bgGradientAngle, elements.bgGradientFromStop, elements.bgGradientToStop, elements.pngScale].forEach((input) => {
+[
+  elements.data,
+  elements.shape,
+  elements.error,
+  elements.scale,
+  elements.border,
+  elements.dark,
+  elements.light,
+  elements.radius,
+  elements.transparent,
+  elements.gradientEnabled,
+  elements.gradientFrom,
+  elements.gradientTo,
+  elements.gradientScope,
+  elements.gradientFromStop,
+  elements.gradientToStop,
+  elements.bgGradientEnabled,
+  elements.bgGradientFrom,
+  elements.bgGradientTo,
+  elements.bgGradientFromStop,
+  elements.bgGradientToStop,
+  elements.pngScale
+].forEach((input) => {
   input.addEventListener("input", debounceRefresh);
+});
+
+[elements.gradientAngle, elements.bgGradientAngle].forEach((input) => {
+  if (!input) {
+    return;
+  }
+  input.addEventListener("input", refreshPreview);
 });
 
 elements.refresh.addEventListener("click", refreshPreview);
@@ -772,12 +1045,15 @@ elements.transparent?.addEventListener("change", () => {
   }
   textInput.addEventListener("input", () => {
     syncPickerToText(textInput, colorInput);
+    updateAngleControlColorsForInput(textInput.id);
     debounceRefresh();
   });
   colorInput.addEventListener("input", () => {
     syncTextToPicker(textInput, colorInput);
+    updateAngleControlColorsForInput(textInput.id);
     debounceRefresh();
   });
 });
 
+setupAngleControls();
 init();

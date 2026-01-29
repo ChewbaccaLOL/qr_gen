@@ -178,6 +178,73 @@ body {
   gap: 10px;
 }
 
+.angle-control {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.angle-range {
+  width: 100%;
+}
+
+.angle-dial {
+  --angle: 0deg;
+  --angle-from: var(--accent);
+  --angle-to: var(--accent-strong);
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  position: relative;
+  background: transparent;
+  border: 1px solid rgba(15, 18, 36, 0.28);
+  box-shadow: 0 6px 14px rgba(15, 18, 36, 0.08);
+  cursor: grab;
+  touch-action: none;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.angle-dial:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(15, 18, 36, 0.12);
+}
+
+.angle-dial:active {
+  cursor: grabbing;
+}
+
+.angle-arrow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-bottom: 17px solid currentColor;
+  transform-origin: 50% 100%;
+  z-index: 2;
+  filter: drop-shadow(0 3px 6px rgba(15, 18, 36, 0.18));
+}
+
+.angle-arrow.angle-from {
+  color: var(--angle-from);
+  transform: translate(-50%, -100%) rotate(calc(var(--angle) + 270deg));
+}
+
+.angle-arrow.angle-to {
+  color: var(--angle-to);
+  transform: translate(-50%, -100%) rotate(calc(var(--angle) + 90deg));
+}
+
+.angle-control.disabled .angle-dial {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  pointer-events: none;
+}
+
 .range-input input[type="range"] {
   flex: 1;
 }
@@ -474,6 +541,10 @@ button.danger:hover {
   }
 
   .color-row {
+    grid-template-columns: 1fr;
+  }
+
+  .angle-control {
     grid-template-columns: 1fr;
   }
 }

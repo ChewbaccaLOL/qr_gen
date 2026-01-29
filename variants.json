@@ -72,7 +72,8 @@
       "gradient": {
         "id": "fg",
         "from": "#ff7a59",
-        "to": "#7a2cff"
+        "to": "#7a2cff",
+        "scope": "module"
       }
     },
     {
@@ -84,7 +85,8 @@
       "gradient": {
         "id": "fg",
         "from": "#00f0ff",
-        "to": "#6bff2e"
+        "to": "#6bff2e",
+        "scope": "module"
       }
     }
   ],

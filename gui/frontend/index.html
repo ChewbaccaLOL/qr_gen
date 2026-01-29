@@ -104,15 +104,32 @@
             <div class="field">
               <label for="gradientScope">Gradient scope</label>
               <select id="gradientScope">
+                <option value="global" selected>Whole QR</option>
                 <option value="module">Per module</option>
-                <option value="global">Whole QR</option>
               </select>
             </div>
+          </div>
+
+          <div class="grid">
             <div class="field">
               <label for="gradientAngle">Gradient angle</label>
-              <div class="range-input">
-                <input id="gradientAngle" type="range" min="0" max="360" step="1" value="45" />
-                <span id="gradientAngleValue" class="range-value">45°</span>
+              <div class="angle-control" data-target="gradientAngle" data-label="Gradient angle" data-from="gradientFrom" data-to="gradientTo">
+                <div
+                  class="angle-dial"
+                  role="slider"
+                  aria-label="Gradient angle"
+                  aria-valuemin="0"
+                  aria-valuemax="360"
+                  aria-valuenow="45"
+                  tabindex="0"
+                >
+                  <div class="angle-arrow angle-from"></div>
+                  <div class="angle-arrow angle-to"></div>
+                </div>
+                <div class="range-input angle-range">
+                  <input id="gradientAngle" type="range" min="0" max="360" step="1" value="45" />
+                  <span id="gradientAngleValue" class="range-value">45°</span>
+                </div>
               </div>
             </div>
           </div>
@@ -163,9 +180,23 @@
           <div class="grid">
             <div class="field">
               <label for="bgGradientAngle">Background angle</label>
-              <div class="range-input">
-                <input id="bgGradientAngle" type="range" min="0" max="360" step="1" value="45" />
-                <span id="bgGradientAngleValue" class="range-value">45°</span>
+              <div class="angle-control" data-target="bgGradientAngle" data-label="Background angle" data-from="bgGradientFrom" data-to="bgGradientTo">
+                <div
+                  class="angle-dial"
+                  role="slider"
+                  aria-label="Background angle"
+                  aria-valuemin="0"
+                  aria-valuemax="360"
+                  aria-valuenow="45"
+                  tabindex="0"
+                >
+                  <div class="angle-arrow angle-from"></div>
+                  <div class="angle-arrow angle-to"></div>
+                </div>
+                <div class="range-input angle-range">
+                  <input id="bgGradientAngle" type="range" min="0" max="360" step="1" value="45" />
+                  <span id="bgGradientAngleValue" class="range-value">45°</span>
+                </div>
               </div>
             </div>
           </div>
