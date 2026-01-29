@@ -8,7 +8,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"qr_generator/internal/animation"
@@ -52,11 +51,7 @@ func main() {
 	}
 
 	if args.ListVariants {
-		names := make([]string, 0, len(cfg.Variants))
-		for name := range cfg.Variants {
-			names = append(names, name)
-		}
-		sort.Strings(names)
+		names := config.EnabledVariantNames(cfg.Variants)
 		for _, name := range names {
 			fmt.Println(name)
 		}
@@ -84,15 +79,7 @@ func main() {
 	var gradient *config.Gradient
 	var backgroundGradient *config.Gradient
 	if args.Catalog {
-		names := make([]string, 0, len(cfg.Variants))
-		for name := range cfg.Variants {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-		var variants []config.Variant
-		for _, name := range names {
-			variants = append(variants, cfg.Variants[name])
-		}
+		variants := config.EnabledVariants(cfg.Variants)
 		svg, err = render.RenderCatalogSVG(
 			matrix,
 			args.Scale,

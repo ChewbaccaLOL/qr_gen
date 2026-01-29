@@ -16,6 +16,12 @@ func TestListVariantsSorted(t *testing.T) {
 			Shape: "square",
 			Dark:  "#000000",
 		},
+		"beta": {
+			Name:     "beta",
+			Shape:    "square",
+			Dark:     "#111111",
+			Disabled: true,
+		},
 		"alpha": {
 			Name:  "alpha",
 			Shape: "square",

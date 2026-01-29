@@ -86,12 +86,8 @@ func ListVariants(baseVariants map[string]config.Variant, customVariants map[str
 	if customVariants == nil {
 		customVariants = map[string]config.Variant{}
 	}
-	nameList := make([]string, 0, len(baseVariants))
-	for name := range baseVariants {
-		nameList = append(nameList, name)
-	}
-	sort.Strings(nameList)
-	out := make([]VariantInfo, 0, len(baseVariants)+len(customVariants))
+	nameList := config.EnabledVariantNames(baseVariants)
+	out := make([]VariantInfo, 0, len(nameList)+len(customVariants))
 	for _, name := range nameList {
 		variant := baseVariants[name]
 		var gradientFrom *string
@@ -150,7 +146,10 @@ func ListVariants(baseVariants map[string]config.Variant, customVariants map[str
 		return out, nil
 	}
 	customNames := make([]string, 0, len(customVariants))
-	for name := range customVariants {
+	for name, variant := range customVariants {
+		if variant.Disabled {
+			continue
+		}
 		if _, exists := baseVariants[name]; exists {
 			return nil, fmt.Errorf("custom variant '%s' conflicts with base", name)
 		}

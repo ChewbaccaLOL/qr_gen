@@ -8,13 +8,8 @@ Each QR below encodes `https://example.com` using the default settings for that 
 <table>
   <tr>
     <td align="center"><strong>classic</strong><br/><img src="docs/variants/classic.svg" width="140"/></td>
-    <td align="center"><strong>square</strong><br/><img src="docs/variants/square.svg" width="140"/></td>
-    <td align="center"><strong>rounded</strong><br/><img src="docs/variants/rounded.svg" width="140"/></td>
-  </tr>
-  <tr>
     <td align="center"><strong>dot</strong><br/><img src="docs/variants/dot.svg" width="140"/></td>
     <td align="center"><strong>clear</strong><br/><img src="docs/variants/clear.svg" width="140"/></td>
-    <td align="center"><strong>clear-rounded</strong><br/><img src="docs/variants/clear-rounded.svg" width="140"/></td>
   </tr>
   <tr>
     <td align="center"><strong>clear-dot</strong><br/><img src="docs/variants/clear-dot.svg" width="140"/></td>
@@ -152,11 +147,9 @@ See `legacy/python/README.md` for setup and usage.
 Variants (and animation defaults) are defined in `variants.json` to keep styling config shareable across future tooling.
 
 Standard:
-- `classic` (also `square`): black modules on white background
-- `rounded`: softened corners
+- `classic`: black modules on white background
 - `dot`: circular modules
 - `clear`: black modules on transparent background
-- `clear-rounded`: rounded modules on transparent background
 - `clear-dot`: dot modules on transparent background
 
 More playful:
