@@ -1,5 +1,6 @@
 import "./style.css";
 import { resolveAutoLightValue } from "./backgroundDefaults.js";
+import { ANIMATION_DEBUG_ENABLED } from "./uiFlags.js";
 import {
   DeleteCustomVariant,
   GenerateGIF,
@@ -88,6 +89,7 @@ const elements = {
   animationGallery: document.getElementById("animationGallery"),
   animationPlaceholderTitle: document.getElementById("animationPlaceholderTitle"),
   animationPlaceholderCopy: document.getElementById("animationPlaceholderCopy"),
+  animationDebugPanel: document.getElementById("animationDebugPanel"),
   animationDebug: document.getElementById("animationDebug")
 };
 
@@ -120,6 +122,10 @@ const defaultData = "https://example.com";
 const defaultGradientAngle = 45;
 const defaultGradientFromStop = 0;
 const defaultGradientToStop = 1;
+
+if (elements.animationDebugPanel) {
+  elements.animationDebugPanel.hidden = !ANIMATION_DEBUG_ENABLED;
+}
 
 elements.data.value = defaultData;
 
@@ -557,7 +563,7 @@ function updateAnimationPreviewFrame() {
 }
 
 function updateAnimationDebug() {
-  if (!elements.animationDebug) {
+  if (!ANIMATION_DEBUG_ENABLED || !elements.animationDebug) {
     return;
   }
   const req = buildAnimationRequest();
