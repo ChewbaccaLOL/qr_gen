@@ -44,6 +44,7 @@ type Args struct {
 	Dark                string
 	Light               string
 	NoBackground        bool
+	Cutout              bool
 	Radius              *float64
 	GradientEnabled     bool
 	GradientDisabled    bool
@@ -135,6 +136,7 @@ func ParseArgs(args []string, cfg *config.Config, env Env, stdin io.Reader, stdi
 	pdf := OptionalBool{}
 	ps := OptionalBool{}
 	noBackground := OptionalBool{}
+	cutout := OptionalBool{}
 	gradientEnabled := OptionalBool{}
 	gradientDisabled := OptionalBool{}
 	bgGradientEnabled := OptionalBool{}
@@ -190,6 +192,7 @@ func ParseArgs(args []string, cfg *config.Config, env Env, stdin io.Reader, stdi
 	fs.Var(&bgGradientFromStop, "bg-gradient-from-stop", "Background gradient start stop position (0-1).")
 	fs.Var(&bgGradientToStop, "bg-gradient-to-stop", "Background gradient end stop position (0-1).")
 	fs.Var(&noBackground, "no-background", "Make the background transparent.")
+	fs.Var(&cutout, "cutout", "Render modules as cutouts in the background.")
 	fs.Var(&radius, "radius", "Corner radius for rounded modules (0-0.5).")
 	fs.Var(&listVariants, "list-variants", "List available variants and exit.")
 	fs.Var(&catalog, "catalog", "Generate a catalog grid containing all variants.")
@@ -229,6 +232,7 @@ func ParseArgs(args []string, cfg *config.Config, env Env, stdin io.Reader, stdi
 	resolved.Animation = resolveBool(animation, env, "QR_ANIMATION", false)
 	resolved.ReadableGif = resolveBool(readableGif, env, "QR_READABLE_GIF", false)
 	resolved.NoBackground = resolveBool(noBackground, env, "QR_NO_BACKGROUND", false)
+	resolved.Cutout = resolveBool(cutout, env, "QR_CUTOUT", false)
 	resolved.GradientEnabled = resolveBool(gradientEnabled, env, "QR_GRADIENT", false)
 	resolved.GradientDisabled = resolveBool(gradientDisabled, env, "QR_NO_GRADIENT", false)
 	resolved.BgGradientEnabled = resolveBool(bgGradientEnabled, env, "QR_BG_GRADIENT", false)
@@ -580,6 +584,9 @@ func validate(args *Args, cfg *config.Config, animationEnabled bool) error {
 	}
 	if args.Catalog && animationEnabled {
 		return errors.New("animation output is not supported with --catalog")
+	}
+	if args.Cutout && args.NoBackground {
+		return errors.New("--cutout cannot be used with --no-background")
 	}
 	if _, ok := cfg.Variants[args.Variant]; !ok {
 		return fmt.Errorf("unknown variant '%s'", args.Variant)

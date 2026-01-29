@@ -343,6 +343,23 @@ body {
   gap: 10px;
 }
 
+.radio-group {
+  display: grid;
+  gap: 8px;
+}
+
+.radio-option {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.radio-option input {
+  accent-color: var(--accent);
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

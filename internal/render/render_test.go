@@ -3,6 +3,7 @@ package render
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"qr_generator/internal/config"
@@ -61,6 +62,7 @@ func TestRenderSVGMatchesGolden(t *testing.T) {
 			variant.Radius,
 			variant.Gradient,
 			variant.BackgroundGradient,
+			false,
 			nil,
 			0,
 			0,
@@ -86,6 +88,64 @@ func TestRenderSVGMatchesGolden(t *testing.T) {
 		if string(golden) != svg {
 			t.Fatalf("svg mismatch for %s:\n%s", name, firstDiff(string(golden), svg))
 		}
+	}
+}
+
+func TestRenderSVGCutoutMask(t *testing.T) {
+	matrix := [][]bool{
+		{true, false},
+		{false, true},
+	}
+	light := "#ffffff"
+	svg, err := RenderSVG(
+		matrix,
+		4,
+		1,
+		"#000000",
+		&light,
+		"square",
+		0,
+		nil,
+		nil,
+		true,
+		nil,
+		0,
+		0,
+		0,
+		"after",
+	)
+	if err != nil {
+		t.Fatalf("render svg cutout: %v", err)
+	}
+	if !strings.Contains(svg, "<mask id=\"qr-cutout\"") {
+		t.Fatalf("expected cutout mask definition")
+	}
+	if !strings.Contains(svg, "mask=\"url(#qr-cutout)\"") {
+		t.Fatalf("expected background rect to use cutout mask")
+	}
+}
+
+func TestRenderSVGCutoutRequiresBackground(t *testing.T) {
+	matrix := [][]bool{{true}}
+	_, err := RenderSVG(
+		matrix,
+		4,
+		1,
+		"#000000",
+		nil,
+		"square",
+		0,
+		nil,
+		nil,
+		true,
+		nil,
+		0,
+		0,
+		0,
+		"after",
+	)
+	if err == nil {
+		t.Fatalf("expected error when cutout has no background")
 	}
 }
 

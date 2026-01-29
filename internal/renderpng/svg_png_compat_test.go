@@ -52,6 +52,7 @@ func TestSvgToPngTolerance(t *testing.T) {
 			variant.Radius,
 			variant.Gradient,
 			variant.BackgroundGradient,
+			false,
 			nil,
 			0,
 			0,

@@ -133,6 +133,30 @@ func TestBuildSVGDefaults(t *testing.T) {
 	}
 }
 
+func TestBuildSVGCutoutRequiresBackground(t *testing.T) {
+	cfg := &config.Config{
+		Variants: map[string]config.Variant{
+			"classic": {
+				Name:  "classic",
+				Shape: "square",
+				Dark:  "#123456",
+			},
+		},
+		AnimationVariants: []string{"wave"},
+	}
+	req := RenderRequest{
+		Data:    "hello",
+		Variant: "classic",
+		Scale:   6,
+		Border:  4,
+		Cutout:  true,
+	}
+	_, err := BuildSVG(cfg, req)
+	if err == nil {
+		t.Fatalf("expected error for cutout without background")
+	}
+}
+
 func TestBuildPNGDefaultScale(t *testing.T) {
 	cfg := &config.Config{
 		Variants: map[string]config.Variant{

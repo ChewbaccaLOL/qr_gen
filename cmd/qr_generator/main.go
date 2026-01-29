@@ -79,6 +79,7 @@ func main() {
 	var radius float64
 	var gradient *config.Gradient
 	var backgroundGradient *config.Gradient
+	cutout := args.Cutout
 	if args.Catalog {
 		variants := config.EnabledVariants(cfg.Variants)
 		svg, err = render.RenderCatalogSVG(
@@ -108,6 +109,10 @@ func main() {
 			radius = *args.Radius
 		}
 		gradient = resolveForegroundGradient(args, variant, dark, cfg.Defaults)
+		if cutout {
+			dark = "transparent"
+			gradient = nil
+		}
 		if args.NoBackground {
 			backgroundGradient = nil
 		} else {
@@ -123,6 +128,7 @@ func main() {
 			radius,
 			gradient,
 			backgroundGradient,
+			cutout,
 			nil,
 			0,
 			0,
@@ -354,6 +360,14 @@ func main() {
 		var backgroundGradient *config.Gradient
 		if !args.NoBackground {
 			backgroundGradient = resolveBackgroundGradient(args, variant, light, cfg.Defaults)
+		}
+		if args.Cutout {
+			dark = "transparent"
+			gradient = nil
+			if light == nil && backgroundGradient == nil {
+				fmt.Fprintln(os.Stderr, "error: cutout requires a background fill")
+				os.Exit(exitUsage)
+			}
 		}
 
 		var gifOut *gif.GIF

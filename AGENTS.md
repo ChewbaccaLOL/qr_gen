@@ -43,6 +43,7 @@
 - `QR_DARK` foreground color
 - `QR_LIGHT` background color
 - `QR_NO_BACKGROUND` set `true` for transparent background
+- `QR_CUTOUT` set `true` for background cutout mode
 - `QR_RADIUS` float for rounded modules
 - `QR_GRADIENT` set `true`/`false` to enable foreground gradients
 - `QR_NO_GRADIENT` set `true` to disable foreground gradients

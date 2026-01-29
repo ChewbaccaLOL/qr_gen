@@ -372,7 +372,8 @@ func quantizeOffset(offset float64, snapPx float64) float64 {
 }
 
 func toPaletted(img image.Image, transparent bool) *image.Paletted {
-	if !transparent {
+	needsTransparency := transparent || hasTransparency(img)
+	if !needsTransparency {
 		paletted := image.NewPaletted(img.Bounds(), palette.Plan9)
 		draw.FloydSteinberg.Draw(paletted, paletted.Rect, img, image.Point{})
 		return paletted
@@ -399,6 +400,22 @@ func toPaletted(img image.Image, transparent bool) *image.Paletted {
 	}
 
 	return paletted
+}
+
+func hasTransparency(img image.Image) bool {
+	if img == nil {
+		return false
+	}
+	bounds := img.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			_, _, _, alpha := img.At(x, y).RGBA()
+			if alpha == 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func gifDelay(fps int) int {

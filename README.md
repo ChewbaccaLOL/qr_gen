@@ -102,6 +102,21 @@ Generate a PNG (native renderer):
 go run ./cmd/qr_generator --png -o out/qr.svg "https://example.com"
 ```
 
+Examples:
+```bash
+# Rounded modules with a warm gradient.
+go run ./cmd/qr_generator --variant sunset --gradient --gradient-from "#ff7a59" --gradient-to "#7a2cff" \
+  --gradient-scope module --radius 0.32 -o out/rounded-gradient.svg "https://example.com"
+
+# Dot modules on a cool background gradient.
+go run ./cmd/qr_generator --variant dot --bg-gradient --bg-gradient-from "#f0fbff" --bg-gradient-to "#ffeef2" \
+  --bg-gradient-angle 180 -o out/dot-bg-gradient.svg "https://example.com"
+
+# Cutout QR punched out of a background gradient.
+go run ./cmd/qr_generator --cutout --bg-gradient --bg-gradient-from "#0b1020" --bg-gradient-to "#142a46" \
+  --bg-gradient-angle 120 -o out/cutout.svg "https://example.com"
+```
+
 Generate a PNG catalog:
 ```bash
 go run ./cmd/qr_generator --catalog --png -o out/catalog.svg "https://example.com"

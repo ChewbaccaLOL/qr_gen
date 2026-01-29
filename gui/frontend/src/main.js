@@ -23,8 +23,11 @@ const elements = {
   darkPicker: document.getElementById("darkPicker"),
   light: document.getElementById("light"),
   lightPicker: document.getElementById("lightPicker"),
+  backgroundModeSolid: document.getElementById("backgroundModeSolid"),
+  backgroundModeTransparent: document.getElementById("backgroundModeTransparent"),
+  backgroundModeCutout: document.getElementById("backgroundModeCutout"),
+  backgroundModeOptions: Array.from(document.querySelectorAll('input[name="backgroundMode"]')),
   radius: document.getElementById("radius"),
-  transparent: document.getElementById("transparent"),
   gradientEnabled: document.getElementById("gradientEnabled"),
   gradientFrom: document.getElementById("gradientFrom"),
   gradientFromPicker: document.getElementById("gradientFromPicker"),
@@ -102,7 +105,10 @@ const state = {
   animationDirty: true,
   animationHasRender: false,
   animationAutoTimer: null,
-  animationPreviewUrl: ""
+  animationPreviewUrl: "",
+  autoLightValue: "",
+  autoBgGradientFrom: "",
+  autoBgGradientTo: ""
 };
 
 const angleControls = new Map();
@@ -128,6 +134,64 @@ function normalizeHex(value) {
     return trimmed.toLowerCase();
   }
   return "";
+}
+
+function normalizeNamedColor(value) {
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed === "black") {
+    return "#000000";
+  }
+  if (trimmed === "white") {
+    return "#ffffff";
+  }
+  return "";
+}
+
+function normalizeColor(value) {
+  return normalizeHex(value) || normalizeNamedColor(value);
+}
+
+function parseHexColor(value) {
+  const normalized = normalizeColor(value);
+  if (!normalized) {
+    return null;
+  }
+  return {
+    r: Number.parseInt(normalized.slice(1, 3), 16),
+    g: Number.parseInt(normalized.slice(3, 5), 16),
+    b: Number.parseInt(normalized.slice(5, 7), 16)
+  };
+}
+
+function meanHex(a, b) {
+  const ca = parseHexColor(a);
+  const cb = parseHexColor(b);
+  if (!ca && !cb) {
+    return "";
+  }
+  if (!cb) {
+    return normalizeColor(a);
+  }
+  if (!ca) {
+    return normalizeColor(b);
+  }
+  const r = Math.round((ca.r + cb.r) / 2);
+  const g = Math.round((ca.g + cb.g) / 2);
+  const bVal = Math.round((ca.b + cb.b) / 2);
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${bVal
+    .toString(16)
+    .padStart(2, "0")}`;
+}
+
+function invertHex(value) {
+  const normalized = normalizeColor(value);
+  if (!normalized) {
+    return "";
+  }
+  const r = 255 - Number.parseInt(normalized.slice(1, 3), 16);
+  const g = 255 - Number.parseInt(normalized.slice(3, 5), 16);
+  const b = 255 - Number.parseInt(normalized.slice(5, 7), 16);
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 }
 
 function syncPickerToText(textInput, colorInput) {
@@ -675,10 +739,46 @@ function updatePlaceholders() {
   updateGradientFields(selected);
   updateBackgroundGradientFields(selected);
   updateShapeSelection(selected);
+  syncBackgroundModeFromVariant(selected);
+  ensureBackgroundDefaults(selected);
+}
+
+function syncBackgroundModeFromVariant(variant) {
+  if (!variant) {
+    return;
+  }
+  const shouldBeTransparent = !variant.light;
+  if (shouldBeTransparent && elements.backgroundModeTransparent) {
+    elements.backgroundModeTransparent.checked = true;
+  } else if (elements.backgroundModeSolid) {
+    elements.backgroundModeSolid.checked = true;
+  }
+  updateBackgroundGradientState();
+  updatePreviewFrame();
+  updateAnimationPreviewFrame();
+}
+
+function currentBackgroundMode() {
+  if (elements.backgroundModeCutout?.checked) {
+    return "cutout";
+  }
+  if (elements.backgroundModeTransparent?.checked) {
+    return "transparent";
+  }
+  return "solid";
+}
+
+function backgroundModeIsTransparent() {
+  return currentBackgroundMode() === "transparent";
+}
+
+function backgroundModeIsCutout() {
+  return currentBackgroundMode() === "cutout";
 }
 
 function previewHasTransparentBackground() {
-  if (elements.transparent.checked) {
+  const mode = currentBackgroundMode();
+  if (mode === "transparent" || mode === "cutout") {
     return true;
   }
   if (elements.bgGradientEnabled?.checked) {
@@ -719,7 +819,7 @@ function resolveGradientColors(selected) {
 }
 
 function resolveBackgroundGradientColors(selected) {
-  if (!elements.bgGradientEnabled?.checked || elements.transparent.checked) {
+  if (!elements.bgGradientEnabled?.checked || backgroundModeIsTransparent()) {
     return { bgGradientFrom: "", bgGradientTo: "" };
   }
   let bgGradientFrom = elements.bgGradientFrom?.value.trim() || "";
@@ -740,7 +840,8 @@ function buildRequest() {
   const selected = state.variantMap.get(currentVariantName());
   const { gradientFrom, gradientTo } = resolveGradientColors(selected);
   const gradientEnabled = Boolean(elements.gradientEnabled?.checked);
-  const bgGradientEnabled = Boolean(elements.bgGradientEnabled?.checked) && !elements.transparent.checked;
+  const backgroundMode = currentBackgroundMode();
+  const bgGradientEnabled = Boolean(elements.bgGradientEnabled?.checked) && backgroundMode !== "transparent";
   const { bgGradientFrom, bgGradientTo } = resolveBackgroundGradientColors(selected);
   return {
     data: elements.data.value.trim(),
@@ -751,7 +852,8 @@ function buildRequest() {
     border: parseIntOr(elements.border.value, 4),
     dark: elements.dark.value.trim(),
     light: elements.light.value.trim(),
-    noBackground: elements.transparent.checked,
+    noBackground: backgroundMode === "transparent",
+    cutout: backgroundMode === "cutout",
     radius,
     gradientEnabled,
     gradientFrom,
@@ -806,6 +908,7 @@ function buildGalleryRequest(variant) {
     dark: "",
     light: "",
     noBackground: false,
+    cutout: false,
     radius: null,
     gradientEnabled: Boolean(variant.hasGradient),
     gradientFrom: variant.gradientFrom || "",
@@ -828,14 +931,14 @@ function buildCustomVariantRequest() {
   const selected = state.variantMap.get(currentVariantName());
   const { gradientFrom, gradientTo } = resolveGradientColors(selected);
   const gradientEnabled = Boolean(elements.gradientEnabled?.checked);
-  const bgGradientEnabled = Boolean(elements.bgGradientEnabled?.checked) && !elements.transparent.checked;
+  const bgGradientEnabled = Boolean(elements.bgGradientEnabled?.checked) && !backgroundModeIsTransparent();
   const { bgGradientFrom, bgGradientTo } = resolveBackgroundGradientColors(selected);
   return {
     name: elements.customName.value.trim(),
     baseVariant: currentVariantName(),
     dark: elements.dark.value.trim(),
     light: elements.light.value.trim(),
-    noBackground: elements.transparent.checked,
+    noBackground: backgroundModeIsTransparent(),
     radius: parseOptionalFloat(elements.radius.value),
     shape: elements.shape?.value.trim() || "",
     gradientEnabled,
@@ -1272,9 +1375,9 @@ function updateGradientState() {
 }
 
 function updateBackgroundGradientState() {
-  const enabled = Boolean(elements.bgGradientEnabled?.checked) && !elements.transparent.checked;
+  const enabled = Boolean(elements.bgGradientEnabled?.checked) && !backgroundModeIsTransparent();
   if (elements.bgGradientEnabled) {
-    elements.bgGradientEnabled.disabled = elements.transparent.checked;
+    elements.bgGradientEnabled.disabled = backgroundModeIsTransparent();
   }
   const inputs = [
     elements.bgGradientFrom,
@@ -1299,9 +1402,74 @@ function setPickerDefault(textInput, colorInput, fallback) {
     return;
   }
   const candidate = textInput.value.trim() || fallback || "";
-  const normalized = normalizeHex(candidate);
+  const normalized = normalizeColor(candidate);
   if (normalized) {
     colorInput.value = normalized;
+  }
+}
+
+function computeForegroundBaseColor(variant) {
+  const gradientEnabled = Boolean(elements.gradientEnabled?.checked);
+  if (gradientEnabled) {
+    const from = elements.gradientFrom?.value.trim() || variant?.gradientFrom || "";
+    const to = elements.gradientTo?.value.trim() || variant?.gradientTo || "";
+    if (from || to) {
+      return meanHex(from, to);
+    }
+  }
+  const darkCandidate =
+    elements.dark.value.trim() || variant?.dark || elements.dark.placeholder || "";
+  return normalizeColor(darkCandidate);
+}
+
+function ensureBackgroundDefaults(variant) {
+  if (backgroundModeIsTransparent()) {
+    return;
+  }
+  if (!elements.light) {
+    return;
+  }
+  const baseColor = computeForegroundBaseColor(variant);
+  const opposite = invertHex(baseColor);
+  if (opposite) {
+    const lightValue = elements.light.value.trim();
+    if (!lightValue || lightValue === state.autoLightValue) {
+      elements.light.value = opposite;
+      setPickerDefault(elements.light, elements.lightPicker, opposite);
+      state.autoLightValue = opposite;
+    }
+  }
+
+  if (elements.bgGradientEnabled?.checked) {
+    let fallbackFrom = "";
+    let fallbackTo = "";
+    if (Boolean(elements.gradientEnabled?.checked)) {
+      const fgFrom = elements.gradientFrom?.value.trim() || variant?.gradientFrom || "";
+      const fgTo = elements.gradientTo?.value.trim() || variant?.gradientTo || "";
+      fallbackFrom = invertHex(fgFrom);
+      fallbackTo = invertHex(fgTo);
+    }
+    if (!fallbackFrom || !fallbackTo) {
+      const fallback = elements.light.value.trim() || opposite;
+      fallbackFrom = fallbackFrom || fallback;
+      fallbackTo = fallbackTo || fallback;
+    }
+    if (fallbackFrom && elements.bgGradientFrom) {
+      const current = elements.bgGradientFrom.value.trim();
+      if (!current || current === state.autoBgGradientFrom) {
+        elements.bgGradientFrom.value = fallbackFrom;
+        setPickerDefault(elements.bgGradientFrom, elements.bgGradientFromPicker, fallbackFrom);
+        state.autoBgGradientFrom = fallbackFrom;
+      }
+    }
+    if (fallbackTo && elements.bgGradientTo) {
+      const current = elements.bgGradientTo.value.trim();
+      if (!current || current === state.autoBgGradientTo) {
+        elements.bgGradientTo.value = fallbackTo;
+        setPickerDefault(elements.bgGradientTo, elements.bgGradientToPicker, fallbackTo);
+        state.autoBgGradientTo = fallbackTo;
+      }
+    }
   }
 }
 
@@ -1434,7 +1602,6 @@ async function init() {
   elements.dark,
   elements.light,
   elements.radius,
-  elements.transparent,
   elements.gradientEnabled,
   elements.gradientFrom,
   elements.gradientTo,
@@ -1494,15 +1661,21 @@ elements.gradientEnabled?.addEventListener("change", () => {
 
 elements.bgGradientEnabled?.addEventListener("change", () => {
   updateBackgroundGradientState();
+  ensureBackgroundDefaults(state.variantMap.get(currentVariantName()));
   debounceRefresh();
   updateAnimationPreviewFrame();
   markAnimationDirty();
 });
 
-elements.transparent?.addEventListener("change", () => {
-  updateBackgroundGradientState();
-  updateAnimationPreviewFrame();
-  markAnimationDirty();
+elements.backgroundModeOptions.forEach((option) => {
+  option.addEventListener("change", () => {
+    updateBackgroundGradientState();
+    ensureBackgroundDefaults(state.variantMap.get(currentVariantName()));
+    updatePreviewFrame();
+    updateAnimationPreviewFrame();
+    debounceRefresh();
+    markAnimationDirty();
+  });
 });
 
 [

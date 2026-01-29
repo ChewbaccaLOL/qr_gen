@@ -35,6 +35,7 @@ func RenderSVG(
 	radius float64,
 	gradient *config.Gradient,
 	backgroundGradient *config.Gradient,
+	cutout bool,
 	columnOffsets []ColumnOffset,
 	extraPadY int,
 	extraPadX int,
@@ -56,15 +57,6 @@ func RenderSVG(
 		shapeRendering = "crispEdges"
 	}
 
-	gradientID := ""
-	if gradient != nil {
-		gradientID = gradient.ID
-		if gradientID == "" {
-			gradientID = "fg"
-		}
-	}
-	fill := moduleFill(dark, gradientID)
-
 	if rotateDeg != 0 {
 		angle := rotateDeg * math.Pi / 180
 		cosA := math.Abs(math.Cos(angle))
@@ -77,6 +69,10 @@ func RenderSVG(
 
 	widthAttr := formatDim(width, widthIsInt)
 	heightAttr := formatDim(height, heightIsInt)
+
+	if cutout && light == nil && backgroundGradient == nil {
+		return "", fmt.Errorf("cutout mode requires a background fill")
+	}
 
 	parts := []string{
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
@@ -91,8 +87,19 @@ func RenderSVG(
 	}
 
 	defs := []string{}
-	if def := svgGradientDef(gradient, gradientID, width, height, ""); def != "" {
-		defs = append(defs, def)
+	gradientID := ""
+	fill := ""
+	if !cutout {
+		if gradient != nil {
+			gradientID = gradient.ID
+			if gradientID == "" {
+				gradientID = "fg"
+			}
+		}
+		fill = moduleFill(dark, gradientID)
+		if def := svgGradientDef(gradient, gradientID, width, height, ""); def != "" {
+			defs = append(defs, def)
+		}
 	}
 	if backgroundGradient != nil {
 		bgID := backgroundGradient.ID
@@ -103,31 +110,118 @@ func RenderSVG(
 			defs = append(defs, def)
 		}
 	}
+	if cutout {
+		maskID := "qr-cutout"
+		maskParts := []string{
+			fmt.Sprintf(
+				"<mask id=\"%s\" maskUnits=\"userSpaceOnUse\" maskContentUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"%s\" height=\"%s\">",
+				maskID,
+				widthAttr,
+				heightAttr,
+			),
+			"<rect width=\"100%\" height=\"100%\" fill=\"white\"/>",
+		}
+		moduleParts, err := renderModuleGroup(
+			matrix,
+			scale,
+			border,
+			"#000000",
+			shape,
+			radius,
+			columnOffsets,
+			extraPadX,
+			extraPadY,
+			rotateDeg,
+			rotateMode,
+			(width-float64(contentWidth))/2,
+			(height-float64(contentHeight))/2,
+			contentWidth,
+			contentHeight,
+		)
+		if err != nil {
+			return "", err
+		}
+		maskParts = append(maskParts, moduleParts...)
+		maskParts = append(maskParts, "</mask>")
+		defs = append(defs, strings.Join(maskParts, ""))
+	}
 	if len(defs) > 0 {
 		parts = append(parts, fmt.Sprintf("<defs>%s</defs>", strings.Join(defs, "")))
 	}
+
+	backgroundFill := ""
 	if backgroundGradient != nil {
 		bgID := backgroundGradient.ID
 		if bgID == "" {
 			bgID = "bg"
 		}
-		parts = append(parts, fmt.Sprintf("<rect width=\"100%%\" height=\"100%%\" fill=\"url(#%s)\"/>", bgID))
+		backgroundFill = fmt.Sprintf("url(#%s)", bgID)
 	} else if light != nil {
-		parts = append(parts, fmt.Sprintf("<rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>", *light))
+		backgroundFill = *light
+	}
+	if backgroundFill != "" {
+		if cutout {
+			parts = append(parts, fmt.Sprintf("<rect width=\"100%%\" height=\"100%%\" fill=\"%s\" mask=\"url(#qr-cutout)\"/>", backgroundFill))
+		} else {
+			parts = append(parts, fmt.Sprintf("<rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>", backgroundFill))
+		}
 	}
 
-	translateX := (width - float64(contentWidth)) / 2
-	translateY := (height - float64(contentHeight)) / 2
-	parts = append(parts, fmt.Sprintf("<g transform=\"translate(%s %s)\">", formatFloat(translateX), formatFloat(translateY)))
+	if !cutout {
+		translateX := (width - float64(contentWidth)) / 2
+		translateY := (height - float64(contentHeight)) / 2
+		moduleParts, err := renderModuleGroup(
+			matrix,
+			scale,
+			border,
+			fill,
+			shape,
+			radius,
+			columnOffsets,
+			extraPadX,
+			extraPadY,
+			rotateDeg,
+			rotateMode,
+			translateX,
+			translateY,
+			contentWidth,
+			contentHeight,
+		)
+		if err != nil {
+			return "", err
+		}
+		parts = append(parts, moduleParts...)
+	}
+	parts = append(parts, "</svg>")
+	return strings.Join(parts, "\n"), nil
+}
 
+func renderModuleGroup(
+	matrix [][]bool,
+	scale int,
+	border int,
+	fill string,
+	shape string,
+	radius float64,
+	columnOffsets []ColumnOffset,
+	extraPadX int,
+	extraPadY int,
+	rotateDeg float64,
+	rotateMode string,
+	translateX float64,
+	translateY float64,
+	contentWidth int,
+	contentHeight int,
+) ([]string, error) {
+	parts := []string{fmt.Sprintf("<g transform=\"translate(%s %s)\">", formatFloat(translateX), formatFloat(translateY))}
 	if rotateMode != "after" && rotateMode != "before" {
-		return "", fmt.Errorf("unknown rotate mode: %s", rotateMode)
+		return nil, fmt.Errorf("unknown rotate mode: %s", rotateMode)
 	}
-
 	centerX := float64(contentWidth) / 2
 	centerY := float64(contentHeight) / 2
 	baseOffsetX := float64(extraPadX)
 	baseOffsetY := float64(extraPadY)
+	size := len(matrix)
 
 	if rotateMode == "before" && len(columnOffsets) > 0 {
 		for columnIndex := 0; columnIndex < size; columnIndex++ {
@@ -140,7 +234,7 @@ func RenderSVG(
 			}
 			columnParts, err := renderModulesForColumn(matrix, scale, border, fill, shape, radius, columnIndex, baseOffsetX, baseOffsetY)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 			parts = append(parts, columnParts...)
 			if rotateDeg != 0 {
@@ -156,7 +250,7 @@ func RenderSVG(
 		}
 		moduleParts, err := renderModules(matrix, scale, border, fill, shape, radius, baseOffsetX, baseOffsetY, columnOffsets)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		parts = append(parts, moduleParts...)
 		if rotateDeg != 0 {
@@ -165,8 +259,7 @@ func RenderSVG(
 	}
 
 	parts = append(parts, "</g>")
-	parts = append(parts, "</svg>")
-	return strings.Join(parts, "\n"), nil
+	return parts, nil
 }
 
 func RenderCatalogSVG(

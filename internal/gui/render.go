@@ -30,6 +30,7 @@ type RenderRequest struct {
 	Dark               string   `json:"dark"`
 	Light              string   `json:"light"`
 	NoBackground       bool     `json:"noBackground"`
+	Cutout             bool     `json:"cutout"`
 	Radius             *float64 `json:"radius"`
 	Gradient           bool     `json:"gradientEnabled"`
 	GradientFrom       string   `json:"gradientFrom"`
@@ -239,6 +240,7 @@ func BuildSVG(cfg *config.Config, req RenderRequest) (string, error) {
 		style.radius,
 		style.gradient,
 		style.bgGradient,
+		resolvedReq.Cutout,
 		nil,
 		0,
 		0,
@@ -304,6 +306,9 @@ func validateRequest(req RenderRequest) error {
 	if req.Border < 0 {
 		return errors.New("border must be 0 or greater")
 	}
+	if req.NoBackground && req.Cutout {
+		return errors.New("cutout cannot be used with a transparent background")
+	}
 	return nil
 }
 
@@ -351,6 +356,13 @@ func resolveStyle(cfg *config.Config, req RenderRequest) (resolvedStyle, error) 
 		)
 	} else {
 		bgGradient = nil
+	}
+	if req.Cutout {
+		dark = "transparent"
+		gradient = nil
+		if light == nil && bgGradient == nil {
+			return resolvedStyle{}, errors.New("cutout requires a background fill")
+		}
 	}
 
 	return resolvedStyle{

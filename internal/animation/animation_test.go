@@ -97,3 +97,43 @@ func TestBuildWaveGIFTransparentPalette(t *testing.T) {
 		t.Fatalf("expected transparent palette entry, got alpha=%d", alpha)
 	}
 }
+
+func TestBuildWaveGIFTransparentPaletteWithCutout(t *testing.T) {
+	matrix := [][]bool{
+		{true, false},
+		{false, true},
+	}
+	light := "#ffffff"
+	gifOut, err := BuildWaveGIF(
+		matrix,
+		2,
+		0,
+		"transparent",
+		&light,
+		"square",
+		0,
+		nil,
+		nil,
+		0.2,
+		2,
+		2,
+		0,
+		"still",
+		10,
+		true,
+	)
+	if err != nil {
+		t.Fatalf("build wave gif: %v", err)
+	}
+	if len(gifOut.Image) == 0 {
+		t.Fatalf("expected at least one frame")
+	}
+	paletteOut := gifOut.Image[0].Palette
+	if len(paletteOut) == 0 {
+		t.Fatalf("expected palette entries")
+	}
+	_, _, _, alpha := paletteOut[0].RGBA()
+	if alpha != 0 {
+		t.Fatalf("expected transparent palette entry, got alpha=%d", alpha)
+	}
+}

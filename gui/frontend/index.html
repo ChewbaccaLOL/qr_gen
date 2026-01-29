@@ -229,11 +229,22 @@
             </div>
 
             <div class="grid">
-              <div class="field checkbox">
-                <label for="transparent">
-                  <input id="transparent" type="checkbox" />
-                  Transparent background
-                </label>
+              <div class="field">
+                <label>Background mode</label>
+                <div class="radio-group" role="radiogroup" aria-label="Background mode">
+                  <label class="radio-option">
+                    <input id="backgroundModeSolid" type="radio" name="backgroundMode" value="solid" checked />
+                    Background + QR
+                  </label>
+                  <label class="radio-option">
+                    <input id="backgroundModeTransparent" type="radio" name="backgroundMode" value="transparent" />
+                    Transparent background
+                  </label>
+                  <label class="radio-option">
+                    <input id="backgroundModeCutout" type="radio" name="backgroundMode" value="cutout" />
+                    Background + QR cutout
+                  </label>
+                </div>
               </div>
             </div>
 

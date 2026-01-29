@@ -87,6 +87,15 @@ func TestParseCatalogAnimationConflict(t *testing.T) {
 	}
 }
 
+func TestParseCutoutNoBackgroundConflict(t *testing.T) {
+	cfg := testConfig()
+	env := &MapEnv{Values: map[string]string{}}
+	_, err := ParseArgs([]string{"--cutout", "--no-background", "hello"}, cfg, env, strings.NewReader(""), true)
+	if err == nil {
+		t.Fatalf("expected error for cutout + no background")
+	}
+}
+
 func TestParseReadableGifDefaults(t *testing.T) {
 	cfg := testConfig()
 	env := &MapEnv{Values: map[string]string{}}
