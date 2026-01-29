@@ -73,6 +73,27 @@ func TestListVariantsWithCustom(t *testing.T) {
 	}
 }
 
+func TestListVariantsIncludesCutout(t *testing.T) {
+	base := map[string]config.Variant{
+		"cutout": {
+			Name:   "cutout",
+			Shape:  "square",
+			Dark:   "#000000",
+			Cutout: true,
+		},
+	}
+	variants, err := ListVariants(base, nil)
+	if err != nil {
+		t.Fatalf("list variants: %v", err)
+	}
+	if len(variants) != 1 {
+		t.Fatalf("expected 1 variant, got %d", len(variants))
+	}
+	if !variants[0].Cutout {
+		t.Fatalf("expected cutout flag to be true")
+	}
+}
+
 func TestBuildSVGUsesOverrides(t *testing.T) {
 	light := "#ffffff"
 	cfg := &config.Config{

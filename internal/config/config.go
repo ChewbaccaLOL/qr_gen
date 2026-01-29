@@ -25,6 +25,7 @@ type Variant struct {
 	Radius             float64   `json:"radius"`
 	Gradient           *Gradient `json:"gradient"`
 	BackgroundGradient *Gradient `json:"background_gradient"`
+	Cutout             bool      `json:"cutout,omitempty"`
 	Disabled           bool      `json:"disabled,omitempty"`
 }
 

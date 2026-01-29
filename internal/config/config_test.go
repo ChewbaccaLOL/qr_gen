@@ -59,3 +59,21 @@ func TestLoadGradientBackgroundVariant(t *testing.T) {
 		t.Fatalf("expected aurora to include a background gradient")
 	}
 }
+
+func TestLoadCutoutVariant(t *testing.T) {
+	root := findRepoRoot(t)
+	cfg, err := Load(filepath.Join(root, "variants.json"))
+	if err != nil {
+		t.Fatalf("load variants: %v", err)
+	}
+	variant, ok := cfg.Variants["cutout-classic"]
+	if !ok {
+		t.Fatalf("expected cutout-classic variant")
+	}
+	if !variant.Cutout {
+		t.Fatalf("expected cutout-classic to enable cutout")
+	}
+	if variant.BackgroundGradient == nil {
+		t.Fatalf("expected cutout-classic to include a background gradient")
+	}
+}

@@ -232,7 +232,6 @@ func ParseArgs(args []string, cfg *config.Config, env Env, stdin io.Reader, stdi
 	resolved.Animation = resolveBool(animation, env, "QR_ANIMATION", false)
 	resolved.ReadableGif = resolveBool(readableGif, env, "QR_READABLE_GIF", false)
 	resolved.NoBackground = resolveBool(noBackground, env, "QR_NO_BACKGROUND", false)
-	resolved.Cutout = resolveBool(cutout, env, "QR_CUTOUT", false)
 	resolved.GradientEnabled = resolveBool(gradientEnabled, env, "QR_GRADIENT", false)
 	resolved.GradientDisabled = resolveBool(gradientDisabled, env, "QR_NO_GRADIENT", false)
 	resolved.BgGradientEnabled = resolveBool(bgGradientEnabled, env, "QR_BG_GRADIENT", false)
@@ -242,6 +241,22 @@ func ParseArgs(args []string, cfg *config.Config, env Env, stdin io.Reader, stdi
 	resolved.Scale = resolveInt(scale, env, "QR_SCALE", 10)
 	resolved.Border = resolveInt(border, env, "QR_BORDER", 4)
 	resolved.ErrorLevel = resolveString(errorLevel, env, "QR_ERROR", "m")
+
+	cutoutValue := false
+	cutoutSet := false
+	if cutout.IsSet {
+		cutoutValue = cutout.Value
+		cutoutSet = true
+	} else if value, ok := envBool(env, "QR_CUTOUT"); ok {
+		cutoutValue = value
+		cutoutSet = true
+	}
+	if !cutoutSet {
+		if variantCfg, ok := cfg.Variants[resolved.Variant]; ok {
+			cutoutValue = variantCfg.Cutout
+		}
+	}
+	resolved.Cutout = cutoutValue
 
 	resolved.OutputSet = output.IsSet
 	resolved.Output = resolveString(output, env, "QR_OUTPUT", "")

@@ -267,6 +267,84 @@
         "to": "#6bff2e",
         "scope": "module"
       }
+    },
+    {
+      "name": "cutout-classic",
+      "shape": "square",
+      "dark": "#000000",
+      "light": null,
+      "radius": 0.0,
+      "cutout": true,
+      "background_gradient": {
+        "from": "#0b1020",
+        "to": "#142a46",
+        "angle": 120
+      }
+    },
+    {
+      "name": "cutout-dot",
+      "shape": "dot",
+      "dark": "#111111",
+      "light": null,
+      "radius": 0.0,
+      "cutout": true,
+      "background_gradient": {
+        "from": "#003b2f",
+        "to": "#15b089",
+        "angle": 225
+      }
+    },
+    {
+      "name": "cutout-rounded",
+      "shape": "rounded",
+      "dark": "#2a0a44",
+      "light": null,
+      "radius": 0.3,
+      "cutout": true,
+      "background_gradient": {
+        "from": "#2a0a44",
+        "to": "#ff7a59",
+        "angle": 140
+      }
+    },
+    {
+      "name": "cutout-prism",
+      "shape": "square",
+      "dark": "#1a0f3b",
+      "light": null,
+      "radius": 0.0,
+      "cutout": true,
+      "background_gradient": {
+        "from": "#1a0f3b",
+        "to": "#5b4bff",
+        "angle": 200
+      }
+    },
+    {
+      "name": "cutout-aurora",
+      "shape": "square",
+      "dark": "#0b1020",
+      "light": null,
+      "radius": 0.0,
+      "cutout": true,
+      "background_gradient": {
+        "from": "#0b1020",
+        "to": "#7de2ff",
+        "angle": 320
+      }
+    },
+    {
+      "name": "cutout-neon",
+      "shape": "dot",
+      "dark": "#00f0ff",
+      "light": null,
+      "radius": 0.0,
+      "cutout": true,
+      "background_gradient": {
+        "from": "#06060a",
+        "to": "#6bff2e",
+        "angle": 60
+      }
     }
   ],
   "animation_variants": [

@@ -207,6 +207,14 @@ Transparent gradients:
 - `clear-aurora-dot`: dot modules with a soft aurora gradient on transparency
 - `clear-prism-dot`: dot modules with a prism gradient on transparency
 
+Cutout:
+- `cutout-classic`: square modules punched out of a deep blue gradient
+- `cutout-dot`: dot modules punched out of a teal gradient
+- `cutout-rounded`: rounded modules punched out of a warm gradient
+- `cutout-prism`: square modules punched out of a prism gradient
+- `cutout-aurora`: square modules punched out of an aurora gradient
+- `cutout-neon`: dot modules punched out of a neon gradient
+
 More playful:
 - `inverted`: white on black
 - `midnight`: pale modules on a deep blue background

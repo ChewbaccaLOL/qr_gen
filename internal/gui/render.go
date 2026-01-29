@@ -67,6 +67,7 @@ type VariantInfo struct {
 	BgGradientAngle    *float64 `json:"bgGradientAngle"`
 	BgGradientFromStop *float64 `json:"bgGradientFromStop"`
 	BgGradientToStop   *float64 `json:"bgGradientToStop"`
+	Cutout             bool     `json:"cutout"`
 	IsCustom           bool     `json:"isCustom"`
 }
 
@@ -140,6 +141,7 @@ func ListVariants(baseVariants map[string]config.Variant, customVariants map[str
 			BgGradientAngle:    bgGradientAngle,
 			BgGradientFromStop: bgGradientFromStop,
 			BgGradientToStop:   bgGradientToStop,
+			Cutout:             variant.Cutout,
 			IsCustom:           false,
 		})
 	}
@@ -208,6 +210,7 @@ func ListVariants(baseVariants map[string]config.Variant, customVariants map[str
 			BgGradientAngle:    bgGradientAngle,
 			BgGradientFromStop: bgGradientFromStop,
 			BgGradientToStop:   bgGradientToStop,
+			Cutout:             variant.Cutout,
 			IsCustom:           true,
 		})
 	}

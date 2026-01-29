@@ -811,11 +811,15 @@ function syncBackgroundModeFromVariant(variant) {
   if (!variant) {
     return;
   }
-  const shouldBeTransparent = !variant.light;
-  if (shouldBeTransparent && elements.backgroundModeTransparent) {
-    elements.backgroundModeTransparent.checked = true;
-  } else if (elements.backgroundModeSolid) {
-    elements.backgroundModeSolid.checked = true;
+  if (variant.cutout && elements.backgroundModeCutout) {
+    elements.backgroundModeCutout.checked = true;
+  } else {
+    const shouldBeTransparent = !variant.light;
+    if (shouldBeTransparent && elements.backgroundModeTransparent) {
+      elements.backgroundModeTransparent.checked = true;
+    } else if (elements.backgroundModeSolid) {
+      elements.backgroundModeSolid.checked = true;
+    }
   }
   updateBackgroundGradientState();
   updateBackgroundModeVisibility();
@@ -1000,7 +1004,7 @@ function buildGalleryRequest(variant) {
     dark: "",
     light: "",
     noBackground: false,
-    cutout: false,
+    cutout: Boolean(variant.cutout),
     radius: null,
     gradientEnabled: Boolean(variant.hasGradient),
     gradientFrom: variant.gradientFrom || "",

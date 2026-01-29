@@ -15,6 +15,12 @@ func testConfig() *config.Config {
 				Shape: "square",
 				Dark:  "#000000",
 			},
+			"cutout": {
+				Name:   "cutout",
+				Shape:  "square",
+				Dark:   "#000000",
+				Cutout: true,
+			},
 		},
 		AnimationVariants: []string{"wave", "float"},
 		Defaults: config.Defaults{
@@ -144,5 +150,29 @@ func TestParseUnknownVariant(t *testing.T) {
 	_, err := ParseArgs([]string{"--variant", "nope", "hello"}, cfg, env, strings.NewReader(""), true)
 	if err == nil {
 		t.Fatalf("expected error for unknown variant")
+	}
+}
+
+func TestParseVariantCutoutDefault(t *testing.T) {
+	cfg := testConfig()
+	env := &MapEnv{Values: map[string]string{}}
+	args, err := ParseArgs([]string{"--variant", "cutout", "hello"}, cfg, env, strings.NewReader(""), true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !args.Cutout {
+		t.Fatalf("expected cutout default to be enabled")
+	}
+}
+
+func TestParseVariantCutoutOverride(t *testing.T) {
+	cfg := testConfig()
+	env := &MapEnv{Values: map[string]string{}}
+	args, err := ParseArgs([]string{"--variant", "cutout", "--cutout=false", "hello"}, cfg, env, strings.NewReader(""), true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if args.Cutout {
+		t.Fatalf("expected cutout override to disable cutout")
 	}
 }
