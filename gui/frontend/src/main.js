@@ -824,6 +824,83 @@ function updateShapeSelection(variant) {
   elements.shape.value = variant.shape || "square";
 }
 
+const shapePreviewLayout = [
+  ["1", "0"],
+  ["1", "1"],
+  ["101", "110"],
+  ["11", "11"],
+];
+
+function buildPreviewGrid(rows) {
+  const cols = rows.reduce((max, row) => Math.max(max, row.length), 0);
+  const grid = rows.map((row) => {
+    const padded = row.padEnd(cols, "0");
+    return Array.from(padded, (value) => value === "1");
+  });
+  return { grid, rows: rows.length, cols };
+}
+
+function previewCornerMask(grid, x, y, connectivity) {
+  const rows = grid.length;
+  const cols = grid[0]?.length || 0;
+  const up = y > 0 && grid[y - 1][x];
+  const down = y + 1 < rows && grid[y + 1][x];
+  const left = x > 0 && grid[y][x - 1];
+  const right = x + 1 < cols && grid[y][x + 1];
+  const diagTL = connectivity === 8 && y > 0 && x > 0 && grid[y - 1][x - 1];
+  const diagTR = connectivity === 8 && y > 0 && x + 1 < cols && grid[y - 1][x + 1];
+  const diagBR = connectivity === 8 && y + 1 < rows && x + 1 < cols && grid[y + 1][x + 1];
+  const diagBL = connectivity === 8 && y + 1 < rows && x > 0 && grid[y + 1][x - 1];
+  return {
+    tl: !up && !left && !diagTL,
+    tr: !up && !right && !diagTR,
+    br: !down && !right && !diagBR,
+    bl: !down && !left && !diagBL,
+  };
+}
+
+function renderShapePreview(shape, radiusPercent) {
+  if (!elements.shapePreview) {
+    return;
+  }
+  const isIsland = shape.startsWith("island");
+  const connectivity = shape === "island-8" ? 8 : 4;
+  elements.shapePreview.innerHTML = "";
+
+  shapePreviewLayout.forEach((rows) => {
+    const { grid, rows: rowCount, cols: colCount } = buildPreviewGrid(rows);
+    const group = document.createElement("div");
+    group.className = "shape-preview-group";
+    group.style.setProperty("--shape-preview-cols", String(colCount));
+    group.style.setProperty("--shape-preview-rows", String(rowCount));
+    for (let y = 0; y < rowCount; y += 1) {
+      for (let x = 0; x < colCount; x += 1) {
+        if (!grid[y][x]) {
+          continue;
+        }
+        const segment = document.createElement("span");
+        segment.className = "segment";
+        segment.style.gridColumn = String(x + 1);
+        segment.style.gridRow = String(y + 1);
+        if (shape === "dot") {
+          segment.style.borderRadius = "50%";
+        } else if (!isIsland) {
+          segment.style.borderRadius = `${radiusPercent}%`;
+        } else {
+          const radiusValue = `${radiusPercent}%`;
+          const mask = previewCornerMask(grid, x, y, connectivity);
+          segment.style.borderTopLeftRadius = mask.tl ? radiusValue : "0";
+          segment.style.borderTopRightRadius = mask.tr ? radiusValue : "0";
+          segment.style.borderBottomRightRadius = mask.br ? radiusValue : "0";
+          segment.style.borderBottomLeftRadius = mask.bl ? radiusValue : "0";
+        }
+        group.appendChild(segment);
+      }
+    }
+    elements.shapePreview.appendChild(group);
+  });
+}
+
 function updateShapePreview(variant) {
   if (!elements.shapePreview) {
     return;
@@ -833,10 +910,10 @@ function updateShapePreview(variant) {
   const baseRadius = Number.isFinite(variant?.radius) ? variant.radius : 0.3;
   const current = elements.radius ? parseFloatOr(elements.radius.value, baseRadius) : baseRadius;
   const radiusPercent = resolveShapePreviewRadius(shape, current);
-  elements.shapePreview.style.setProperty("--shape-preview-radius", `${radiusPercent}%`);
   elements.shapePreview.style.setProperty("--shape-preview-gap", `${resolveShapePreviewGap(shape)}px`);
   const color = normalizeColor(elements.dark?.value || "") || normalizeColor(elements.dark?.placeholder || "") || "var(--accent)";
   elements.shapePreview.style.setProperty("--shape-preview-color", color);
+  renderShapePreview(shape, radiusPercent);
 }
 
 function effectiveShape(variant) {
