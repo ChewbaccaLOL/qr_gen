@@ -17,6 +17,16 @@ Each QR below encodes `https://example.com` using the default settings for that 
     <td align="center"><strong>midnight</strong><br/><img src="docs/variants/midnight.svg" width="140"/></td>
   </tr>
   <tr>
+    <td align="center"><strong>aurora</strong><br/><img src="docs/variants/aurora.svg" width="140"/></td>
+    <td align="center"><strong>horizon</strong><br/><img src="docs/variants/horizon.svg" width="140"/></td>
+    <td align="center"><strong>prism</strong><br/><img src="docs/variants/prism.svg" width="140"/></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>ember</strong><br/><img src="docs/variants/ember.svg" width="140"/></td>
+    <td align="center"><strong>tide</strong><br/><img src="docs/variants/tide.svg" width="140"/></td>
+    <td align="center"><strong>pulse</strong><br/><img src="docs/variants/pulse.svg" width="140"/></td>
+  </tr>
+  <tr>
     <td align="center"><strong>sunset</strong><br/><img src="docs/variants/sunset.svg" width="140"/></td>
     <td align="center"><strong>neon</strong><br/><img src="docs/variants/neon.svg" width="140"/></td>
     <td align="center"></td>
@@ -155,6 +165,12 @@ Standard:
 More playful:
 - `inverted`: white on black
 - `midnight`: pale modules on a deep blue background
+- `aurora`: light global gradient on a night-sky background gradient
+- `horizon`: horizontal global gradient over a warm-to-cool background
+- `prism`: diagonal global gradient with a soft cool background
+- `ember`: vertical global gradient with a warm background glow
+- `tide`: angled global gradient with a sea-glass background
+- `pulse`: bright global gradient over a deep charcoal background
 - `sunset`: rounded modules with a warm gradient
 - `neon`: dot modules with a high-contrast gradient
 

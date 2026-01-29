@@ -67,6 +67,126 @@
       "radius": 0.0
     },
     {
+      "name": "aurora",
+      "shape": "square",
+      "dark": "#e9fff7",
+      "light": "#0b1020",
+      "radius": 0.0,
+      "gradient": {
+        "id": "fg",
+        "from": "#b9fff3",
+        "to": "#7de2ff",
+        "angle": 40,
+        "scope": "global"
+      },
+      "background_gradient": {
+        "id": "bg",
+        "from": "#0b1020",
+        "to": "#142a46",
+        "angle": 120
+      }
+    },
+    {
+      "name": "horizon",
+      "shape": "square",
+      "dark": "#00243d",
+      "light": "#f0fbff",
+      "radius": 0.0,
+      "gradient": {
+        "id": "fg",
+        "from": "#00243d",
+        "to": "#00bcd4",
+        "angle": 0,
+        "scope": "global"
+      },
+      "background_gradient": {
+        "id": "bg",
+        "from": "#f0fbff",
+        "to": "#ffeef2",
+        "angle": 180
+      }
+    },
+    {
+      "name": "prism",
+      "shape": "square",
+      "dark": "#1a0f3b",
+      "light": "#f5f6ff",
+      "radius": 0.0,
+      "gradient": {
+        "id": "fg",
+        "from": "#1a0f3b",
+        "to": "#5b4bff",
+        "angle": 135,
+        "scope": "global"
+      },
+      "background_gradient": {
+        "id": "bg",
+        "from": "#f5f6ff",
+        "to": "#e7f1ff",
+        "angle": 210
+      }
+    },
+    {
+      "name": "ember",
+      "shape": "square",
+      "dark": "#3b0b00",
+      "light": "#fff3e5",
+      "radius": 0.0,
+      "gradient": {
+        "id": "fg",
+        "from": "#3b0b00",
+        "to": "#ff6a00",
+        "angle": 90,
+        "scope": "global"
+      },
+      "background_gradient": {
+        "id": "bg",
+        "from": "#fff3e5",
+        "to": "#ffe1f2",
+        "angle": 45
+      }
+    },
+    {
+      "name": "tide",
+      "shape": "square",
+      "dark": "#003b2f",
+      "light": "#e9fff7",
+      "radius": 0.0,
+      "gradient": {
+        "id": "fg",
+        "from": "#003b2f",
+        "to": "#15b089",
+        "angle": 225,
+        "scope": "global"
+      },
+      "background_gradient": {
+        "id": "bg",
+        "from": "#e9fff7",
+        "to": "#e6f7ff",
+        "angle": 315
+      }
+    },
+    {
+      "name": "pulse",
+      "shape": "square",
+      "dark": "#f5faff",
+      "light": "#0b0f14",
+      "radius": 0.0,
+      "gradient": {
+        "id": "fg",
+        "from": "#f5faff",
+        "to": "#9ad7ff",
+        "angle": 300,
+        "scope": "global"
+      },
+      "background_gradient": {
+        "id": "bg",
+        "from": "#0b0f14",
+        "to": "#1d2532",
+        "angle": 60
+      }
+    },
+    {
       "name": "sunset",
       "shape": "rounded",
       "dark": "#2a0a44",

@@ -41,3 +41,21 @@ func TestLoadDefaultVariants(t *testing.T) {
 		t.Fatalf("expected animation variants")
 	}
 }
+
+func TestLoadGradientBackgroundVariant(t *testing.T) {
+	root := findRepoRoot(t)
+	cfg, err := Load(filepath.Join(root, "variants.json"))
+	if err != nil {
+		t.Fatalf("load variants: %v", err)
+	}
+	variant, ok := cfg.Variants["aurora"]
+	if !ok {
+		t.Fatalf("expected aurora variant")
+	}
+	if variant.Gradient == nil || variant.Gradient.Scope != "global" {
+		t.Fatalf("expected aurora to use a global foreground gradient")
+	}
+	if variant.BackgroundGradient == nil || variant.BackgroundGradient.Angle == nil {
+		t.Fatalf("expected aurora to include a background gradient")
+	}
+}
