@@ -2,6 +2,7 @@ import "./style.css";
 import { resolveAutoLightValue } from "./backgroundDefaults.js";
 import { sectionsForBackgroundMode } from "./backgroundModeVisibility.js";
 import { isBackgroundGradientFill, isGradientFill, resolveFillMode } from "./fillModeUtils.js";
+import { resolveShapePreviewGap, resolveShapePreviewRadius } from "./shapePreviewUtils.js";
 import { ANIMATION_DEBUG_ENABLED } from "./uiFlags.js";
 import {
   DeleteCustomVariant,
@@ -20,6 +21,7 @@ import {
 const elements = {
   data: document.getElementById("data"),
   shape: document.getElementById("shape"),
+  shapePreview: document.getElementById("shapePreview"),
   error: document.getElementById("error"),
   scale: document.getElementById("scale"),
   border: document.getElementById("border"),
@@ -742,6 +744,21 @@ function updateShapeSelection(variant) {
   elements.shape.value = variant.shape || "square";
 }
 
+function updateShapePreview(variant) {
+  if (!elements.shapePreview) {
+    return;
+  }
+  const shape = elements.shape?.value || variant?.shape || "square";
+  elements.shapePreview.dataset.shape = shape;
+  const baseRadius = Number.isFinite(variant?.radius) ? variant.radius : 0.3;
+  const current = elements.radius ? parseFloatOr(elements.radius.value, baseRadius) : baseRadius;
+  const radiusPercent = resolveShapePreviewRadius(shape, current);
+  elements.shapePreview.style.setProperty("--shape-preview-radius", `${radiusPercent}%`);
+  elements.shapePreview.style.setProperty("--shape-preview-gap", `${resolveShapePreviewGap(shape)}px`);
+  const color = normalizeColor(elements.dark?.value || "") || normalizeColor(elements.dark?.placeholder || "") || "var(--accent)";
+  elements.shapePreview.style.setProperty("--shape-preview-color", color);
+}
+
 function effectiveShape(variant) {
   const override = elements.shape?.value.trim();
   if (override) {
@@ -767,6 +784,7 @@ function updateRadiusControl(variant) {
   const clamped = clampValue(current, 0, 0.5);
   elements.radius.value = clamped.toFixed(2);
   updateRangeValue(elements.radius, elements.radiusValue, (value) => value.toFixed(2));
+  updateShapePreview(variant);
 }
 
 function updatePlaceholders() {
@@ -784,6 +802,7 @@ function updatePlaceholders() {
   updateBackgroundGradientFields(selected);
   updateShapeSelection(selected);
   updateRadiusControl(selected);
+  updateShapePreview(selected);
   syncBackgroundModeFromVariant(selected);
   ensureBackgroundDefaults(selected);
 }
@@ -1739,8 +1758,17 @@ elements.deleteVariant?.addEventListener("click", deleteCustomVariant);
 
 elements.shape?.addEventListener("change", () => {
   updateRadiusControl(state.variantMap.get(currentVariantName()));
+  updateShapePreview(state.variantMap.get(currentVariantName()));
   debounceRefresh();
   markAnimationDirty();
+});
+
+elements.radius?.addEventListener("input", () => {
+  updateShapePreview(state.variantMap.get(currentVariantName()));
+});
+
+elements.dark?.addEventListener("input", () => {
+  updateShapePreview(state.variantMap.get(currentVariantName()));
 });
 
 elements.customName?.addEventListener("keydown", (event) => {
@@ -1814,6 +1842,9 @@ elements.backgroundModeOptions.forEach((option) => {
   colorInput.addEventListener("input", () => {
     syncTextToPicker(textInput, colorInput);
     updateAngleControlColorsForInput(textInput.id);
+    if (textInput.id === "dark") {
+      updateShapePreview(state.variantMap.get(currentVariantName()));
+    }
     debounceRefresh();
     markAnimationDirty();
   });
