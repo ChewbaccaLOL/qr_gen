@@ -1,6 +1,7 @@
 import "./style.css";
 import { resolveAutoLightValue } from "./backgroundDefaults.js";
 import { sectionsForBackgroundMode } from "./backgroundModeVisibility.js";
+import { buildDeleteVariantDialogCopy } from "./confirmDialogCopy.js";
 import { isBackgroundGradientFill, isGradientFill, resolveFillMode } from "./fillModeUtils.js";
 import { resolveShapePreviewGap, resolveShapePreviewRadius } from "./shapePreviewUtils.js";
 import { ANIMATION_DEBUG_ENABLED } from "./uiFlags.js";
@@ -77,6 +78,12 @@ const elements = {
   customName: document.getElementById("customName"),
   saveVariant: document.getElementById("saveVariant"),
   deleteVariant: document.getElementById("deleteVariant"),
+  confirmDialog: document.getElementById("confirmDialog"),
+  confirmDialogTitle: document.getElementById("confirmDialogTitle"),
+  confirmDialogMessage: document.getElementById("confirmDialogMessage"),
+  confirmDialogNote: document.getElementById("confirmDialogNote"),
+  confirmDialogCancel: document.getElementById("confirmDialogCancel"),
+  confirmDialogConfirm: document.getElementById("confirmDialogConfirm"),
   tabButtons: Array.from(document.querySelectorAll("[data-tab]")),
   tabPanels: Array.from(document.querySelectorAll("[data-panel]")),
   animationVariant: document.getElementById("animationVariant"),
@@ -127,11 +134,84 @@ const state = {
 };
 
 const angleControls = new Map();
+const confirmDialogState = {
+  pending: null,
+  previousFocus: null
+};
 
 const defaultData = "https://example.com";
 const defaultGradientAngle = 45;
 const defaultGradientFromStop = 0;
 const defaultGradientToStop = 1;
+
+function isConfirmDialogReady() {
+  return Boolean(
+    elements.confirmDialog &&
+      elements.confirmDialogTitle &&
+      elements.confirmDialogMessage &&
+      elements.confirmDialogCancel &&
+      elements.confirmDialogConfirm
+  );
+}
+
+function handleConfirmDialogKeydown(event) {
+  if (!confirmDialogState.pending) {
+    return;
+  }
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeConfirmDialog(false);
+  }
+}
+
+function closeConfirmDialog(confirmed) {
+  if (!confirmDialogState.pending || !elements.confirmDialog) {
+    return;
+  }
+  const { resolve } = confirmDialogState.pending;
+  confirmDialogState.pending = null;
+  elements.confirmDialog.hidden = true;
+  elements.confirmDialog.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("dialog-open");
+  document.removeEventListener("keydown", handleConfirmDialogKeydown);
+  if (confirmDialogState.previousFocus?.focus) {
+    confirmDialogState.previousFocus.focus();
+  }
+  confirmDialogState.previousFocus = null;
+  resolve(confirmed);
+}
+
+function openConfirmDialog(copy) {
+  if (!isConfirmDialogReady()) {
+    const fallbackMessage = [copy?.title, copy?.message, copy?.note].filter(Boolean).join("\n\n");
+    return Promise.resolve(window.confirm(fallbackMessage));
+  }
+
+  if (confirmDialogState.pending) {
+    closeConfirmDialog(false);
+  }
+
+  elements.confirmDialogTitle.textContent = copy?.title || "Confirm";
+  elements.confirmDialogMessage.textContent = copy?.message || "";
+
+  if (elements.confirmDialogNote) {
+    elements.confirmDialogNote.textContent = copy?.note || "";
+    elements.confirmDialogNote.hidden = !copy?.note;
+  }
+
+  elements.confirmDialogConfirm.textContent = copy?.confirmLabel || "Confirm";
+  elements.confirmDialogCancel.textContent = copy?.cancelLabel || "Cancel";
+  elements.confirmDialog.hidden = false;
+  elements.confirmDialog.setAttribute("aria-hidden", "false");
+  document.body.classList.add("dialog-open");
+  confirmDialogState.previousFocus = document.activeElement;
+  document.addEventListener("keydown", handleConfirmDialogKeydown);
+  setTimeout(() => elements.confirmDialogCancel?.focus(), 0);
+
+  return new Promise((resolve) => {
+    confirmDialogState.pending = { resolve };
+  });
+}
 
 if (elements.animationDebugPanel) {
   elements.animationDebugPanel.hidden = !ANIMATION_DEBUG_ENABLED;
@@ -1663,7 +1743,7 @@ async function deleteCustomVariant() {
   if (!name) {
     return;
   }
-  const confirmed = window.confirm(`Delete custom variant '${name}'?`);
+  const confirmed = await openConfirmDialog(buildDeleteVariantDialogCopy(name));
   if (!confirmed) {
     return;
   }
@@ -1759,6 +1839,16 @@ elements.copyPng?.addEventListener("click", copyPngToClipboard);
 elements.saveVariant?.addEventListener("click", saveCustomVariant);
 
 elements.deleteVariant?.addEventListener("click", deleteCustomVariant);
+
+elements.confirmDialog?.addEventListener("click", (event) => {
+  if (event.target === elements.confirmDialog) {
+    closeConfirmDialog(false);
+  }
+});
+
+elements.confirmDialogCancel?.addEventListener("click", () => closeConfirmDialog(false));
+
+elements.confirmDialogConfirm?.addEventListener("click", () => closeConfirmDialog(true));
 
 elements.shape?.addEventListener("change", () => {
   updateRadiusControl(state.variantMap.get(currentVariantName()));
