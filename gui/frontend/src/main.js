@@ -1,4 +1,5 @@
 import "./style.css";
+import { resolveAutoLightValue } from "./backgroundDefaults.js";
 import {
   DeleteCustomVariant,
   GenerateGIF,
@@ -1463,13 +1464,17 @@ function ensureBackgroundDefaults(variant) {
   }
   const baseColor = computeForegroundBaseColor(variant);
   const opposite = invertHex(baseColor);
-  if (opposite) {
-    const lightValue = elements.light.value.trim();
-    if (!lightValue || lightValue === state.autoLightValue) {
-      elements.light.value = opposite;
-      setPickerDefault(elements.light, elements.lightPicker, opposite);
-      state.autoLightValue = opposite;
-    }
+  const lightAction = resolveAutoLightValue({
+    variantLight: variant?.light,
+    currentLight: elements.light.value,
+    autoLightValue: state.autoLightValue,
+    fallbackLight: opposite
+  });
+  if (lightAction) {
+    elements.light.value = lightAction.value;
+    state.autoLightValue = lightAction.autoValue;
+    const fallback = lightAction.value || variant?.light || opposite;
+    setPickerDefault(elements.light, elements.lightPicker, fallback);
   }
 
   if (elements.bgGradientEnabled?.checked) {
