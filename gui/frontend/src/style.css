@@ -439,6 +439,51 @@ body {
 
 .range-input input[type="range"] {
   flex: 1;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+}
+
+.range-input input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  background: rgba(15, 18, 36, 0.16);
+  border-radius: 999px;
+}
+
+.range-input input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 8px rgba(15, 18, 36, 0.2);
+  margin-top: -6px;
+}
+
+.range-input input[type="range"]::-moz-range-track {
+  height: 6px;
+  background: rgba(15, 18, 36, 0.16);
+  border-radius: 999px;
+  border: none;
+}
+
+.range-input input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 8px rgba(15, 18, 36, 0.2);
+}
+
+.range-input input[type="range"]:focus {
+  outline: none;
 }
 
 .range-value {
