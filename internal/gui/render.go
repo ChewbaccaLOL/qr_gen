@@ -40,6 +40,7 @@ type VariantInfo struct {
 	Light       *string `json:"light"`
 	Radius      float64 `json:"radius"`
 	HasGradient bool    `json:"hasGradient"`
+	IsCustom    bool    `json:"isCustom"`
 }
 
 type resolvedStyle struct {
@@ -50,21 +51,21 @@ type resolvedStyle struct {
 	gradient *config.Gradient
 }
 
-func ListVariants(cfg *config.Config) ([]VariantInfo, error) {
-	if cfg == nil {
-		return nil, errors.New("config is required")
+func ListVariants(baseVariants map[string]config.Variant, customVariants map[string]config.Variant) ([]VariantInfo, error) {
+	if len(baseVariants) == 0 {
+		return nil, errors.New("base variants are required")
 	}
-	if len(cfg.Variants) == 0 {
-		return nil, errors.New("variants are required")
+	if customVariants == nil {
+		customVariants = map[string]config.Variant{}
 	}
-	nameList := make([]string, 0, len(cfg.Variants))
-	for name := range cfg.Variants {
+	nameList := make([]string, 0, len(baseVariants))
+	for name := range baseVariants {
 		nameList = append(nameList, name)
 	}
 	sort.Strings(nameList)
-	out := make([]VariantInfo, 0, len(nameList))
+	out := make([]VariantInfo, 0, len(baseVariants)+len(customVariants))
 	for _, name := range nameList {
-		variant := cfg.Variants[name]
+		variant := baseVariants[name]
 		out = append(out, VariantInfo{
 			Name:        variant.Name,
 			Shape:       variant.Shape,
@@ -72,6 +73,30 @@ func ListVariants(cfg *config.Config) ([]VariantInfo, error) {
 			Light:       variant.Light,
 			Radius:      variant.Radius,
 			HasGradient: variant.Gradient != nil,
+			IsCustom:    false,
+		})
+	}
+	if len(customVariants) == 0 {
+		return out, nil
+	}
+	customNames := make([]string, 0, len(customVariants))
+	for name := range customVariants {
+		if _, exists := baseVariants[name]; exists {
+			return nil, fmt.Errorf("custom variant '%s' conflicts with base", name)
+		}
+		customNames = append(customNames, name)
+	}
+	sort.Strings(customNames)
+	for _, name := range customNames {
+		variant := customVariants[name]
+		out = append(out, VariantInfo{
+			Name:        variant.Name,
+			Shape:       variant.Shape,
+			Dark:        variant.Dark,
+			Light:       variant.Light,
+			Radius:      variant.Radius,
+			HasGradient: variant.Gradient != nil,
+			IsCustom:    true,
 		})
 	}
 	return out, nil

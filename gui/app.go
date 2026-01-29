@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -17,9 +18,12 @@ import (
 )
 
 type App struct {
-	ctx          context.Context
-	cfg          *config.Config
-	variantsPath string
+	ctx                context.Context
+	cfg                *config.Config
+	variantsPath       string
+	customVariantsPath string
+	baseVariants       map[string]config.Variant
+	customVariants     map[string]config.Variant
 }
 
 func NewApp() *App {
@@ -40,15 +44,30 @@ func (a *App) startup(ctx context.Context) {
 		runtime.LogError(ctx, err.Error())
 		return
 	}
+	a.baseVariants = copyVariants(cfg.Variants)
+	a.customVariantsPath = guicore.CustomVariantsPath(variantsPath)
+	customVariants, err := guicore.LoadCustomVariants(a.customVariantsPath)
+	if err != nil {
+		runtime.LogError(ctx, err.Error())
+		customVariants = map[string]config.Variant{}
+	}
+	mergedVariants, err := guicore.MergeVariants(a.baseVariants, customVariants)
+	if err != nil {
+		runtime.LogError(ctx, err.Error())
+		mergedVariants = a.baseVariants
+		customVariants = map[string]config.Variant{}
+	}
+	cfg.Variants = mergedVariants
 	a.cfg = cfg
 	a.variantsPath = variantsPath
+	a.customVariants = customVariants
 }
 
 func (a *App) GetVariantCatalog() ([]guicore.VariantInfo, error) {
 	if a.cfg == nil {
 		return nil, errors.New("variants config not loaded")
 	}
-	return guicore.ListVariants(a.cfg)
+	return guicore.ListVariants(a.baseVariants, a.customVariants)
 }
 
 func (a *App) GenerateSVG(req guicore.RenderRequest) (string, error) {
@@ -109,6 +128,21 @@ func (a *App) SavePNG(req guicore.RenderRequest, outputPath string) (string, err
 	return path, nil
 }
 
+func (a *App) GeneratePNG(req guicore.RenderRequest) (string, error) {
+	if a.cfg == nil {
+		return "", errors.New("variants config not loaded")
+	}
+	imageOut, err := guicore.BuildPNG(a.cfg, req)
+	if err != nil {
+		return "", err
+	}
+	var buffer bytes.Buffer
+	if err := png.Encode(&buffer, imageOut); err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(buffer.Bytes()), nil
+}
+
 func (a *App) SuggestSavePath(format string) (string, error) {
 	if a.ctx == nil {
 		return "", errors.New("app not initialized")
@@ -139,10 +173,102 @@ func (a *App) GetVariantsPath() string {
 	return a.variantsPath
 }
 
+func (a *App) SaveCustomVariant(req guicore.CustomVariantRequest) ([]guicore.VariantInfo, error) {
+	if a.cfg == nil {
+		return nil, errors.New("variants config not loaded")
+	}
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		return nil, errors.New("custom variant name is required")
+	}
+	if _, exists := a.baseVariants[name]; exists {
+		return nil, fmt.Errorf("variant '%s' is built-in and cannot be replaced", name)
+	}
+	if _, exists := a.customVariants[name]; exists {
+		return nil, fmt.Errorf("custom variant '%s' already exists", name)
+	}
+	baseName := strings.TrimSpace(req.BaseVariant)
+	if baseName == "" {
+		return nil, errors.New("base variant is required")
+	}
+	baseVariant, ok := a.cfg.Variants[baseName]
+	if !ok {
+		return nil, fmt.Errorf("unknown base variant '%s'", baseName)
+	}
+	customVariant := baseVariant
+	customVariant.Name = name
+	if strings.TrimSpace(req.Dark) != "" {
+		customVariant.Dark = req.Dark
+		customVariant.Gradient = nil
+	}
+	if req.NoBackground {
+		customVariant.Light = nil
+	} else if strings.TrimSpace(req.Light) != "" {
+		light := req.Light
+		customVariant.Light = &light
+	} else {
+		customVariant.Light = baseVariant.Light
+	}
+	if req.Radius != nil {
+		customVariant.Radius = *req.Radius
+	}
+	candidate := copyVariants(a.customVariants)
+	candidate[name] = customVariant
+	if err := guicore.SaveCustomVariants(a.customVariantsPath, candidate); err != nil {
+		return nil, err
+	}
+	merged, err := guicore.MergeVariants(a.baseVariants, candidate)
+	if err != nil {
+		return nil, err
+	}
+	a.customVariants = candidate
+	a.cfg.Variants = merged
+	return guicore.ListVariants(a.baseVariants, a.customVariants)
+}
+
+func (a *App) DeleteCustomVariant(name string) ([]guicore.VariantInfo, error) {
+	if a.cfg == nil {
+		return nil, errors.New("variants config not loaded")
+	}
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, errors.New("custom variant name is required")
+	}
+	if _, exists := a.baseVariants[name]; exists {
+		return nil, fmt.Errorf("variant '%s' is built-in and cannot be deleted", name)
+	}
+	if _, exists := a.customVariants[name]; !exists {
+		return nil, fmt.Errorf("custom variant '%s' not found", name)
+	}
+	candidate := copyVariants(a.customVariants)
+	delete(candidate, name)
+	if err := guicore.SaveCustomVariants(a.customVariantsPath, candidate); err != nil {
+		return nil, err
+	}
+	merged, err := guicore.MergeVariants(a.baseVariants, candidate)
+	if err != nil {
+		return nil, err
+	}
+	a.customVariants = candidate
+	a.cfg.Variants = merged
+	return guicore.ListVariants(a.baseVariants, a.customVariants)
+}
+
 func ensureParentDir(path string) error {
 	dir := filepath.Dir(path)
 	if dir == "." || dir == "" {
 		return nil
 	}
 	return os.MkdirAll(dir, 0o755)
+}
+
+func copyVariants(input map[string]config.Variant) map[string]config.Variant {
+	if len(input) == 0 {
+		return map[string]config.Variant{}
+	}
+	out := make(map[string]config.Variant, len(input))
+	for name, variant := range input {
+		out[name] = variant
+	}
+	return out
 }

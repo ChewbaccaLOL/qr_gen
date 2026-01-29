@@ -10,22 +10,19 @@ import (
 )
 
 func TestListVariantsSorted(t *testing.T) {
-	cfg := &config.Config{
-		Variants: map[string]config.Variant{
-			"zeta": {
-				Name:  "zeta",
-				Shape: "square",
-				Dark:  "#000000",
-			},
-			"alpha": {
-				Name:  "alpha",
-				Shape: "square",
-				Dark:  "#111111",
-			},
+	base := map[string]config.Variant{
+		"zeta": {
+			Name:  "zeta",
+			Shape: "square",
+			Dark:  "#000000",
 		},
-		AnimationVariants: []string{"wave"},
+		"alpha": {
+			Name:  "alpha",
+			Shape: "square",
+			Dark:  "#111111",
+		},
 	}
-	variants, err := ListVariants(cfg)
+	variants, err := ListVariants(base, nil)
 	if err != nil {
 		t.Fatalf("list variants: %v", err)
 	}
@@ -34,6 +31,39 @@ func TestListVariantsSorted(t *testing.T) {
 	}
 	if variants[0].Name != "alpha" || variants[1].Name != "zeta" {
 		t.Fatalf("expected sorted variants, got %v then %v", variants[0].Name, variants[1].Name)
+	}
+	if variants[0].IsCustom || variants[1].IsCustom {
+		t.Fatalf("expected base variants to not be custom")
+	}
+}
+
+func TestListVariantsWithCustom(t *testing.T) {
+	base := map[string]config.Variant{
+		"classic": {
+			Name:  "classic",
+			Shape: "square",
+			Dark:  "#000000",
+		},
+	}
+	custom := map[string]config.Variant{
+		"custom": {
+			Name:  "custom",
+			Shape: "square",
+			Dark:  "#111111",
+		},
+	}
+	variants, err := ListVariants(base, custom)
+	if err != nil {
+		t.Fatalf("list variants: %v", err)
+	}
+	if len(variants) != 2 {
+		t.Fatalf("expected 2 variants, got %d", len(variants))
+	}
+	if variants[0].Name != "classic" || variants[1].Name != "custom" {
+		t.Fatalf("unexpected variant order")
+	}
+	if variants[1].IsCustom != true {
+		t.Fatalf("expected custom variant to be flagged")
 	}
 }
 
