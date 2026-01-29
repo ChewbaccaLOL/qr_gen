@@ -1,10 +1,13 @@
 import "./style.css";
 import {
   DeleteCustomVariant,
+  GenerateGIF,
   GeneratePNG,
   GenerateSVG,
+  GetAnimationConfig,
   GetVariantCatalog,
   SaveCustomVariant,
+  SaveGIF,
   SavePNG,
   SaveSVG,
   SuggestSavePath
@@ -56,7 +59,28 @@ const elements = {
   copyPng: document.getElementById("copyPng"),
   customName: document.getElementById("customName"),
   saveVariant: document.getElementById("saveVariant"),
-  deleteVariant: document.getElementById("deleteVariant")
+  deleteVariant: document.getElementById("deleteVariant"),
+  tabButtons: Array.from(document.querySelectorAll("[data-tab]")),
+  tabPanels: Array.from(document.querySelectorAll("[data-panel]")),
+  animationVariant: document.getElementById("animationVariant"),
+  gifFps: document.getElementById("gifFps"),
+  gifFrames: document.getElementById("gifFrames"),
+  gifHold: document.getElementById("gifHold"),
+  waveAmp: document.getElementById("waveAmp"),
+  wavePeriod: document.getElementById("wavePeriod"),
+  floatAngle: document.getElementById("floatAngle"),
+  floatCycles: document.getElementById("floatCycles"),
+  readableGif: document.getElementById("readableGif"),
+  renderAnimation: document.getElementById("renderAnimation"),
+  exportGif: document.getElementById("exportGif"),
+  animationAuto: document.getElementById("animationAuto"),
+  animationInterval: document.getElementById("animationInterval"),
+  animationPreview: document.getElementById("animationPreview"),
+  animationPreviewFrame: document.getElementById("animationPreviewFrame"),
+  animationStatus: document.getElementById("animationStatus"),
+  animationGallery: document.getElementById("animationGallery"),
+  animationPlaceholderTitle: document.getElementById("animationPlaceholderTitle"),
+  animationPlaceholderCopy: document.getElementById("animationPlaceholderCopy")
 };
 
 const state = {
@@ -67,7 +91,16 @@ const state = {
   debounceTimer: null,
   isRendering: false,
   pendingRender: false,
-  isWSL: false
+  isWSL: false,
+  animationVariants: [],
+  animationDefaults: null,
+  selectedAnimationVariant: "",
+  animationIsRendering: false,
+  animationPendingRender: false,
+  animationDirty: true,
+  animationHasRender: false,
+  animationAutoTimer: null,
+  animationPreviewUrl: ""
 };
 
 const angleControls = new Map();
@@ -129,6 +162,15 @@ function parseOptionalFloat(value) {
     return null;
   }
   const parsed = Number.parseFloat(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseOptionalInt(value) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Number.parseInt(trimmed, 10);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -366,6 +408,39 @@ function setStatus(message, type = "") {
   elements.status.className = type ? `status ${type}` : "status";
 }
 
+function setAnimationStatus(message, type = "") {
+  if (!elements.animationStatus) {
+    return;
+  }
+  elements.animationStatus.textContent = message;
+  elements.animationStatus.className = type ? `status ${type}` : "status";
+}
+
+function setActiveTab(tabName) {
+  elements.tabButtons.forEach((button) => {
+    const isActive = button.dataset.tab === tabName;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+  elements.tabPanels.forEach((panel) => {
+    const isActive = panel.dataset.panel === tabName;
+    panel.classList.toggle("active", isActive);
+    panel.hidden = !isActive;
+  });
+}
+
+function setupTabs() {
+  if (!elements.tabButtons.length || !elements.tabPanels.length) {
+    return;
+  }
+  elements.tabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setActiveTab(button.dataset.tab);
+    });
+  });
+  setActiveTab("qr");
+}
+
 function currentVariantName() {
   if (state.selectedVariant) {
     return state.selectedVariant;
@@ -374,6 +449,108 @@ function currentVariantName() {
     return state.variants[0].name;
   }
   return "classic";
+}
+
+function currentAnimationVariant() {
+  if (state.selectedAnimationVariant) {
+    return state.selectedAnimationVariant;
+  }
+  if (state.animationVariants.length > 0) {
+    return state.animationVariants[0];
+  }
+  return "wave";
+}
+
+function animationDefaultsForState() {
+  if (!state.animationDefaults) {
+    return null;
+  }
+  if (elements.readableGif?.checked) {
+    return state.animationDefaults.readable;
+  }
+  return state.animationDefaults;
+}
+
+function setAnimationPlaceholder(title, copy) {
+  if (elements.animationPlaceholderTitle) {
+    elements.animationPlaceholderTitle.textContent = title;
+  }
+  if (elements.animationPlaceholderCopy) {
+    elements.animationPlaceholderCopy.textContent = copy;
+  }
+}
+
+function updateAnimationPreviewFrame() {
+  if (!elements.animationPreviewFrame) {
+    return;
+  }
+  elements.animationPreviewFrame.classList.toggle("transparent", previewHasTransparentBackground());
+}
+
+function markAnimationDirty() {
+  state.animationDirty = true;
+  if (state.animationAutoTimer) {
+    return;
+  }
+  setAnimationStatus("Animation settings changed. Render to update.");
+}
+
+function updateAnimationHoldPlaceholder() {
+  if (!elements.gifHold || !state.animationDefaults) {
+    return;
+  }
+  const defaults = animationDefaultsForState();
+  if (!defaults) {
+    return;
+  }
+  let holdValue = defaults.gifHold;
+  const variant = currentAnimationVariant();
+  if (variant === "wave-loop") {
+    holdValue = 0;
+  }
+  if (variant.startsWith("float") && state.animationDefaults.floatHold > 0) {
+    holdValue = state.animationDefaults.floatHold;
+  }
+  elements.gifHold.placeholder = String(holdValue);
+}
+
+function updateAnimationFloatAnglePlaceholder() {
+  if (!elements.floatAngle || !state.animationDefaults) {
+    return;
+  }
+  const variant = currentAnimationVariant();
+  let angle = state.animationDefaults.floatAngle;
+  if (variant !== "float-tilt-first") {
+    angle += state.animationDefaults.floatTilt;
+  }
+  elements.floatAngle.placeholder = String(Math.round(angle));
+}
+
+function updateAnimationPlaceholders() {
+  if (!state.animationDefaults) {
+    return;
+  }
+  const defaults = animationDefaultsForState();
+  if (!defaults) {
+    return;
+  }
+  if (elements.gifFps) {
+    elements.gifFps.placeholder = String(defaults.gifFps);
+  }
+  if (elements.gifFrames) {
+    elements.gifFrames.placeholder = String(defaults.gifFrames);
+  }
+  if (elements.waveAmp) {
+    elements.waveAmp.placeholder = String(defaults.waveAmp);
+  }
+  if (elements.wavePeriod) {
+    elements.wavePeriod.placeholder = String(defaults.wavePeriod);
+  }
+  if (elements.floatCycles) {
+    elements.floatCycles.placeholder = String(state.animationDefaults.floatCycles || 1);
+  }
+  updateAnimationHoldPlaceholder();
+  updateAnimationFloatAnglePlaceholder();
 }
 
 function updateCustomNamePlaceholder(variant) {
@@ -559,6 +736,22 @@ function buildRequest() {
   };
 }
 
+function buildAnimationRequest() {
+  const request = buildRequest();
+  return {
+    ...request,
+    animationVariant: currentAnimationVariant(),
+    gifFps: parseOptionalInt(elements.gifFps?.value || ""),
+    gifFrames: parseOptionalInt(elements.gifFrames?.value || ""),
+    gifHold: parseOptionalInt(elements.gifHold?.value || ""),
+    waveAmp: parseOptionalFloat(elements.waveAmp?.value || ""),
+    wavePeriod: parseOptionalFloat(elements.wavePeriod?.value || ""),
+    floatAngle: parseOptionalFloat(elements.floatAngle?.value || ""),
+    floatCycles: parseOptionalInt(elements.floatCycles?.value || ""),
+    readableGif: Boolean(elements.readableGif?.checked)
+  };
+}
+
 function buildGalleryRequest(variant) {
   return {
     data: defaultData,
@@ -643,6 +836,55 @@ async function refreshPreview() {
   }
 }
 
+async function refreshAnimationPreview() {
+  if (state.animationIsRendering) {
+    state.animationPendingRender = true;
+    return;
+  }
+  state.animationIsRendering = true;
+  if (elements.renderAnimation) {
+    elements.renderAnimation.disabled = true;
+  }
+  setAnimationStatus("Rendering animation…");
+  updateAnimationPreviewFrame();
+  if (elements.animationPreviewFrame) {
+    elements.animationPreviewFrame.classList.add("loading");
+  }
+  setAnimationPlaceholder("Rendering animation…", "This can take a few seconds.");
+  try {
+    const gifBase64 = await GenerateGIF(buildAnimationRequest());
+    setAnimationPreviewSource(gifBase64);
+    if (elements.animationPreviewFrame) {
+      elements.animationPreviewFrame.classList.add("has-media");
+    }
+    state.animationHasRender = true;
+    state.animationDirty = false;
+    setAnimationStatus("Animation preview updated.");
+  } catch (error) {
+    setAnimationStatus(error.message || String(error), "error");
+    state.animationDirty = false;
+    state.animationHasRender = false;
+    if (elements.animationPreviewFrame) {
+      elements.animationPreviewFrame.classList.remove("has-media");
+    }
+    setAnimationPlaceholder("Render failed", "Adjust settings and try again.");
+  } finally {
+    state.animationIsRendering = false;
+    if (elements.renderAnimation) {
+      elements.renderAnimation.disabled = false;
+    }
+    if (elements.animationPreviewFrame) {
+      elements.animationPreviewFrame.classList.remove("loading");
+    }
+    if (state.animationPendingRender) {
+      state.animationPendingRender = false;
+      requestAnimationFrame(() => {
+        refreshAnimationPreview();
+      });
+    }
+  }
+}
+
 function debounceRefresh() {
   if (state.debounceTimer) {
     clearTimeout(state.debounceTimer);
@@ -650,6 +892,48 @@ function debounceRefresh() {
   state.debounceTimer = setTimeout(() => {
     refreshPreview();
   }, 250);
+}
+
+function restartAnimationAutoRender() {
+  if (!elements.animationAuto?.checked) {
+    return;
+  }
+  const intervalSeconds = clampValue(parseIntOr(elements.animationInterval?.value || "20", 20), 5, 120);
+  if (elements.animationInterval) {
+    elements.animationInterval.value = String(intervalSeconds);
+  }
+  if (state.animationAutoTimer) {
+    clearInterval(state.animationAutoTimer);
+  }
+  state.animationAutoTimer = setInterval(() => {
+    if (state.animationDirty) {
+      refreshAnimationPreview();
+    }
+  }, intervalSeconds * 1000);
+  if (state.animationDirty) {
+    refreshAnimationPreview();
+  } else {
+    setAnimationStatus("Auto-render armed. Waiting for changes.");
+  }
+  if (state.animationDirty) {
+    setAnimationStatus(`Auto-rendering every ${intervalSeconds}s.`);
+  }
+}
+
+function stopAnimationAutoRender() {
+  if (state.animationAutoTimer) {
+    clearInterval(state.animationAutoTimer);
+    state.animationAutoTimer = null;
+  }
+}
+
+function toggleAnimationAutoRender() {
+  if (elements.animationAuto?.checked) {
+    restartAnimationAutoRender();
+  } else {
+    stopAnimationAutoRender();
+    setAnimationStatus("Auto-render paused.");
+  }
 }
 
 async function exportFile(format) {
@@ -669,6 +953,20 @@ async function exportFile(format) {
   }
 }
 
+async function exportGif() {
+  const path = await SuggestSavePath("gif");
+  if (!path) {
+    return;
+  }
+  setAnimationStatus("Exporting GIF…");
+  try {
+    const savedPath = await SaveGIF(buildAnimationRequest(), path);
+    setAnimationStatus(`Saved ${savedPath}`);
+  } catch (error) {
+    setAnimationStatus(error.message || String(error), "error");
+  }
+}
+
 function base64ToBlob(base64, contentType) {
   const bytes = atob(base64);
   const out = new Uint8Array(bytes.length);
@@ -676,6 +974,19 @@ function base64ToBlob(base64, contentType) {
     out[i] = bytes.charCodeAt(i);
   }
   return new Blob([out], { type: contentType });
+}
+
+function setAnimationPreviewSource(base64) {
+  if (!elements.animationPreview) {
+    return;
+  }
+  const blob = base64ToBlob(base64, "image/gif");
+  const url = URL.createObjectURL(blob);
+  if (state.animationPreviewUrl) {
+    URL.revokeObjectURL(state.animationPreviewUrl);
+  }
+  state.animationPreviewUrl = url;
+  elements.animationPreview.src = url;
 }
 
 async function copyPngToClipboard() {
@@ -715,6 +1026,86 @@ function renderVariantPreview(variant, imgEl) {
     .finally(() => {
       imgEl.classList.remove("loading");
     });
+}
+
+function updateAnimationVariantControls() {
+  const isFloat = currentAnimationVariant().startsWith("float");
+  const isLoop = currentAnimationVariant() === "wave-loop";
+  document.querySelectorAll("[data-float-only]").forEach((block) => {
+    block.classList.toggle("is-hidden", !isFloat);
+  });
+  if (elements.gifHold) {
+    elements.gifHold.disabled = isLoop;
+  }
+  updateAnimationHoldPlaceholder();
+  updateAnimationFloatAnglePlaceholder();
+}
+
+function updateAnimationVariantSelection() {
+  if (elements.animationVariant) {
+    elements.animationVariant.value = currentAnimationVariant();
+  }
+  document.querySelectorAll(".motion-card").forEach((card) => {
+    card.classList.toggle("active", card.dataset.animation === currentAnimationVariant());
+  });
+}
+
+function selectAnimationVariant(name) {
+  if (!name) {
+    return;
+  }
+  state.selectedAnimationVariant = name;
+  updateAnimationVariantSelection();
+  updateAnimationVariantControls();
+  markAnimationDirty();
+}
+
+function buildAnimationCard(name) {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "variant-card motion-card";
+  card.dataset.animation = name;
+  if (name === currentAnimationVariant()) {
+    card.classList.add("active");
+  }
+
+  const thumb = document.createElement("div");
+  thumb.className = "variant-thumb motion-thumb";
+
+  const glyph = document.createElement("div");
+  glyph.className = "motion-glyph";
+  glyph.textContent = name.startsWith("float") ? "float" : "wave";
+  thumb.appendChild(glyph);
+
+  const caption = document.createElement("div");
+  caption.className = "variant-caption";
+
+  const title = document.createElement("span");
+  title.textContent = name.replace(/-/g, " ");
+  caption.appendChild(title);
+
+  const tag = document.createElement("span");
+  tag.className = "variant-tag";
+  tag.textContent = name.startsWith("float") ? "float" : "wave";
+  caption.appendChild(tag);
+
+  card.appendChild(thumb);
+  card.appendChild(caption);
+  card.addEventListener("click", () => {
+    selectAnimationVariant(name);
+  });
+  return card;
+}
+
+function renderAnimationGallery(variants) {
+  if (!elements.animationGallery) {
+    return;
+  }
+  elements.animationGallery.innerHTML = "";
+  variants.forEach((name) => {
+    const card = buildAnimationCard(name);
+    elements.animationGallery.appendChild(card);
+  });
 }
 
 function buildVariantCard(variant) {
@@ -791,6 +1182,8 @@ function selectVariant(name) {
   updatePlaceholders();
   updateCustomActions();
   debounceRefresh();
+  updateAnimationPreviewFrame();
+  markAnimationDirty();
 }
 
 function renderVariantGallery(variants) {
@@ -868,6 +1261,38 @@ function setPickerDefault(textInput, colorInput, fallback) {
   }
 }
 
+function renderAnimationVariantSelect(variants) {
+  if (!elements.animationVariant) {
+    return;
+  }
+  elements.animationVariant.innerHTML = "";
+  variants.forEach((name) => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name.replace(/-/g, " ");
+    elements.animationVariant.appendChild(option);
+  });
+  elements.animationVariant.value = currentAnimationVariant();
+}
+
+async function loadAnimationConfig() {
+  const config = await GetAnimationConfig();
+  state.animationVariants = config.variants || [];
+  state.animationDefaults = config.defaults || null;
+  if (!state.selectedAnimationVariant || !state.animationVariants.includes(state.selectedAnimationVariant)) {
+    state.selectedAnimationVariant = state.animationVariants[0] || "wave";
+  }
+  renderAnimationVariantSelect(state.animationVariants);
+  renderAnimationGallery(state.animationVariants);
+  updateAnimationPlaceholders();
+  updateAnimationVariantSelection();
+  updateAnimationVariantControls();
+  setAnimationPlaceholder(
+    "Animation preview",
+    "Use the QR tab to set colors and data, then render a GIF here."
+  );
+}
+
 async function loadVariants(override) {
   const variants = override || await GetVariantCatalog();
   state.variants = variants;
@@ -943,6 +1368,11 @@ async function detectWSL() {
 async function init() {
   await detectWSL();
   try {
+    await loadAnimationConfig();
+  } catch (error) {
+    setAnimationStatus(error.message || String(error), "error");
+  }
+  try {
     await loadVariants();
   } catch (error) {
     setStatus(error.message || String(error), "error");
@@ -973,14 +1403,23 @@ async function init() {
   elements.bgGradientToStop,
   elements.pngScale
 ].forEach((input) => {
-  input.addEventListener("input", debounceRefresh);
+  if (!input) {
+    return;
+  }
+  input.addEventListener("input", () => {
+    debounceRefresh();
+    markAnimationDirty();
+  });
 });
 
 [elements.gradientAngle, elements.bgGradientAngle].forEach((input) => {
   if (!input) {
     return;
   }
-  input.addEventListener("input", refreshPreview);
+  input.addEventListener("input", () => {
+    refreshPreview();
+    markAnimationDirty();
+  });
 });
 
 elements.refresh.addEventListener("click", refreshPreview);
@@ -1005,15 +1444,20 @@ elements.customName?.addEventListener("keydown", (event) => {
 elements.gradientEnabled?.addEventListener("change", () => {
   updateGradientState();
   debounceRefresh();
+  markAnimationDirty();
 });
 
 elements.bgGradientEnabled?.addEventListener("change", () => {
   updateBackgroundGradientState();
   debounceRefresh();
+  updateAnimationPreviewFrame();
+  markAnimationDirty();
 });
 
 elements.transparent?.addEventListener("change", () => {
   updateBackgroundGradientState();
+  updateAnimationPreviewFrame();
+  markAnimationDirty();
 });
 
 [
@@ -1047,13 +1491,54 @@ elements.transparent?.addEventListener("change", () => {
     syncPickerToText(textInput, colorInput);
     updateAngleControlColorsForInput(textInput.id);
     debounceRefresh();
+    markAnimationDirty();
   });
   colorInput.addEventListener("input", () => {
     syncTextToPicker(textInput, colorInput);
     updateAngleControlColorsForInput(textInput.id);
     debounceRefresh();
+    markAnimationDirty();
   });
 });
 
+[
+  elements.gifFps,
+  elements.gifFrames,
+  elements.gifHold,
+  elements.waveAmp,
+  elements.wavePeriod,
+  elements.floatAngle,
+  elements.floatCycles
+].forEach((input) => {
+  if (!input) {
+    return;
+  }
+  input.addEventListener("input", () => {
+    markAnimationDirty();
+  });
+});
+
+elements.animationVariant?.addEventListener("change", () => {
+  selectAnimationVariant(elements.animationVariant.value);
+});
+
+elements.readableGif?.addEventListener("change", () => {
+  updateAnimationPlaceholders();
+  markAnimationDirty();
+});
+
+elements.renderAnimation?.addEventListener("click", refreshAnimationPreview);
+
+elements.exportGif?.addEventListener("click", exportGif);
+
+elements.animationAuto?.addEventListener("change", toggleAnimationAutoRender);
+
+elements.animationInterval?.addEventListener("input", () => {
+  if (elements.animationAuto?.checked) {
+    restartAnimationAutoRender();
+  }
+});
+
 setupAngleControls();
+setupTabs();
 init();

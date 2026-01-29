@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"image/color/palette"
 	"image/draw"
 	"image/gif"
@@ -77,7 +78,7 @@ func BuildWaveGIF(
 		if err != nil {
 			return nil, err
 		}
-		framesOut = append(framesOut, toPaletted(img))
+		framesOut = append(framesOut, toPaletted(img, light == nil))
 		delays = append(delays, delay)
 	}
 
@@ -167,7 +168,7 @@ func BuildFloatGIF(
 		if err != nil {
 			return nil, err
 		}
-		framesOut = append(framesOut, toPaletted(img))
+		framesOut = append(framesOut, toPaletted(img, light == nil))
 		delays = append(delays, delay)
 	}
 
@@ -370,9 +371,33 @@ func quantizeOffset(offset float64, snapPx float64) float64 {
 	return math.Round(offset/snapPx) * snapPx
 }
 
-func toPaletted(img image.Image) *image.Paletted {
-	paletted := image.NewPaletted(img.Bounds(), palette.Plan9)
+func toPaletted(img image.Image, transparent bool) *image.Paletted {
+	if !transparent {
+		paletted := image.NewPaletted(img.Bounds(), palette.Plan9)
+		draw.FloydSteinberg.Draw(paletted, paletted.Rect, img, image.Point{})
+		return paletted
+	}
+
+	pal := make(color.Palette, 0, 256)
+	pal = append(pal, color.Transparent)
+	if len(palette.Plan9) > 255 {
+		pal = append(pal, palette.Plan9[:255]...)
+	} else {
+		pal = append(pal, palette.Plan9...)
+	}
+	paletted := image.NewPaletted(img.Bounds(), pal)
 	draw.FloydSteinberg.Draw(paletted, paletted.Rect, img, image.Point{})
+
+	bounds := img.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			_, _, _, alpha := img.At(x, y).RGBA()
+			if alpha == 0 {
+				paletted.SetColorIndex(x, y, 0)
+			}
+		}
+	}
+
 	return paletted
 }
 

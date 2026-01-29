@@ -19,271 +19,388 @@
         </div>
       </header>
 
-      <main class="workspace">
-        <section class="card controls">
-          <div class="grid">
-            <div class="field">
-              <label for="shape">Shape</label>
-              <select id="shape">
-                <option value="">Variant default</option>
-                <option value="square">Square</option>
-                <option value="rounded">Rounded</option>
-                <option value="dot">Dot</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="error">Error level</label>
-              <select id="error">
-                <option value="l">L</option>
-                <option value="m" selected>M</option>
-                <option value="q">Q</option>
-                <option value="h">H</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="scale">Scale</label>
-              <input id="scale" type="number" min="1" value="10" />
-            </div>
-            <div class="field">
-              <label for="border">Quiet zone</label>
-              <input id="border" type="number" min="0" value="4" />
-            </div>
-          </div>
+      <div class="tab-strip" role="tablist">
+        <button class="tab-button active" id="tab-qr" data-tab="qr" role="tab" aria-controls="panel-qr" aria-selected="true">
+          QR
+        </button>
+        <button class="tab-button" id="tab-animation" data-tab="animation" role="tab" aria-controls="panel-animation" aria-selected="false">
+          Animation
+        </button>
+      </div>
 
-          <div class="grid">
-            <div class="field">
-              <label for="radius">Radius</label>
-              <input id="radius" type="number" min="0" step="0.1" placeholder="variant default" />
-            </div>
-          </div>
-
-          <div class="color-row">
-            <div class="field">
-              <label for="dark">Dark override</label>
-              <div class="color-input">
-                <input id="dark" type="text" placeholder="#111111" />
-                <input id="darkPicker" type="color" aria-label="Dark color picker" />
+      <div class="tab-panel active" id="panel-qr" data-panel="qr" role="tabpanel" aria-labelledby="tab-qr">
+        <main class="workspace">
+          <section class="card controls">
+            <div class="grid">
+              <div class="field">
+                <label for="shape">Shape</label>
+                <select id="shape">
+                  <option value="">Variant default</option>
+                  <option value="square">Square</option>
+                  <option value="rounded">Rounded</option>
+                  <option value="dot">Dot</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="error">Error level</label>
+                <select id="error">
+                  <option value="l">L</option>
+                  <option value="m" selected>M</option>
+                  <option value="q">Q</option>
+                  <option value="h">H</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="scale">Scale</label>
+                <input id="scale" type="number" min="1" value="10" />
+              </div>
+              <div class="field">
+                <label for="border">Quiet zone</label>
+                <input id="border" type="number" min="0" value="4" />
               </div>
             </div>
-            <div class="field">
-              <label for="light">Light override</label>
-              <div class="color-input">
-                <input id="light" type="text" placeholder="#ffffff" />
-                <input id="lightPicker" type="color" aria-label="Light color picker" />
+
+            <div class="grid">
+              <div class="field">
+                <label for="radius">Radius</label>
+                <input id="radius" type="number" min="0" step="0.1" placeholder="variant default" />
               </div>
             </div>
-          </div>
 
-          <div class="color-row">
-            <div class="field checkbox">
-              <label for="gradientEnabled">
-                <input id="gradientEnabled" type="checkbox" />
-                Enable gradient
-              </label>
-            </div>
-          </div>
-
-          <div class="color-row">
-            <div class="field">
-              <label for="gradientFrom">Gradient from</label>
-              <div class="color-input">
-                <input id="gradientFrom" type="text" placeholder="#ff7a59" />
-                <input id="gradientFromPicker" type="color" aria-label="Gradient from color picker" />
-              </div>
-            </div>
-            <div class="field">
-              <label for="gradientTo">Gradient to</label>
-              <div class="color-input">
-                <input id="gradientTo" type="text" placeholder="#7a2cff" />
-                <input id="gradientToPicker" type="color" aria-label="Gradient to color picker" />
-              </div>
-            </div>
-          </div>
-
-          <div class="grid">
-            <div class="field">
-              <label for="gradientScope">Gradient scope</label>
-              <select id="gradientScope">
-                <option value="global" selected>Whole QR</option>
-                <option value="module">Per module</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="grid">
-            <div class="field">
-              <label for="gradientAngle">Gradient angle</label>
-              <div class="angle-control" data-target="gradientAngle" data-label="Gradient angle" data-from="gradientFrom" data-to="gradientTo">
-                <div
-                  class="angle-dial"
-                  role="slider"
-                  aria-label="Gradient angle"
-                  aria-valuemin="0"
-                  aria-valuemax="360"
-                  aria-valuenow="45"
-                  tabindex="0"
-                >
-                  <div class="angle-arrow angle-from"></div>
-                  <div class="angle-arrow angle-to"></div>
+            <div class="color-row">
+              <div class="field">
+                <label for="dark">Dark override</label>
+                <div class="color-input">
+                  <input id="dark" type="text" placeholder="#111111" />
+                  <input id="darkPicker" type="color" aria-label="Dark color picker" />
                 </div>
-                <div class="range-input angle-range">
-                  <input id="gradientAngle" type="range" min="0" max="360" step="1" value="45" />
-                  <span id="gradientAngleValue" class="range-value">45°</span>
+              </div>
+              <div class="field">
+                <label for="light">Light override</label>
+                <div class="color-input">
+                  <input id="light" type="text" placeholder="#ffffff" />
+                  <input id="lightPicker" type="color" aria-label="Light color picker" />
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="grid">
-            <div class="field">
-              <label for="gradientFromStop">Gradient from stop</label>
-              <div class="range-input">
-                <input id="gradientFromStop" type="range" min="0" max="1" step="0.01" value="0" />
-                <span id="gradientFromStopValue" class="range-value">0.00</span>
+            <div class="color-row">
+              <div class="field checkbox">
+                <label for="gradientEnabled">
+                  <input id="gradientEnabled" type="checkbox" />
+                  Enable gradient
+                </label>
               </div>
             </div>
-            <div class="field">
-              <label for="gradientToStop">Gradient to stop</label>
-              <div class="range-input">
-                <input id="gradientToStop" type="range" min="0" max="1" step="0.01" value="1" />
-                <span id="gradientToStopValue" class="range-value">1.00</span>
-              </div>
-            </div>
-          </div>
 
-          <div class="color-row">
-            <div class="field checkbox">
-              <label for="bgGradientEnabled">
-                <input id="bgGradientEnabled" type="checkbox" />
-                Enable background gradient
-              </label>
-            </div>
-          </div>
-
-          <div class="color-row">
-            <div class="field">
-              <label for="bgGradientFrom">Background from</label>
-              <div class="color-input">
-                <input id="bgGradientFrom" type="text" placeholder="#ffffff" />
-                <input id="bgGradientFromPicker" type="color" aria-label="Background gradient from color picker" />
-              </div>
-            </div>
-            <div class="field">
-              <label for="bgGradientTo">Background to</label>
-              <div class="color-input">
-                <input id="bgGradientTo" type="text" placeholder="#f0f0f0" />
-                <input id="bgGradientToPicker" type="color" aria-label="Background gradient to color picker" />
-              </div>
-            </div>
-          </div>
-
-          <div class="grid">
-            <div class="field">
-              <label for="bgGradientAngle">Background angle</label>
-              <div class="angle-control" data-target="bgGradientAngle" data-label="Background angle" data-from="bgGradientFrom" data-to="bgGradientTo">
-                <div
-                  class="angle-dial"
-                  role="slider"
-                  aria-label="Background angle"
-                  aria-valuemin="0"
-                  aria-valuemax="360"
-                  aria-valuenow="45"
-                  tabindex="0"
-                >
-                  <div class="angle-arrow angle-from"></div>
-                  <div class="angle-arrow angle-to"></div>
+            <div class="color-row">
+              <div class="field">
+                <label for="gradientFrom">Gradient from</label>
+                <div class="color-input">
+                  <input id="gradientFrom" type="text" placeholder="#ff7a59" />
+                  <input id="gradientFromPicker" type="color" aria-label="Gradient from color picker" />
                 </div>
-                <div class="range-input angle-range">
-                  <input id="bgGradientAngle" type="range" min="0" max="360" step="1" value="45" />
-                  <span id="bgGradientAngleValue" class="range-value">45°</span>
+              </div>
+              <div class="field">
+                <label for="gradientTo">Gradient to</label>
+                <div class="color-input">
+                  <input id="gradientTo" type="text" placeholder="#7a2cff" />
+                  <input id="gradientToPicker" type="color" aria-label="Gradient to color picker" />
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="grid">
-            <div class="field">
-              <label for="bgGradientFromStop">Background from stop</label>
-              <div class="range-input">
-                <input id="bgGradientFromStop" type="range" min="0" max="1" step="0.01" value="0" />
-                <span id="bgGradientFromStopValue" class="range-value">0.00</span>
+            <div class="grid">
+              <div class="field">
+                <label for="gradientScope">Gradient scope</label>
+                <select id="gradientScope">
+                  <option value="global" selected>Whole QR</option>
+                  <option value="module">Per module</option>
+                </select>
               </div>
             </div>
-            <div class="field">
-              <label for="bgGradientToStop">Background to stop</label>
-              <div class="range-input">
-                <input id="bgGradientToStop" type="range" min="0" max="1" step="0.01" value="1" />
-                <span id="bgGradientToStopValue" class="range-value">1.00</span>
+
+            <div class="grid">
+              <div class="field">
+                <label for="gradientAngle">Gradient angle</label>
+                <div class="angle-control" data-target="gradientAngle" data-label="Gradient angle" data-from="gradientFrom" data-to="gradientTo">
+                  <div
+                    class="angle-dial"
+                    role="slider"
+                    aria-label="Gradient angle"
+                    aria-valuemin="0"
+                    aria-valuemax="360"
+                    aria-valuenow="45"
+                    tabindex="0"
+                  >
+                    <div class="angle-arrow angle-from"></div>
+                    <div class="angle-arrow angle-to"></div>
+                  </div>
+                  <div class="range-input angle-range">
+                    <input id="gradientAngle" type="range" min="0" max="360" step="1" value="45" />
+                    <span id="gradientAngleValue" class="range-value">45°</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="grid">
-            <div class="field checkbox">
-              <label for="transparent">
-                <input id="transparent" type="checkbox" />
-                Transparent background
-              </label>
+            <div class="grid">
+              <div class="field">
+                <label for="gradientFromStop">Gradient from stop</label>
+                <div class="range-input">
+                  <input id="gradientFromStop" type="range" min="0" max="1" step="0.01" value="0" />
+                  <span id="gradientFromStopValue" class="range-value">0.00</span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="gradientToStop">Gradient to stop</label>
+                <div class="range-input">
+                  <input id="gradientToStop" type="range" min="0" max="1" step="0.01" value="1" />
+                  <span id="gradientToStopValue" class="range-value">1.00</span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div class="custom-variant">
+            <div class="color-row">
+              <div class="field checkbox">
+                <label for="bgGradientEnabled">
+                  <input id="bgGradientEnabled" type="checkbox" />
+                  Enable background gradient
+                </label>
+              </div>
+            </div>
+
+            <div class="color-row">
+              <div class="field">
+                <label for="bgGradientFrom">Background from</label>
+                <div class="color-input">
+                  <input id="bgGradientFrom" type="text" placeholder="#ffffff" />
+                  <input id="bgGradientFromPicker" type="color" aria-label="Background gradient from color picker" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="bgGradientTo">Background to</label>
+                <div class="color-input">
+                  <input id="bgGradientTo" type="text" placeholder="#f0f0f0" />
+                  <input id="bgGradientToPicker" type="color" aria-label="Background gradient to color picker" />
+                </div>
+              </div>
+            </div>
+
+            <div class="grid">
+              <div class="field">
+                <label for="bgGradientAngle">Background angle</label>
+                <div class="angle-control" data-target="bgGradientAngle" data-label="Background angle" data-from="bgGradientFrom" data-to="bgGradientTo">
+                  <div
+                    class="angle-dial"
+                    role="slider"
+                    aria-label="Background angle"
+                    aria-valuemin="0"
+                    aria-valuemax="360"
+                    aria-valuenow="45"
+                    tabindex="0"
+                  >
+                    <div class="angle-arrow angle-from"></div>
+                    <div class="angle-arrow angle-to"></div>
+                  </div>
+                  <div class="range-input angle-range">
+                    <input id="bgGradientAngle" type="range" min="0" max="360" step="1" value="45" />
+                    <span id="bgGradientAngleValue" class="range-value">45°</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid">
+              <div class="field">
+                <label for="bgGradientFromStop">Background from stop</label>
+                <div class="range-input">
+                  <input id="bgGradientFromStop" type="range" min="0" max="1" step="0.01" value="0" />
+                  <span id="bgGradientFromStopValue" class="range-value">0.00</span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="bgGradientToStop">Background to stop</label>
+                <div class="range-input">
+                  <input id="bgGradientToStop" type="range" min="0" max="1" step="0.01" value="1" />
+                  <span id="bgGradientToStopValue" class="range-value">1.00</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid">
+              <div class="field checkbox">
+                <label for="transparent">
+                  <input id="transparent" type="checkbox" />
+                  Transparent background
+                </label>
+              </div>
+            </div>
+
+            <div class="custom-variant">
+              <div class="field">
+                <label for="customName">Custom variant name</label>
+                <input id="customName" type="text" placeholder="my-variant" />
+              </div>
+              <button id="saveVariant" class="primary">Save custom variant</button>
+            </div>
+          </section>
+
+          <section class="card preview">
+            <div class="preview-header">
+              <div>
+                <h2>Preview</h2>
+                <div class="meta">Live SVG render</div>
+              </div>
+              <div class="preview-actions">
+                <button id="refresh">Refresh Preview</button>
+                <button id="copyPng">Copy PNG</button>
+              </div>
+            </div>
+            <div id="previewFrame" class="preview-frame">
+              <img id="preview" alt="QR preview" />
+            </div>
+            <div id="status" class="status" role="status"></div>
+
             <div class="field">
-              <label for="customName">Custom variant name</label>
-              <input id="customName" type="text" placeholder="my-variant" />
+              <label for="data">Data</label>
+              <textarea id="data" rows="3" placeholder="https://example.com"></textarea>
             </div>
-            <button id="saveVariant" class="primary">Save custom variant</button>
-          </div>
 
-        </section>
+            <div class="grid">
+              <div class="field">
+                <label for="pngScale">PNG scale</label>
+                <input id="pngScale" type="number" min="1" step="0.5" value="3" />
+              </div>
+            </div>
 
-        <section class="card preview">
-          <div class="preview-header">
+            <div class="actions">
+              <button id="exportSvg">Export SVG</button>
+              <button id="exportPng">Export PNG</button>
+            </div>
+          </section>
+        </main>
+
+        <section class="card variants-panel">
+          <div class="variant-header">
             <div>
-              <h2>Preview</h2>
-              <div class="meta">Live SVG render</div>
+              <h3>Variants</h3>
+              <div class="meta">Gallery renders https://example.com</div>
             </div>
-            <div class="preview-actions">
-              <button id="refresh">Refresh Preview</button>
-              <button id="copyPng">Copy PNG</button>
-            </div>
-          </div>
-          <div id="previewFrame" class="preview-frame">
-            <img id="preview" alt="QR preview" />
-          </div>
-          <div id="status" class="status" role="status"></div>
-
-          <div class="field">
-            <label for="data">Data</label>
-            <textarea id="data" rows="3" placeholder="https://example.com"></textarea>
-          </div>
-
-          <div class="grid">
-            <div class="field">
-              <label for="pngScale">PNG scale</label>
-              <input id="pngScale" type="number" min="1" step="0.5" value="3" />
+            <div class="variant-actions">
+              <button id="deleteVariant" class="danger" hidden>Delete custom variant</button>
             </div>
           </div>
-
-          <div class="actions">
-            <button id="exportSvg">Export SVG</button>
-            <button id="exportPng">Export PNG</button>
-          </div>
+          <div id="variantGallery" class="variant-gallery" role="listbox" aria-label="Variant gallery"></div>
         </section>
-      </main>
+      </div>
 
-      <section class="card variants-panel">
-        <div class="variant-header">
-          <div>
-            <h3>Variants</h3>
-            <div class="meta">Gallery renders https://example.com</div>
+      <div class="tab-panel" id="panel-animation" data-panel="animation" role="tabpanel" aria-labelledby="tab-animation" hidden>
+        <main class="workspace">
+          <section class="card controls animation-controls">
+            <div class="panel-title">
+              <div>
+                <h2>Animation</h2>
+                <div class="meta">Uses current QR settings from the QR tab.</div>
+              </div>
+            </div>
+            <div class="hint">Leave fields empty to use defaults from the animation config.</div>
+
+            <div class="grid">
+              <div class="field">
+                <label for="animationVariant">Motion variant</label>
+                <select id="animationVariant"></select>
+              </div>
+              <div class="field checkbox">
+                <label for="readableGif">
+                  <input id="readableGif" type="checkbox" />
+                  Readable GIF defaults
+                </label>
+              </div>
+            </div>
+
+            <div class="grid">
+              <div class="field">
+                <label for="gifFps">GIF fps</label>
+                <input id="gifFps" type="number" min="1" step="1" placeholder="12" />
+              </div>
+              <div class="field">
+                <label for="gifFrames">GIF frames</label>
+                <input id="gifFrames" type="number" min="1" step="1" placeholder="40" />
+              </div>
+              <div class="field">
+                <label for="gifHold">GIF hold</label>
+                <input id="gifHold" type="number" min="0" step="1" placeholder="24" />
+              </div>
+            </div>
+
+            <div class="grid">
+              <div class="field">
+                <label for="waveAmp">Wave amp</label>
+                <input id="waveAmp" type="number" min="0" step="0.05" placeholder="0.45" />
+              </div>
+              <div class="field">
+                <label for="wavePeriod">Wave period</label>
+                <input id="wavePeriod" type="number" min="1" step="0.5" placeholder="10" />
+              </div>
+            </div>
+
+            <div class="grid float-only is-hidden" data-float-only>
+              <div class="field">
+                <label for="floatAngle">Float angle</label>
+                <input id="floatAngle" type="number" step="1" placeholder="108" />
+              </div>
+              <div class="field">
+                <label for="floatCycles">Float cycles</label>
+                <input id="floatCycles" type="number" min="1" step="1" placeholder="3" />
+              </div>
+            </div>
+          </section>
+
+          <section class="card preview animation-preview">
+            <div class="preview-header">
+              <div>
+                <h2>Animation preview</h2>
+                <div class="meta">Render a GIF using the current QR settings.</div>
+              </div>
+              <div class="preview-actions">
+                <button id="renderAnimation" class="primary">Render GIF</button>
+                <button id="exportGif">Export GIF</button>
+              </div>
+            </div>
+
+            <div class="auto-render">
+              <label for="animationAuto" class="auto-toggle">
+                <input id="animationAuto" type="checkbox" />
+                Auto-render every
+              </label>
+              <div class="auto-interval">
+                <input id="animationInterval" type="number" min="5" step="1" value="20" />
+                <span>sec</span>
+              </div>
+            </div>
+
+            <div id="animationPreviewFrame" class="preview-frame animation-frame">
+              <div class="preview-placeholder">
+                <strong id="animationPlaceholderTitle">Animation preview</strong>
+                <span id="animationPlaceholderCopy">Use the QR tab to set colors and data, then render a GIF here.</span>
+              </div>
+              <img id="animationPreview" alt="Animation preview" />
+            </div>
+            <div id="animationStatus" class="status" role="status"></div>
+          </section>
+        </main>
+
+        <section class="card motion-panel">
+          <div class="variant-header">
+            <div>
+              <h3>Motion presets</h3>
+              <div class="meta">Pick a wave or float style.</div>
+            </div>
           </div>
-          <div class="variant-actions">
-            <button id="deleteVariant" class="danger" hidden>Delete custom variant</button>
-          </div>
-        </div>
-        <div id="variantGallery" class="variant-gallery" role="listbox" aria-label="Variant gallery"></div>
-      </section>
+          <div id="animationGallery" class="variant-gallery motion-gallery" role="listbox" aria-label="Animation presets"></div>
+        </section>
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

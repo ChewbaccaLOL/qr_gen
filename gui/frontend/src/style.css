@@ -78,6 +78,52 @@ body {
   box-shadow: var(--shadow);
 }
 
+.tab-strip {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: var(--shadow);
+  width: fit-content;
+  margin-bottom: 20px;
+}
+
+.tab-button {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--ink-soft);
+  box-shadow: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.tab-button:hover {
+  transform: translateY(-1px);
+  box-shadow: none;
+  background: transparent;
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(255, 61, 142, 0.25);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
@@ -98,6 +144,17 @@ body {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.float-only.is-hidden {
+  display: none;
 }
 
 .grid {
@@ -374,6 +431,7 @@ button.danger:hover {
     linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.75));
   border: 1px dashed rgba(15, 18, 36, 0.15);
   overflow: hidden;
+  position: relative;
 }
 
 .preview-frame.transparent {
@@ -387,12 +445,88 @@ button.danger:hover {
   height: auto;
 }
 
+.animation-frame img {
+  width: min(420px, 100%);
+}
+
+.preview-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--ink-soft);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.75));
+  transition: opacity 0.2s ease;
+}
+
+.preview-placeholder strong {
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.preview-frame.has-media .preview-placeholder {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.preview-frame.loading .preview-placeholder {
+  opacity: 1;
+}
+
+.preview-frame.loading img {
+  opacity: 0.15;
+  filter: blur(1px);
+}
+
+.auto-render {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(15, 18, 36, 0.2);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.auto-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.auto-interval {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.auto-interval input {
+  width: 80px;
+}
+
 .preview-actions {
   display: flex;
   gap: 10px;
 }
 
 .variants-panel {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.motion-panel {
   margin-top: 24px;
   display: flex;
   flex-direction: column;
@@ -420,6 +554,10 @@ button.danger:hover {
   scroll-snap-type: x mandatory;
 }
 
+.motion-gallery {
+  padding-top: 4px;
+}
+
 .variant-card {
   min-width: 130px;
   border-radius: 18px;
@@ -432,6 +570,11 @@ button.danger:hover {
   align-items: center;
   scroll-snap-align: start;
   box-shadow: none;
+}
+
+.motion-card {
+  min-width: 160px;
+  align-items: flex-start;
 }
 
 .variant-card:hover {
@@ -453,6 +596,22 @@ button.danger:hover {
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(245, 245, 255, 0.7));
   border: 1px solid rgba(15, 18, 36, 0.08);
+}
+
+.motion-thumb {
+  width: 100%;
+  height: 64px;
+}
+
+.motion-glyph {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--ink-soft);
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 18, 36, 0.15);
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .variant-card.transparent .variant-thumb {
@@ -522,6 +681,16 @@ button.danger:hover {
   .hero {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .tab-strip {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .tab-button {
+    flex: 1;
+    text-align: center;
   }
 
   .workspace {

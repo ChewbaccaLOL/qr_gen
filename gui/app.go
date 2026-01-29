@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"image/gif"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -70,6 +71,13 @@ func (a *App) GetVariantCatalog() ([]guicore.VariantInfo, error) {
 	return guicore.ListVariants(a.baseVariants, a.customVariants)
 }
 
+func (a *App) GetAnimationConfig() (guicore.AnimationConfig, error) {
+	if a.cfg == nil {
+		return guicore.AnimationConfig{}, errors.New("variants config not loaded")
+	}
+	return guicore.BuildAnimationConfig(a.cfg)
+}
+
 func (a *App) IsWSL() bool {
 	return guicore.IsWSL()
 }
@@ -132,6 +140,32 @@ func (a *App) SavePNG(req guicore.RenderRequest, outputPath string) (string, err
 	return path, nil
 }
 
+func (a *App) SaveGIF(req guicore.AnimationRequest, outputPath string) (string, error) {
+	if a.cfg == nil {
+		return "", errors.New("variants config not loaded")
+	}
+	path := strings.TrimSpace(outputPath)
+	if path == "" {
+		return "", errors.New("output path is required")
+	}
+	gifOut, err := guicore.BuildGIF(a.cfg, req)
+	if err != nil {
+		return "", err
+	}
+	if err := ensureParentDir(path); err != nil {
+		return "", err
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	if err := gif.EncodeAll(file, gifOut); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 func (a *App) GeneratePNG(req guicore.RenderRequest) (string, error) {
 	if a.cfg == nil {
 		return "", errors.New("variants config not loaded")
@@ -142,6 +176,21 @@ func (a *App) GeneratePNG(req guicore.RenderRequest) (string, error) {
 	}
 	var buffer bytes.Buffer
 	if err := png.Encode(&buffer, imageOut); err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(buffer.Bytes()), nil
+}
+
+func (a *App) GenerateGIF(req guicore.AnimationRequest) (string, error) {
+	if a.cfg == nil {
+		return "", errors.New("variants config not loaded")
+	}
+	gifOut, err := guicore.BuildGIF(a.cfg, req)
+	if err != nil {
+		return "", err
+	}
+	var buffer bytes.Buffer
+	if err := gif.EncodeAll(&buffer, gifOut); err != nil {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(buffer.Bytes()), nil

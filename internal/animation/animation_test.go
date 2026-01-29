@@ -58,3 +58,42 @@ func TestBuildFloatOffsetsContinuousPhase(t *testing.T) {
 		t.Fatalf("expected offset %.4f, got %.4f", expected, got)
 	}
 }
+
+func TestBuildWaveGIFTransparentPalette(t *testing.T) {
+	matrix := [][]bool{
+		{true, false},
+		{false, true},
+	}
+	gifOut, err := BuildWaveGIF(
+		matrix,
+		2,
+		0,
+		"#000000",
+		nil,
+		"square",
+		0,
+		nil,
+		nil,
+		0.2,
+		2,
+		2,
+		0,
+		"still",
+		10,
+		true,
+	)
+	if err != nil {
+		t.Fatalf("build wave gif: %v", err)
+	}
+	if len(gifOut.Image) == 0 {
+		t.Fatalf("expected at least one frame")
+	}
+	paletteOut := gifOut.Image[0].Palette
+	if len(paletteOut) == 0 {
+		t.Fatalf("expected palette entries")
+	}
+	_, _, _, alpha := paletteOut[0].RGBA()
+	if alpha != 0 {
+		t.Fatalf("expected transparent palette entry, got alpha=%d", alpha)
+	}
+}
