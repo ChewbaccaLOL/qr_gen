@@ -65,13 +65,13 @@ Animation variants (classic QR shown):
 Animation combinations (examples):
 <table>
   <tr>
-    <td align="center"><strong>transparent wave</strong><br/><img src="docs/variants/combo-transparent-wave.gif" width="220"/></td>
+    <td align="center"><strong>transparent neon wave</strong><br/><img src="docs/variants/combo-transparent-wave.gif" width="220"/></td>
     <td align="center"><strong>gradient float</strong><br/><img src="docs/variants/combo-gradient-float.gif" width="220"/></td>
   </tr>
   <tr>
     <td align="center"><strong>dot wave-loop</strong><br/><img src="docs/variants/combo-dot-wave-loop.gif" width="220"/></td>
-    <td align="center"><strong>rounded tilt</strong><br/><img src="docs/variants/combo-rounded-tilt.gif" width="220"/></td>
-    <td align="center"><strong>bg gradient wave</strong><br/><img src="docs/variants/combo-bg-gradient-wave.gif" width="220"/></td>
+    <td align="center"><strong>rounded tilt (tight)</strong><br/><img src="docs/variants/combo-rounded-tilt.gif" width="220"/></td>
+    <td align="center"><strong>bold bg gradient wave</strong><br/><img src="docs/variants/combo-bg-gradient-wave.gif" width="220"/></td>
   </tr>
 </table>
 

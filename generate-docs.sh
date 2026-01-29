@@ -56,11 +56,11 @@ COMBO_NAMES=(
 )
 
 COMBO_ARGS=(
-  "--variant clear-dot --no-background --animation --animation-variant wave"
+  "--variant clear-dot --no-background --dark #00ff7f --animation --animation-variant wave"
   "--variant sunset --animation --animation-variant float"
   "--variant neon --animation --animation-variant wave-loop"
-  "--variant sunset --animation --animation-variant float-tilt-still"
-  "--variant horizon --animation --animation-variant wave"
+  "--variant sunset --border 2 --animation --animation-variant float-tilt-still"
+  "--variant classic --bg-gradient --bg-gradient-from #ffb347 --bg-gradient-to #ff00cc --bg-gradient-angle 135 --dark #0b1020 --animation --animation-variant wave"
 )
 
 for i in "${!COMBO_NAMES[@]}"; do
