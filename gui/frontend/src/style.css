@@ -163,6 +163,14 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
+.is-hidden {
+  display: none;
+}
+
+.grid.is-hidden {
+  display: none;
+}
+
 .field {
   display: flex;
   flex-direction: column;

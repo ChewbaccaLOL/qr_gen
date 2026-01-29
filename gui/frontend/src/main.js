@@ -28,6 +28,8 @@ const elements = {
   backgroundModeCutout: document.getElementById("backgroundModeCutout"),
   backgroundModeOptions: Array.from(document.querySelectorAll('input[name="backgroundMode"]')),
   radius: document.getElementById("radius"),
+  radiusRow: document.getElementById("radiusRow"),
+  radiusValue: document.getElementById("radiusValue"),
   gradientEnabled: document.getElementById("gradientEnabled"),
   gradientFrom: document.getElementById("gradientFrom"),
   gradientFromPicker: document.getElementById("gradientFromPicker"),
@@ -722,7 +724,34 @@ function updateShapeSelection(variant) {
   if (!elements.shape || !variant) {
     return;
   }
-  elements.shape.value = "";
+  elements.shape.value = variant.shape || "square";
+}
+
+function effectiveShape(variant) {
+  const override = elements.shape?.value.trim();
+  if (override) {
+    return override;
+  }
+  return variant?.shape || "";
+}
+
+function updateRadiusControl(variant) {
+  if (!elements.radiusRow || !elements.radius || !elements.radiusValue) {
+    return;
+  }
+  const shape = effectiveShape(variant);
+  const isRounded = shape === "rounded";
+  elements.radiusRow.classList.toggle("is-hidden", !isRounded);
+  if (!isRounded) {
+    elements.radiusRow.dataset.active = "false";
+    return;
+  }
+  elements.radiusRow.dataset.active = "true";
+  const baseRadius = Number.isFinite(variant?.radius) ? variant.radius : 0.3;
+  const current = parseFloatOr(elements.radius.value, baseRadius);
+  const clamped = clampValue(current, 0, 0.5);
+  elements.radius.value = clamped.toFixed(2);
+  updateRangeValue(elements.radius, elements.radiusValue, (value) => value.toFixed(2));
 }
 
 function updatePlaceholders() {
@@ -739,6 +768,7 @@ function updatePlaceholders() {
   updateGradientFields(selected);
   updateBackgroundGradientFields(selected);
   updateShapeSelection(selected);
+  updateRadiusControl(selected);
   syncBackgroundModeFromVariant(selected);
   ensureBackgroundDefaults(selected);
 }
@@ -836,7 +866,8 @@ function resolveBackgroundGradientColors(selected) {
 }
 
 function buildRequest() {
-  const radius = parseOptionalFloat(elements.radius.value);
+  const radiusActive = elements.radiusRow && !elements.radiusRow.classList.contains("is-hidden");
+  const radius = radiusActive ? parseOptionalFloat(elements.radius.value) : null;
   const selected = state.variantMap.get(currentVariantName());
   const { gradientFrom, gradientTo } = resolveGradientColors(selected);
   const gradientEnabled = Boolean(elements.gradientEnabled?.checked);
@@ -846,7 +877,7 @@ function buildRequest() {
   return {
     data: elements.data.value.trim(),
     variant: currentVariantName(),
-    shape: elements.shape?.value.trim() || "",
+    shape: elements.shape?.value.trim() || "square",
     errorLevel: elements.error.value,
     scale: parseIntOr(elements.scale.value, 10),
     border: parseIntOr(elements.border.value, 4),
@@ -933,14 +964,15 @@ function buildCustomVariantRequest() {
   const gradientEnabled = Boolean(elements.gradientEnabled?.checked);
   const bgGradientEnabled = Boolean(elements.bgGradientEnabled?.checked) && !backgroundModeIsTransparent();
   const { bgGradientFrom, bgGradientTo } = resolveBackgroundGradientColors(selected);
+  const radiusActive = elements.radiusRow && !elements.radiusRow.classList.contains("is-hidden");
   return {
     name: elements.customName.value.trim(),
     baseVariant: currentVariantName(),
     dark: elements.dark.value.trim(),
     light: elements.light.value.trim(),
     noBackground: backgroundModeIsTransparent(),
-    radius: parseOptionalFloat(elements.radius.value),
-    shape: elements.shape?.value.trim() || "",
+    radius: radiusActive ? parseOptionalFloat(elements.radius.value) : null,
+    shape: elements.shape?.value.trim() || "square",
     gradientEnabled,
     gradientFrom,
     gradientTo,
@@ -1646,6 +1678,12 @@ elements.saveVariant?.addEventListener("click", saveCustomVariant);
 
 elements.deleteVariant?.addEventListener("click", deleteCustomVariant);
 
+elements.shape?.addEventListener("change", () => {
+  updateRadiusControl(state.variantMap.get(currentVariantName()));
+  debounceRefresh();
+  markAnimationDirty();
+});
+
 elements.customName?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
@@ -1680,6 +1718,7 @@ elements.backgroundModeOptions.forEach((option) => {
 
 [
   [elements.gradientAngle, elements.gradientAngleValue, (value) => `${Math.round(value)}°`],
+  [elements.radius, elements.radiusValue, (value) => value.toFixed(2)],
   [elements.gradientFromStop, elements.gradientFromStopValue, (value) => value.toFixed(2)],
   [elements.gradientToStop, elements.gradientToStopValue, (value) => value.toFixed(2)],
   [elements.bgGradientAngle, elements.bgGradientAngleValue, (value) => `${Math.round(value)}°`],
