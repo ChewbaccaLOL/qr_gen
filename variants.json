@@ -45,6 +45,62 @@
       "radius": 0.0
     },
     {
+      "name": "clear-glow",
+      "shape": "square",
+      "dark": "#1b0f3f",
+      "light": null,
+      "radius": 0.0,
+      "gradient": {
+        "id": "fg",
+        "from": "#1b0f3f",
+        "to": "#8f6bff",
+        "angle": 35,
+        "scope": "global"
+      }
+    },
+    {
+      "name": "clear-mint",
+      "shape": "square",
+      "dark": "#003b2f",
+      "light": null,
+      "radius": 0.0,
+      "gradient": {
+        "id": "fg",
+        "from": "#003b2f",
+        "to": "#32e0c4",
+        "angle": 140,
+        "scope": "global"
+      }
+    },
+    {
+      "name": "clear-aurora-dot",
+      "shape": "dot",
+      "dark": "#0b1020",
+      "light": null,
+      "radius": 0.0,
+      "gradient": {
+        "id": "fg",
+        "from": "#7de2ff",
+        "to": "#b9fff3",
+        "angle": 320,
+        "scope": "global"
+      }
+    },
+    {
+      "name": "clear-prism-dot",
+      "shape": "dot",
+      "dark": "#1a0f3b",
+      "light": null,
+      "radius": 0.0,
+      "gradient": {
+        "id": "fg",
+        "from": "#1a0f3b",
+        "to": "#5b4bff",
+        "angle": 200,
+        "scope": "global"
+      }
+    },
+    {
       "name": "clear-rounded",
       "shape": "rounded",
       "dark": "#111111",
