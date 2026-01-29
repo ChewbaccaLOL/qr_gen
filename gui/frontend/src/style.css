@@ -185,6 +185,12 @@ body {
   gap: 14px;
 }
 
+.control-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .settings-header h3 {
   margin: 0;
   font-size: 0.78rem;
@@ -243,6 +249,12 @@ body {
   font-size: 0.95rem;
   background: rgba(255, 255, 255, 0.85);
   color: var(--ink);
+}
+
+.field input:not([type="range"]):not([type="color"]),
+.field select {
+  min-height: 44px;
+  line-height: 1.2;
 }
 
 .color-row {
