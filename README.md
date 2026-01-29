@@ -10,18 +10,16 @@ Each QR below encodes `https://example.com` using the default settings for that 
     <td align="center"><strong>classic</strong><br/><img src="docs/variants/classic.svg" width="140"/></td>
     <td align="center"><strong>dot</strong><br/><img src="docs/variants/dot.svg" width="140"/></td>
     <td align="center"><strong>clear</strong><br/><img src="docs/variants/clear.svg" width="140"/></td>
+    <td align="center"><strong>clear-dot</strong><br/><img src="docs/variants/clear-dot.svg" width="140"/></td>
   </tr>
   <tr>
-    <td align="center"><strong>clear-dot</strong><br/><img src="docs/variants/clear-dot.svg" width="140"/></td>
     <td align="center"><strong>clear-glow</strong><br/><img src="docs/variants/clear-glow.svg" width="140"/></td>
     <td align="center"><strong>clear-mint</strong><br/><img src="docs/variants/clear-mint.svg" width="140"/></td>
-  </tr>
-  <tr>
     <td align="center"><strong>clear-aurora-dot</strong><br/><img src="docs/variants/clear-aurora-dot.svg" width="140"/></td>
     <td align="center"><strong>clear-prism-dot</strong><br/><img src="docs/variants/clear-prism-dot.svg" width="140"/></td>
-    <td align="center"><strong>inverted</strong><br/><img src="docs/variants/inverted.svg" width="140"/></td>
   </tr>
   <tr>
+    <td align="center"><strong>inverted</strong><br/><img src="docs/variants/inverted.svg" width="140"/></td>
     <td align="center"><strong>midnight</strong><br/><img src="docs/variants/midnight.svg" width="140"/></td>
     <td align="center"><strong>aurora</strong><br/><img src="docs/variants/aurora.svg" width="140"/></td>
     <td align="center"><strong>horizon</strong><br/><img src="docs/variants/horizon.svg" width="140"/></td>
@@ -30,11 +28,19 @@ Each QR below encodes `https://example.com` using the default settings for that 
     <td align="center"><strong>prism</strong><br/><img src="docs/variants/prism.svg" width="140"/></td>
     <td align="center"><strong>ember</strong><br/><img src="docs/variants/ember.svg" width="140"/></td>
     <td align="center"><strong>tide</strong><br/><img src="docs/variants/tide.svg" width="140"/></td>
+    <td align="center"><strong>pulse</strong><br/><img src="docs/variants/pulse.svg" width="140"/></td>
   </tr>
   <tr>
-    <td align="center"><strong>pulse</strong><br/><img src="docs/variants/pulse.svg" width="140"/></td>
     <td align="center"><strong>sunset</strong><br/><img src="docs/variants/sunset.svg" width="140"/></td>
     <td align="center"><strong>neon</strong><br/><img src="docs/variants/neon.svg" width="140"/></td>
+    <td align="center"><strong>cutout-classic</strong><br/><img src="docs/variants/cutout-classic.svg" width="140"/></td>
+    <td align="center"><strong>cutout-dot</strong><br/><img src="docs/variants/cutout-dot.svg" width="140"/></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>cutout-rounded</strong><br/><img src="docs/variants/cutout-rounded.svg" width="140"/></td>
+    <td align="center"><strong>cutout-prism</strong><br/><img src="docs/variants/cutout-prism.svg" width="140"/></td>
+    <td align="center"><strong>cutout-aurora</strong><br/><img src="docs/variants/cutout-aurora.svg" width="140"/></td>
+    <td align="center"><strong>cutout-neon</strong><br/><img src="docs/variants/cutout-neon.svg" width="140"/></td>
   </tr>
 </table>
 

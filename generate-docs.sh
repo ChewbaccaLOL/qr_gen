@@ -72,3 +72,30 @@ for i in "${!COMBO_NAMES[@]}"; do
     "${combo_args[@]}" \
     "$DATA"
 done
+
+CUTOUT_NAMES=(
+  "cutout-classic"
+  "cutout-dot"
+  "cutout-rounded"
+  "cutout-prism"
+  "cutout-aurora"
+  "cutout-neon"
+)
+
+CUTOUT_ARGS=(
+  "--variant classic --cutout --bg-gradient --bg-gradient-from #0b1020 --bg-gradient-to #142a46 --bg-gradient-angle 120"
+  "--variant dot --cutout --bg-gradient --bg-gradient-from #003b2f --bg-gradient-to #15b089 --bg-gradient-angle 225"
+  "--variant sunset --cutout --bg-gradient --bg-gradient-from #2a0a44 --bg-gradient-to #ff7a59 --bg-gradient-angle 140"
+  "--variant prism --cutout --bg-gradient --bg-gradient-from #1a0f3b --bg-gradient-to #5b4bff --bg-gradient-angle 200"
+  "--variant aurora --cutout --bg-gradient --bg-gradient-from #0b1020 --bg-gradient-to #7de2ff --bg-gradient-angle 320"
+  "--variant neon --cutout --bg-gradient --bg-gradient-from #06060a --bg-gradient-to #6bff2e --bg-gradient-angle 60"
+)
+
+for i in "${!CUTOUT_NAMES[@]}"; do
+  name="${CUTOUT_NAMES[$i]}"
+  read -r -a cutout_args <<< "${CUTOUT_ARGS[$i]}"
+  "${QR_GENERATOR_CMD[@]}" \
+    -o "$OUT_DIR/${name}.svg" \
+    "${cutout_args[@]}" \
+    "$DATA"
+done
