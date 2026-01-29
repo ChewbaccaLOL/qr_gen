@@ -43,5 +43,32 @@ for animation in "${ANIMATIONS[@]}"; do
   "${QR_GENERATOR_CMD[@]}" --variant classic \
     -o "$OUT_DIR/animation-${animation}.svg" \
     --animation --animation-variant "$animation" \
+    --gif-output "$OUT_DIR/animation-${animation}.gif" \
+    "$DATA"
+done
+
+COMBO_NAMES=(
+  "combo-transparent-wave"
+  "combo-gradient-float"
+  "combo-dot-wave-loop"
+  "combo-rounded-tilt"
+  "combo-bg-gradient-wave"
+)
+
+COMBO_ARGS=(
+  "--variant clear-dot --no-background --animation --animation-variant wave"
+  "--variant sunset --animation --animation-variant float"
+  "--variant neon --animation --animation-variant wave-loop"
+  "--variant sunset --animation --animation-variant float-tilt-still"
+  "--variant horizon --animation --animation-variant wave"
+)
+
+for i in "${!COMBO_NAMES[@]}"; do
+  name="${COMBO_NAMES[$i]}"
+  read -r -a combo_args <<< "${COMBO_ARGS[$i]}"
+  "${QR_GENERATOR_CMD[@]}" \
+    -o "$OUT_DIR/${name}.svg" \
+    --gif-output "$OUT_DIR/${name}.gif" \
+    "${combo_args[@]}" \
     "$DATA"
 done

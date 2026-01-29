@@ -62,6 +62,19 @@ Animation variants (classic QR shown):
   </tr>
 </table>
 
+Animation combinations (examples):
+<table>
+  <tr>
+    <td align="center"><strong>transparent wave</strong><br/><img src="docs/variants/combo-transparent-wave.gif" width="220"/></td>
+    <td align="center"><strong>gradient float</strong><br/><img src="docs/variants/combo-gradient-float.gif" width="220"/></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>dot wave-loop</strong><br/><img src="docs/variants/combo-dot-wave-loop.gif" width="220"/></td>
+    <td align="center"><strong>rounded tilt</strong><br/><img src="docs/variants/combo-rounded-tilt.gif" width="220"/></td>
+    <td align="center"><strong>bg gradient wave</strong><br/><img src="docs/variants/combo-bg-gradient-wave.gif" width="220"/></td>
+  </tr>
+</table>
+
 ## Why
 - Fast CLI workflow plus an optional GUI for exploration.
 - A handful of standard styles plus playful, colorful variants.
@@ -240,6 +253,25 @@ Notes:
 - `--readable-gif` uses scan-safer defaults; you can still override any animation options.
 - `--gif` is an alias for `--animation --animation-format gif`.
 - Animation output is not supported with `--catalog`.
+
+## Animation combinations
+Some animation + styling mashups to try:
+```bash
+# Transparent wave for overlay work
+go run ./cmd/qr_generator --gif --variant clear-dot --no-background -o out/qr.svg "https://example.com"
+
+# Gradient + float for bold motion
+go run ./cmd/qr_generator --animation --animation-variant float --variant sunset -o out/qr.svg "https://example.com"
+
+# Dot modules + wave-loop for kinetic texture
+go run ./cmd/qr_generator --animation --animation-variant wave-loop --variant neon -o out/qr.svg "https://example.com"
+
+# Rounded modules + gentle tilt
+go run ./cmd/qr_generator --animation --animation-variant float-tilt-still --shape rounded --radius 0.32 -o out/qr.svg "https://example.com"
+
+# Background gradient + wave
+go run ./cmd/qr_generator --animation --animation-variant wave --variant horizon -o out/qr.svg "https://example.com"
+```
 
 ## Catalog Grid
 Generate a single labeled grid showing all variants:

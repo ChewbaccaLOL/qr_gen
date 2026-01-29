@@ -95,7 +95,7 @@ func RenderPNGWithOffsets(
 	contentHeight := dim + extraPadY*2
 	width := float64(contentWidth)
 	height := float64(contentHeight)
-	if rotateDeg != 0 {
+	if rotateDeg != 0 && !rotateTiles {
 		angle := rotateDeg * math.Pi / 180
 		cosA := math.Abs(math.Cos(angle))
 		sinA := math.Abs(math.Sin(angle))
@@ -141,7 +141,6 @@ func RenderPNGWithOffsets(
 	}
 
 	var bgLUT *GradientLUT
-	var baseBgLUT *GradientLUT
 	if backgroundGradient != nil {
 		spec, err := buildGradientSpec(backgroundGradient)
 		if err != nil {
@@ -149,7 +148,6 @@ func RenderPNGWithOffsets(
 		}
 		spec.Scope = "global"
 		bgLUT = buildGlobalGradientLUT(widthInt, heightInt, spec)
-		baseBgLUT = buildGlobalGradientLUT(contentWidth, contentHeight, spec)
 		if bgLUT != nil {
 			applyGradientBackground(img, bgLUT)
 		}
@@ -159,6 +157,10 @@ func RenderPNGWithOffsets(
 	centerY := float64(contentHeight) / 2
 	translateX := (float64(widthInt) - float64(contentWidth)) / 2
 	translateY := (float64(heightInt) - float64(contentHeight)) / 2
+	if rotateDeg != 0 && rotateTiles {
+		translateX = 0
+		translateY = 0
+	}
 	baseOffsetX := float64(extraPadX)
 	baseOffsetY := float64(extraPadY)
 	angleRad := rotateDeg * math.Pi / 180
@@ -167,11 +169,6 @@ func RenderPNGWithOffsets(
 
 	if rotateDeg != 0 && rotateTiles {
 		baseImg := image.NewRGBA(image.Rect(0, 0, contentWidth, contentHeight))
-		if baseBgLUT != nil {
-			applyGradientBackground(baseImg, baseBgLUT)
-		} else if lightColor != nil && backgroundGradient == nil {
-			draw.Draw(baseImg, baseImg.Bounds(), &image.Uniform{C: *lightColor}, image.Point{}, draw.Src)
-		}
 		for y, row := range matrix {
 			for x, cell := range row {
 				if !cell {
@@ -261,7 +258,11 @@ func rotateInto(dst *image.RGBA, src *image.RGBA, translateX float64, translateY
 			if ix < srcBounds.Min.X || iy < srcBounds.Min.Y || ix >= srcBounds.Max.X || iy >= srcBounds.Max.Y {
 				continue
 			}
-			dst.SetRGBA(x, y, src.RGBAAt(ix, iy))
+			pixel := src.RGBAAt(ix, iy)
+			if pixel.A == 0 {
+				continue
+			}
+			dst.SetRGBA(x, y, pixel)
 		}
 	}
 }
