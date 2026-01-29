@@ -573,7 +573,7 @@ function updateGradientState() {
     elements.gradientFrom,
     elements.gradientFromPicker,
     elements.gradientTo,
-    elements.gradientToPicker
+    elements.gradientToPicker,
     elements.gradientScope,
     elements.gradientAngle,
     elements.gradientFromStop,
