@@ -54,6 +54,17 @@ func TestRenderPNGRotateTilesClamped(t *testing.T) {
 	}
 }
 
+func TestRenderPNGRotateClamped(t *testing.T) {
+	matrix := [][]bool{{true}}
+	img, err := RenderPNGWithOffsets(matrix, 10, 4, "#000000", ptr("#ffffff"), "square", 0, nil, nil, nil, 0, 0, 20, "after", false)
+	if err != nil {
+		t.Fatalf("render png: %v", err)
+	}
+	if img.Bounds().Dx() != 90 || img.Bounds().Dy() != 90 {
+		t.Fatalf("unexpected dimensions: %v", img.Bounds())
+	}
+}
+
 func TestRenderPNGRotateTilesKeepsBackground(t *testing.T) {
 	matrix := [][]bool{{true}}
 	bg := &config.Gradient{From: "#ffffff", To: "#ffffff"}

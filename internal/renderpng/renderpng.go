@@ -95,13 +95,6 @@ func RenderPNGWithOffsets(
 	contentHeight := dim + extraPadY*2
 	width := float64(contentWidth)
 	height := float64(contentHeight)
-	if rotateDeg != 0 && !rotateTiles {
-		angle := rotateDeg * math.Pi / 180
-		cosA := math.Abs(math.Cos(angle))
-		sinA := math.Abs(math.Sin(angle))
-		width = float64(contentWidth)*cosA + float64(contentHeight)*sinA
-		height = float64(contentWidth)*sinA + float64(contentHeight)*cosA
-	}
 	widthInt := int(math.Ceil(width))
 	heightInt := int(math.Ceil(height))
 	if widthInt <= 0 || heightInt <= 0 {
@@ -155,12 +148,8 @@ func RenderPNGWithOffsets(
 
 	centerX := float64(contentWidth) / 2
 	centerY := float64(contentHeight) / 2
-	translateX := (float64(widthInt) - float64(contentWidth)) / 2
-	translateY := (float64(heightInt) - float64(contentHeight)) / 2
-	if rotateDeg != 0 && rotateTiles {
-		translateX = 0
-		translateY = 0
-	}
+	translateX := 0.0
+	translateY := 0.0
 	baseOffsetX := float64(extraPadX)
 	baseOffsetY := float64(extraPadY)
 	angleRad := rotateDeg * math.Pi / 180
