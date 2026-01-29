@@ -514,6 +514,31 @@ button.danger:hover {
   width: 80px;
 }
 
+.debug-panel {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(15, 18, 36, 0.2);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.debug-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.6rem;
+}
+
+.debug-output {
+  margin: 0;
+  font-family: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+  white-space: pre-wrap;
+}
+
 .preview-actions {
   display: flex;
   gap: 10px;

@@ -63,6 +63,7 @@ const elements = {
   tabButtons: Array.from(document.querySelectorAll("[data-tab]")),
   tabPanels: Array.from(document.querySelectorAll("[data-panel]")),
   animationVariant: document.getElementById("animationVariant"),
+  gifScale: document.getElementById("gifScale"),
   gifFps: document.getElementById("gifFps"),
   gifFrames: document.getElementById("gifFrames"),
   gifHold: document.getElementById("gifHold"),
@@ -80,7 +81,8 @@ const elements = {
   animationStatus: document.getElementById("animationStatus"),
   animationGallery: document.getElementById("animationGallery"),
   animationPlaceholderTitle: document.getElementById("animationPlaceholderTitle"),
-  animationPlaceholderCopy: document.getElementById("animationPlaceholderCopy")
+  animationPlaceholderCopy: document.getElementById("animationPlaceholderCopy"),
+  animationDebug: document.getElementById("animationDebug")
 };
 
 const state = {
@@ -487,12 +489,41 @@ function updateAnimationPreviewFrame() {
   elements.animationPreviewFrame.classList.toggle("transparent", previewHasTransparentBackground());
 }
 
+function updateAnimationDebug() {
+  if (!elements.animationDebug) {
+    return;
+  }
+  const req = buildAnimationRequest();
+  const payload = {
+    variant: req.variant,
+    shape: req.shape,
+    animationVariant: req.animationVariant,
+    scale: req.scale,
+    gifScale: req.gifScale ?? 1,
+    border: req.border,
+    radius: req.radius,
+    gradientEnabled: req.gradientEnabled,
+    bgGradientEnabled: req.bgGradientEnabled,
+    noBackground: req.noBackground,
+    gifFps: req.gifFps ?? "(default)",
+    gifFrames: req.gifFrames ?? "(default)",
+    gifHold: req.gifHold ?? "(default)",
+    waveAmp: req.waveAmp ?? "(default)",
+    wavePeriod: req.wavePeriod ?? "(default)",
+    floatAngle: req.floatAngle ?? "(default)",
+    floatCycles: req.floatCycles ?? "(default)",
+    readableGif: req.readableGif
+  };
+  elements.animationDebug.textContent = JSON.stringify(payload, null, 2);
+}
+
 function markAnimationDirty() {
   state.animationDirty = true;
   if (state.animationAutoTimer) {
     return;
   }
   setAnimationStatus("Animation settings changed. Render to update.");
+  updateAnimationDebug();
 }
 
 function updateAnimationHoldPlaceholder() {
@@ -536,6 +567,9 @@ function updateAnimationPlaceholders() {
   }
   if (elements.gifFps) {
     elements.gifFps.placeholder = String(defaults.gifFps);
+  }
+  if (elements.gifScale) {
+    elements.gifScale.placeholder = "1";
   }
   if (elements.gifFrames) {
     elements.gifFrames.placeholder = String(defaults.gifFrames);
@@ -738,9 +772,18 @@ function buildRequest() {
 
 function buildAnimationRequest() {
   const request = buildRequest();
+  const selected = state.variantMap.get(currentVariantName());
+  if (!request.shape && selected?.shape) {
+    request.shape = selected.shape;
+  }
+  const gifScale = parseFloatOr(elements.gifScale?.value || "", 1);
+  const scaleValue = parseIntOr(elements.scale.value, 10);
+  const scaled = Math.max(1, Math.round(scaleValue * gifScale));
+  request.scale = scaled;
   return {
     ...request,
     animationVariant: currentAnimationVariant(),
+    gifScale,
     gifFps: parseOptionalInt(elements.gifFps?.value || ""),
     gifFrames: parseOptionalInt(elements.gifFrames?.value || ""),
     gifHold: parseOptionalInt(elements.gifHold?.value || ""),
@@ -841,6 +884,7 @@ async function refreshAnimationPreview() {
     state.animationPendingRender = true;
     return;
   }
+  updateAnimationDebug();
   state.animationIsRendering = true;
   if (elements.renderAnimation) {
     elements.renderAnimation.disabled = true;
@@ -1287,6 +1331,7 @@ async function loadAnimationConfig() {
   updateAnimationPlaceholders();
   updateAnimationVariantSelection();
   updateAnimationVariantControls();
+  updateAnimationDebug();
   setAnimationPlaceholder(
     "Animation preview",
     "Use the QR tab to set colors and data, then render a GIF here."
@@ -1503,6 +1548,7 @@ elements.transparent?.addEventListener("change", () => {
 
 [
   elements.gifFps,
+  elements.gifScale,
   elements.gifFrames,
   elements.gifHold,
   elements.waveAmp,
