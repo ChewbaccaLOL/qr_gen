@@ -852,7 +852,7 @@ function updateRadiusControl(variant) {
     return;
   }
   const shape = effectiveShape(variant);
-  const isRounded = shape === "rounded";
+  const isRounded = shape === "rounded" || shape.startsWith("island");
   elements.radiusRow.classList.toggle("is-hidden", !isRounded);
   if (!isRounded) {
     elements.radiusRow.dataset.active = "false";

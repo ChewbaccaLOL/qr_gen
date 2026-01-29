@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"qr_generator/internal/config"
+	"qr_generator/internal/islands"
 )
 
 type PSDocument struct {
@@ -63,6 +64,14 @@ func RenderPS(
 	}
 
 	corner := clampRadius(radius, float64(scale))
+
+	if isIslandShape(shape) {
+		if err := drawIslandsPS(&doc.buf, matrix, scale, border, radius, darkColor, grad, islandConnectivity(shape), rect{X: 0, Y: 0, W: dim, H: dim}, 0, 0); err != nil {
+			return nil, err
+		}
+		doc.finish()
+		return doc, nil
+	}
 
 	for y, row := range matrix {
 		for x, cell := range row {
@@ -154,14 +163,20 @@ func RenderCatalogPS(
 		}
 		corner := clampRadius(variant.Radius, float64(scale))
 
-		for y, rowVals := range matrix {
-			for x, cell := range rowVals {
-				if !cell {
-					continue
+		if isIslandShape(variant.Shape) {
+			if err := drawIslandsPS(&doc.buf, matrix, scale, border, variant.Radius, darkColor, grad, islandConnectivity(variant.Shape), tileRect, originX, originY); err != nil {
+				return nil, err
+			}
+		} else {
+			for y, rowVals := range matrix {
+				for x, cell := range rowVals {
+					if !cell {
+						continue
+					}
+					px := originX + float64(x+border)*float64(scale)
+					py := originY + float64(y+border)*float64(scale)
+					drawModulePS(&doc.buf, px, py, float64(scale), variant.Shape, corner, darkColor, grad, tileRect)
 				}
-				px := originX + float64(x+border)*float64(scale)
-				py := originY + float64(y+border)*float64(scale)
-				drawModulePS(&doc.buf, px, py, float64(scale), variant.Shape, corner, darkColor, grad, tileRect)
 			}
 		}
 
@@ -186,6 +201,83 @@ func newPS(width float64, height float64) *PSDocument {
 	fmt.Fprintf(&doc.buf, "%%%%EndComments\n")
 	fmt.Fprintf(&doc.buf, "0 %.4f translate\n1 -1 scale\n", height)
 	return doc
+}
+
+func drawIslandsPS(buf *bytes.Buffer, matrix [][]bool, scale int, border int, radius float64, color rgb, gradient *gradientSpec, connectivity islands.Connectivity, global rect, offsetX float64, offsetY float64) error {
+	islandList := islands.FindIslandsWithConnectivity(matrix, connectivity)
+	if len(islandList) == 0 {
+		return nil
+	}
+	corner := clampRadius(radius, float64(scale))
+	for _, island := range islandList {
+		if len(island.Cells) == 0 {
+			continue
+		}
+		islandRect := rect{
+			X: offsetX + float64(island.MinX+border)*float64(scale),
+			Y: offsetY + float64(island.MinY+border)*float64(scale),
+			W: float64(island.MaxX-island.MinX+1) * float64(scale),
+			H: float64(island.MaxY-island.MinY+1) * float64(scale),
+		}
+		baseRect := global
+		if gradient != nil && gradient.Scope != "global" {
+			baseRect = islandRect
+		}
+		for _, cell := range island.Cells {
+			px := offsetX + float64(cell.X+border)*float64(scale)
+			py := offsetY + float64(cell.Y+border)*float64(scale)
+			mask := islands.CornerMaskAt(matrix, cell.X, cell.Y, connectivity)
+			drawIslandModulePS(buf, px, py, float64(scale), corner, mask, color, gradient, baseRect)
+		}
+	}
+	return nil
+}
+
+func drawIslandModulePS(buf *bytes.Buffer, x float64, y float64, size float64, corner float64, mask islands.CornerMask, color rgb, gradient *gradientSpec, base rect) {
+	rTL := 0.0
+	if mask.Has(islands.CornerTopLeft) {
+		rTL = corner
+	}
+	rTR := 0.0
+	if mask.Has(islands.CornerTopRight) {
+		rTR = corner
+	}
+	rBR := 0.0
+	if mask.Has(islands.CornerBottomRight) {
+		rBR = corner
+	}
+	rBL := 0.0
+	if mask.Has(islands.CornerBottomLeft) {
+		rBL = corner
+	}
+
+	if gradient != nil {
+		writeGradientFillExt(buf, rect{X: x, Y: y, W: size, H: size}, rTL, rTR, rBR, rBL, gradient, base)
+		return
+	}
+	if rTL > 0 || rTR > 0 || rBR > 0 || rBL > 0 {
+		writeRoundedRectFillExt(buf, x, y, size, size, rTL, rTR, rBR, rBL, color)
+		return
+	}
+	writeRectFill(buf, x, y, size, size, color)
+}
+
+func isIslandShape(shape string) bool {
+	switch strings.ToLower(strings.TrimSpace(shape)) {
+	case "island", "island-4", "island-8":
+		return true
+	default:
+		return false
+	}
+}
+
+func islandConnectivity(shape string) islands.Connectivity {
+	switch strings.ToLower(strings.TrimSpace(shape)) {
+	case "island-8":
+		return islands.Connectivity8
+	default:
+		return islands.Connectivity4
+	}
 }
 
 func (d *PSDocument) finish() {
@@ -313,6 +405,50 @@ func writeRoundedRectPath(buf *bytes.Buffer, x, y, w, h, r float64) {
 	fmt.Fprintf(buf, "closepath\n")
 }
 
+func writeRoundedRectFillExt(buf *bytes.Buffer, x, y, w, h, rTL, rTR, rBR, rBL float64, color rgb) {
+	if rTL <= 0 && rTR <= 0 && rBR <= 0 && rBL <= 0 {
+		writeRectFill(buf, x, y, w, h, color)
+		return
+	}
+	fmt.Fprintf(buf, "%.4f %.4f %.4f setrgbcolor\n", float64(color.R)/255.0, float64(color.G)/255.0, float64(color.B)/255.0)
+	writeRoundedRectPathExt(buf, x, y, w, h, rTL, rTR, rBR, rBL)
+	fmt.Fprintf(buf, "fill\n")
+}
+
+func writeRoundedRectPathExt(buf *bytes.Buffer, x, y, w, h, rTL, rTR, rBR, rBL float64) {
+	x0 := x
+	y0 := y
+	x1 := x + w
+	y1 := y + h
+	fmt.Fprintf(buf, "newpath\n")
+	fmt.Fprintf(buf, "%.4f %.4f moveto\n", x0+rTL, y0)
+	fmt.Fprintf(buf, "%.4f %.4f lineto\n", x1-rTR, y0)
+	if rTR > 0 {
+		fmt.Fprintf(buf, "%.4f %.4f %.4f 270 360 arc\n", x1-rTR, y0+rTR, rTR)
+	} else {
+		fmt.Fprintf(buf, "%.4f %.4f lineto\n", x1, y0)
+	}
+	fmt.Fprintf(buf, "%.4f %.4f lineto\n", x1, y1-rBR)
+	if rBR > 0 {
+		fmt.Fprintf(buf, "%.4f %.4f %.4f 0 90 arc\n", x1-rBR, y1-rBR, rBR)
+	} else {
+		fmt.Fprintf(buf, "%.4f %.4f lineto\n", x1, y1)
+	}
+	fmt.Fprintf(buf, "%.4f %.4f lineto\n", x0+rBL, y1)
+	if rBL > 0 {
+		fmt.Fprintf(buf, "%.4f %.4f %.4f 90 180 arc\n", x0+rBL, y1-rBL, rBL)
+	} else {
+		fmt.Fprintf(buf, "%.4f %.4f lineto\n", x0, y1)
+	}
+	fmt.Fprintf(buf, "%.4f %.4f lineto\n", x0, y0+rTL)
+	if rTL > 0 {
+		fmt.Fprintf(buf, "%.4f %.4f %.4f 180 270 arc\n", x0+rTL, y0+rTL, rTL)
+	} else {
+		fmt.Fprintf(buf, "%.4f %.4f lineto\n", x0, y0)
+	}
+	fmt.Fprintf(buf, "closepath\n")
+}
+
 func writeCircleFill(buf *bytes.Buffer, cx, cy, r float64, color rgb) {
 	fmt.Fprintf(buf, "%.4f %.4f %.4f setrgbcolor\n", float64(color.R)/255.0, float64(color.G)/255.0, float64(color.B)/255.0)
 	fmt.Fprintf(buf, "newpath\n")
@@ -336,6 +472,18 @@ func writeGradientFill(buf *bytes.Buffer, area rect, shape string, corner float6
 
 	writeGradientFillRect(buf, area, gradient, base)
 
+	fmt.Fprintf(buf, "grestore\n")
+}
+
+func writeGradientFillExt(buf *bytes.Buffer, area rect, rTL, rTR, rBR, rBL float64, gradient *gradientSpec, base rect) {
+	fmt.Fprintf(buf, "gsave\n")
+	if rTL > 0 || rTR > 0 || rBR > 0 || rBL > 0 {
+		writeRoundedRectPathExt(buf, area.X, area.Y, area.W, area.H, rTL, rTR, rBR, rBL)
+		fmt.Fprintf(buf, "clip\nnewpath\n")
+	} else {
+		fmt.Fprintf(buf, "newpath\n%.4f %.4f %.4f %.4f rectclip\n", area.X, area.Y, area.W, area.H)
+	}
+	writeGradientFillRect(buf, area, gradient, base)
 	fmt.Fprintf(buf, "grestore\n")
 }
 

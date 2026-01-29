@@ -45,6 +45,46 @@
       "radius": 0.0
     },
     {
+      "name": "island-4",
+      "shape": "island-4",
+      "dark": "#111111",
+      "light": "#ffffff",
+      "radius": 0.28
+    },
+    {
+      "name": "island-8",
+      "shape": "island-8",
+      "dark": "#111111",
+      "light": "#ffffff",
+      "radius": 0.28
+    },
+    {
+      "name": "island-4-sunset",
+      "shape": "island-4",
+      "dark": "#2a0a44",
+      "light": "#fff2e3",
+      "radius": 0.3,
+      "gradient": {
+        "id": "fg",
+        "from": "#ff7a59",
+        "to": "#7a2cff",
+        "scope": "module"
+      }
+    },
+    {
+      "name": "island-8-neon",
+      "shape": "island-8",
+      "dark": "#00f0ff",
+      "light": "#06060a",
+      "radius": 0.28,
+      "gradient": {
+        "id": "fg",
+        "from": "#00f0ff",
+        "to": "#6bff2e",
+        "scope": "module"
+      }
+    },
+    {
       "name": "clear-glow",
       "shape": "square",
       "dark": "#1b0f3f",

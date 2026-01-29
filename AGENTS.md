@@ -77,6 +77,7 @@ go run ./cmd/qr_generator --animation --animation-variant wave "Wave me"
 ## Style goals
 - Provide at least a few standard variants (black/white, square, rounded).
 - Add more playful variants (color, gradients, or different shapes) but keep scanability in mind.
+- Island shapes come in `island-4` (4-connected) and `island-8` (8-connected); per-island gradients should remain scan-safe.
 
 ## Go migration plan (draft)
 - Keep `variants.json` as the shared source of truth for variants + animation defaults.

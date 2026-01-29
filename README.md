@@ -200,6 +200,8 @@ Standard:
 - `dot`: circular modules
 - `clear`: black modules on transparent background
 - `clear-dot`: dot modules on transparent background
+- `island-4`: 4-connected island modules (rounded outer corners)
+- `island-8`: 8-connected island modules (rounded outer corners, diagonal joins)
 
 Transparent gradients:
 - `clear-glow`: square modules with a deep violet gradient on transparency
@@ -224,6 +226,8 @@ More playful:
 - `ember`: vertical global gradient with a warm background glow
 - `tide`: angled global gradient with a sea-glass background
 - `pulse`: bright global gradient over a deep charcoal background
+- `island-4-sunset`: 4-connected islands with a warm per-island gradient
+- `island-8-neon`: 8-connected islands with a neon per-island gradient
 - `sunset`: rounded modules with a warm gradient
 - `neon`: dot modules with a high-contrast gradient
 
@@ -313,6 +317,7 @@ go run ./cmd/qr_generator --catalog --catalog-columns 4 --png -o out/catalog.svg
 - `--scale`: module size in pixels (default 10)
 - `--border`: quiet zone in modules (default 4)
 - `--error`: `l`, `m`, `q`, `h` (default `m`)
+- `--shape`: `square`, `rounded`, `dot`, `island-4`, `island-8`
 - `--dark`: override foreground color
 - `--light`: override background color
 - `--no-background`: transparent background

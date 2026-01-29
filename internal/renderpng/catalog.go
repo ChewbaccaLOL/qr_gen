@@ -98,6 +98,9 @@ func drawMatrixAt(img *image.RGBA, matrix [][]bool, scale int, border int, varia
 		return fmt.Errorf("invalid dark color: %w", err)
 	}
 
+	islandShape := isIslandShape(variant.Shape)
+	connectivity := islandConnectivity(variant.Shape)
+	var gradientSpec *GradientSpec
 	var gradientLUT *GradientLUT
 	if variant.Gradient != nil {
 		spec, err := buildGradientSpec(variant.Gradient)
@@ -105,7 +108,14 @@ func drawMatrixAt(img *image.RGBA, matrix [][]bool, scale int, border int, varia
 			return err
 		}
 		spec.Scope = "module"
-		gradientLUT = buildModuleGradientLUT(scale, spec)
+		gradientSpec = spec
+		if !islandShape {
+			gradientLUT = buildModuleGradientLUT(scale, spec)
+		}
+	}
+
+	if islandShape {
+		return drawIslands(img, matrix, scale, border, variant.Radius, darkColor, gradientSpec, nil, connectivity, nil, float64(offsetX), float64(offsetY), 0, "after", 0, 0)
 	}
 
 	for y, row := range matrix {

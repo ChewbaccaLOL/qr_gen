@@ -120,15 +120,23 @@ func RenderPNGWithOffsets(
 		draw.Draw(img, img.Bounds(), &image.Uniform{C: *lightColor}, image.Point{}, draw.Src)
 	}
 
+	islandShape := isIslandShape(shape)
+	connectivity := islandConnectivity(shape)
+	var gradientSpec *GradientSpec
 	var gradientLUT *GradientLUT
+	var globalLUT *GradientLUT
 	if gradient != nil {
 		spec, err := buildGradientSpec(gradient)
 		if err != nil {
 			return nil, err
 		}
+		gradientSpec = spec
 		if spec.Scope == "global" {
-			gradientLUT = buildGlobalGradientLUT(widthInt, heightInt, spec)
-		} else {
+			globalLUT = buildGlobalGradientLUT(widthInt, heightInt, spec)
+			if !islandShape {
+				gradientLUT = globalLUT
+			}
+		} else if !islandShape {
 			gradientLUT = buildModuleGradientLUT(scale, spec)
 		}
 	}
@@ -155,6 +163,21 @@ func RenderPNGWithOffsets(
 	angleRad := rotateDeg * math.Pi / 180
 	cosA := math.Cos(angleRad)
 	sinA := math.Sin(angleRad)
+
+	if islandShape {
+		if rotateDeg != 0 && rotateTiles {
+			baseImg := image.NewRGBA(image.Rect(0, 0, contentWidth, contentHeight))
+			if err := drawIslands(baseImg, matrix, scale, border, radius, darkColor, gradientSpec, globalLUT, connectivity, columnOffsets, baseOffsetX, baseOffsetY, 0, rotateMode, centerX, centerY); err != nil {
+				return nil, err
+			}
+			rotateInto(img, baseImg, translateX, translateY, centerX, centerY, cosA, sinA)
+			return img, nil
+		}
+		if err := drawIslands(img, matrix, scale, border, radius, darkColor, gradientSpec, globalLUT, connectivity, columnOffsets, baseOffsetX, baseOffsetY, rotateDeg, rotateMode, centerX, centerY); err != nil {
+			return nil, err
+		}
+		return img, nil
+	}
 
 	if rotateDeg != 0 && rotateTiles {
 		baseImg := image.NewRGBA(image.Rect(0, 0, contentWidth, contentHeight))

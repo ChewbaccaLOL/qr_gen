@@ -8,6 +8,7 @@ import (
 	"github.com/jung-kurt/gofpdf"
 
 	"qr_generator/internal/config"
+	"qr_generator/internal/islands"
 )
 
 type PDFDocument struct {
@@ -63,6 +64,13 @@ func RenderPDF(
 	}
 
 	corner := clampRadius(radius, float64(scale))
+
+	if isIslandShape(shape) {
+		if err := drawIslandsPDF(doc.pdf, matrix, scale, border, radius, darkColor, grad, islandConnectivity(shape), rect{X: 0, Y: 0, W: dim, H: dim}, 0, 0); err != nil {
+			return nil, err
+		}
+		return doc, nil
+	}
 
 	for y, row := range matrix {
 		for x, cell := range row {
@@ -158,14 +166,20 @@ func RenderCatalogPDF(
 		}
 		corner := clampRadius(variant.Radius, float64(scale))
 
-		for y, rowVals := range matrix {
-			for x, cell := range rowVals {
-				if !cell {
-					continue
+		if isIslandShape(variant.Shape) {
+			if err := drawIslandsPDF(doc.pdf, matrix, scale, border, variant.Radius, darkColor, grad, islandConnectivity(variant.Shape), tileRect, originX, originY); err != nil {
+				return nil, err
+			}
+		} else {
+			for y, rowVals := range matrix {
+				for x, cell := range rowVals {
+					if !cell {
+						continue
+					}
+					px := originX + float64(x+border)*float64(scale)
+					py := originY + float64(y+border)*float64(scale)
+					drawModulePDF(doc.pdf, px, py, float64(scale), variant.Shape, corner, darkColor, grad, tileRect)
 				}
-				px := originX + float64(x+border)*float64(scale)
-				py := originY + float64(y+border)*float64(scale)
-				drawModulePDF(doc.pdf, px, py, float64(scale), variant.Shape, corner, darkColor, grad, tileRect)
 			}
 		}
 
@@ -193,6 +207,92 @@ func newPDF(width float64, height float64) *PDFDocument {
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.AddPage()
 	return &PDFDocument{pdf: pdf, width: width, height: height}
+}
+
+func drawIslandsPDF(pdf *gofpdf.Fpdf, matrix [][]bool, scale int, border int, radius float64, color rgb, gradient *gradientSpec, connectivity islands.Connectivity, global rect, offsetX float64, offsetY float64) error {
+	islandList := islands.FindIslandsWithConnectivity(matrix, connectivity)
+	if len(islandList) == 0 {
+		return nil
+	}
+	corner := clampRadius(radius, float64(scale))
+	for _, island := range islandList {
+		if len(island.Cells) == 0 {
+			continue
+		}
+		islandRect := rect{
+			X: offsetX + float64(island.MinX+border)*float64(scale),
+			Y: offsetY + float64(island.MinY+border)*float64(scale),
+			W: float64(island.MaxX-island.MinX+1) * float64(scale),
+			H: float64(island.MaxY-island.MinY+1) * float64(scale),
+		}
+		baseRect := global
+		if gradient != nil && gradient.Scope != "global" {
+			baseRect = islandRect
+		}
+		for _, cell := range island.Cells {
+			px := offsetX + float64(cell.X+border)*float64(scale)
+			py := offsetY + float64(cell.Y+border)*float64(scale)
+			mask := islands.CornerMaskAt(matrix, cell.X, cell.Y, connectivity)
+			drawIslandModulePDF(pdf, px, py, float64(scale), corner, mask, color, gradient, baseRect)
+		}
+	}
+	return nil
+}
+
+func drawIslandModulePDF(pdf *gofpdf.Fpdf, x float64, y float64, size float64, corner float64, mask islands.CornerMask, color rgb, gradient *gradientSpec, base rect) {
+	rTL := 0.0
+	if mask.Has(islands.CornerTopLeft) {
+		rTL = corner
+	}
+	rTR := 0.0
+	if mask.Has(islands.CornerTopRight) {
+		rTR = corner
+	}
+	rBR := 0.0
+	if mask.Has(islands.CornerBottomRight) {
+		rBR = corner
+	}
+	rBL := 0.0
+	if mask.Has(islands.CornerBottomLeft) {
+		rBL = corner
+	}
+
+	if gradient != nil {
+		x1, y1, x2, y2 := gradientCoords(gradient.Angle, base.W, base.H, gradient.FromStop, gradient.ToStop)
+		if rTL > 0 || rTR > 0 || rBR > 0 || rBL > 0 {
+			pdf.ClipRoundedRectExt(x, y, size, size, rTL, rTR, rBR, rBL, false)
+		} else {
+			pdf.ClipRect(x, y, size, size, false)
+		}
+		pdf.LinearGradient(base.X, base.Y, base.W, base.H, gradient.From.R, gradient.From.G, gradient.From.B, gradient.To.R, gradient.To.G, gradient.To.B, x1, y1, x2, y2)
+		pdf.ClipEnd()
+		return
+	}
+
+	pdf.SetFillColor(color.R, color.G, color.B)
+	if rTL > 0 || rTR > 0 || rBR > 0 || rBL > 0 {
+		pdf.RoundedRectExt(x, y, size, size, rTL, rTR, rBR, rBL, "F")
+		return
+	}
+	pdf.Rect(x, y, size, size, "F")
+}
+
+func isIslandShape(shape string) bool {
+	switch strings.ToLower(strings.TrimSpace(shape)) {
+	case "island", "island-4", "island-8":
+		return true
+	default:
+		return false
+	}
+}
+
+func islandConnectivity(shape string) islands.Connectivity {
+	switch strings.ToLower(strings.TrimSpace(shape)) {
+	case "island-8":
+		return islands.Connectivity8
+	default:
+		return islands.Connectivity4
+	}
 }
 
 type rgb struct {

@@ -149,4 +149,37 @@ func TestRenderSVGCutoutRequiresBackground(t *testing.T) {
 	}
 }
 
+func TestRenderSVGIslandPath(t *testing.T) {
+	matrix := [][]bool{
+		{true, true},
+		{false, true},
+	}
+	svg, err := RenderSVG(
+		matrix,
+		10,
+		0,
+		"#000000",
+		nil,
+		"island-4",
+		0.3,
+		nil,
+		nil,
+		false,
+		nil,
+		0,
+		0,
+		0,
+		"after",
+	)
+	if err != nil {
+		t.Fatalf("render svg island: %v", err)
+	}
+	if !strings.Contains(svg, "<path") {
+		t.Fatalf("expected island shape to render as path")
+	}
+	if !strings.Contains(svg, " A") {
+		t.Fatalf("expected island path to include arcs for rounded corners")
+	}
+}
+
 // Diff helper lives in compat_test.go to reuse across tests.

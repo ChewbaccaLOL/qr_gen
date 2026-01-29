@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"qr_generator/internal/config"
+	"qr_generator/internal/islands"
 )
 
 type ColumnOffset struct {
@@ -223,7 +224,19 @@ func renderModuleGroup(
 	baseOffsetY := float64(extraPadY)
 	size := len(matrix)
 
-	if rotateMode == "before" && len(columnOffsets) > 0 {
+	if isIslandShape(shape) {
+		if rotateDeg != 0 {
+			parts = append(parts, fmt.Sprintf("<g transform=\"rotate(%s %s %s)\">", formatFloat(rotateDeg), formatFloat(centerX), formatFloat(centerY)))
+		}
+		moduleParts, err := renderModules(matrix, scale, border, fill, shape, radius, baseOffsetX, baseOffsetY, columnOffsets)
+		if err != nil {
+			return nil, err
+		}
+		parts = append(parts, moduleParts...)
+		if rotateDeg != 0 {
+			parts = append(parts, "</g>")
+		}
+	} else if rotateMode == "before" && len(columnOffsets) > 0 {
 		for columnIndex := 0; columnIndex < size; columnIndex++ {
 			offset := columnOffsetValue(columnOffsets, columnIndex)
 			if offset.X != 0 || offset.Y != 0 {
@@ -520,6 +533,9 @@ func renderModules(
 	offsetY float64,
 	columnOffsets []ColumnOffset,
 ) ([]string, error) {
+	if isIslandShape(shape) {
+		return renderIslandModules(matrix, scale, border, fill, radius, islandConnectivity(shape), offsetX, offsetY, columnOffsets)
+	}
 	parts := []string{}
 	for y, row := range matrix {
 		for x, cell := range row {
@@ -549,6 +565,9 @@ func renderModulesForColumn(
 	offsetX float64,
 	offsetY float64,
 ) ([]string, error) {
+	if isIslandShape(shape) {
+		return nil, fmt.Errorf("island shape cannot be rendered per-column")
+	}
 	parts := []string{}
 	for y, row := range matrix {
 		if row[columnIndex] {
@@ -562,6 +581,130 @@ func renderModulesForColumn(
 		}
 	}
 	return parts, nil
+}
+
+func renderIslandModules(
+	matrix [][]bool,
+	scale int,
+	border int,
+	fill string,
+	radius float64,
+	connectivity islands.Connectivity,
+	offsetX float64,
+	offsetY float64,
+	columnOffsets []ColumnOffset,
+) ([]string, error) {
+	islandList := islands.FindIslandsWithConnectivity(matrix, connectivity)
+	if len(islandList) == 0 {
+		return nil, nil
+	}
+	corner := math.Max(0, math.Min(radius, 0.5)) * float64(scale)
+	parts := make([]string, 0, len(islandList))
+	for _, island := range islandList {
+		var builder strings.Builder
+		for _, cell := range island.Cells {
+			offset := columnOffsetValue(columnOffsets, cell.X)
+			px := float64(cell.X+border)*float64(scale) + offsetX + offset.X
+			py := float64(cell.Y+border)*float64(scale) + offsetY + offset.Y
+			mask := islands.CornerMaskAt(matrix, cell.X, cell.Y, connectivity)
+			appendIslandPath(&builder, px, py, scale, corner, mask)
+		}
+		if builder.Len() == 0 {
+			continue
+		}
+		parts = append(parts, fmt.Sprintf("<path d=\"%s\" fill=\"%s\"/>", builder.String(), fill))
+	}
+	return parts, nil
+}
+
+func appendIslandPath(builder *strings.Builder, px float64, py float64, scale int, corner float64, mask islands.CornerMask) {
+	size := float64(scale)
+	x0 := px
+	y0 := py
+	x1 := px + size
+	y1 := py + size
+	rTL := corner
+	if !mask.Has(islands.CornerTopLeft) {
+		rTL = 0
+	}
+	rTR := corner
+	if !mask.Has(islands.CornerTopRight) {
+		rTR = 0
+	}
+	rBR := corner
+	if !mask.Has(islands.CornerBottomRight) {
+		rBR = 0
+	}
+	rBL := corner
+	if !mask.Has(islands.CornerBottomLeft) {
+		rBL = 0
+	}
+
+	builder.WriteString("M")
+	builder.WriteString(formatFloat(x0 + rTL))
+	builder.WriteString(" ")
+	builder.WriteString(formatFloat(y0))
+
+	builder.WriteString(" L")
+	builder.WriteString(formatFloat(x1 - rTR))
+	builder.WriteString(" ")
+	builder.WriteString(formatFloat(y0))
+	if rTR > 0 {
+		builder.WriteString(" A")
+		builder.WriteString(formatFloat(rTR))
+		builder.WriteString(" ")
+		builder.WriteString(formatFloat(rTR))
+		builder.WriteString(" 0 0 1 ")
+		builder.WriteString(formatFloat(x1))
+		builder.WriteString(" ")
+		builder.WriteString(formatFloat(y0 + rTR))
+	}
+
+	builder.WriteString(" L")
+	builder.WriteString(formatFloat(x1))
+	builder.WriteString(" ")
+	builder.WriteString(formatFloat(y1 - rBR))
+	if rBR > 0 {
+		builder.WriteString(" A")
+		builder.WriteString(formatFloat(rBR))
+		builder.WriteString(" ")
+		builder.WriteString(formatFloat(rBR))
+		builder.WriteString(" 0 0 1 ")
+		builder.WriteString(formatFloat(x1 - rBR))
+		builder.WriteString(" ")
+		builder.WriteString(formatFloat(y1))
+	}
+
+	builder.WriteString(" L")
+	builder.WriteString(formatFloat(x0 + rBL))
+	builder.WriteString(" ")
+	builder.WriteString(formatFloat(y1))
+	if rBL > 0 {
+		builder.WriteString(" A")
+		builder.WriteString(formatFloat(rBL))
+		builder.WriteString(" ")
+		builder.WriteString(formatFloat(rBL))
+		builder.WriteString(" 0 0 1 ")
+		builder.WriteString(formatFloat(x0))
+		builder.WriteString(" ")
+		builder.WriteString(formatFloat(y1 - rBL))
+	}
+
+	builder.WriteString(" L")
+	builder.WriteString(formatFloat(x0))
+	builder.WriteString(" ")
+	builder.WriteString(formatFloat(y0 + rTL))
+	if rTL > 0 {
+		builder.WriteString(" A")
+		builder.WriteString(formatFloat(rTL))
+		builder.WriteString(" ")
+		builder.WriteString(formatFloat(rTL))
+		builder.WriteString(" 0 0 1 ")
+		builder.WriteString(formatFloat(x0 + rTL))
+		builder.WriteString(" ")
+		builder.WriteString(formatFloat(y0))
+	}
+	builder.WriteString(" Z ")
 }
 
 func escapeXML(text string) string {
@@ -596,4 +739,22 @@ func maxInt(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func isIslandShape(shape string) bool {
+	switch strings.ToLower(strings.TrimSpace(shape)) {
+	case "island", "island-4", "island-8":
+		return true
+	default:
+		return false
+	}
+}
+
+func islandConnectivity(shape string) islands.Connectivity {
+	switch strings.ToLower(strings.TrimSpace(shape)) {
+	case "island-8":
+		return islands.Connectivity8
+	default:
+		return islands.Connectivity4
+	}
 }

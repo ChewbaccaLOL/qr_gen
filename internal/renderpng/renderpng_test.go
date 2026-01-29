@@ -81,6 +81,20 @@ func TestRenderPNGRotateTilesKeepsBackground(t *testing.T) {
 	}
 }
 
+func TestRenderPNGIslandGradient(t *testing.T) {
+	matrix := [][]bool{{true, true}}
+	gradient := &config.Gradient{From: "#000000", To: "#ffffff", Scope: "module"}
+	img, err := RenderPNG(matrix, 10, 0, "#000000", ptr("#ffffff"), "island-4", 0.3, gradient, nil)
+	if err != nil {
+		t.Fatalf("render png: %v", err)
+	}
+	left := img.RGBAAt(5, 5)
+	right := img.RGBAAt(15, 5)
+	if left == right {
+		t.Fatalf("expected island gradient to span across modules")
+	}
+}
+
 func TestParseColorHex(t *testing.T) {
 	parsed, err := parseColor("#0f0")
 	if err != nil {

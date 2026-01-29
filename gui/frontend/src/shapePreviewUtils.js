@@ -2,7 +2,7 @@ export function resolveShapePreviewRadius(shape, radiusValue) {
   if (shape === "dot") {
     return 50;
   }
-  if (shape !== "rounded") {
+  if (shape !== "rounded" && !shape.startsWith("island")) {
     return 0;
   }
   const numeric = Number.isFinite(radiusValue) ? radiusValue : 0;
