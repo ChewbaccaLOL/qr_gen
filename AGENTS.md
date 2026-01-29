@@ -45,6 +45,21 @@
 - `QR_LIGHT` background color
 - `QR_NO_BACKGROUND` set `true` for transparent background
 - `QR_RADIUS` float for rounded modules
+- `QR_GRADIENT` set `true`/`false` to enable foreground gradients
+- `QR_NO_GRADIENT` set `true` to disable foreground gradients
+- `QR_GRADIENT_FROM` gradient start color
+- `QR_GRADIENT_TO` gradient end color
+- `QR_GRADIENT_ANGLE` gradient direction in degrees
+- `QR_GRADIENT_FROM_STOP` gradient start stop (0-1)
+- `QR_GRADIENT_TO_STOP` gradient end stop (0-1)
+- `QR_GRADIENT_SCOPE` gradient scope (`module` or `global`)
+- `QR_BG_GRADIENT` set `true`/`false` to enable background gradients
+- `QR_NO_BG_GRADIENT` set `true` to disable background gradients
+- `QR_BG_GRADIENT_FROM` background gradient start color
+- `QR_BG_GRADIENT_TO` background gradient end color
+- `QR_BG_GRADIENT_ANGLE` background gradient direction in degrees
+- `QR_BG_GRADIENT_FROM_STOP` background gradient start stop (0-1)
+- `QR_BG_GRADIENT_TO_STOP` background gradient end stop (0-1)
 - `QR_CATALOG` set `true` to generate the catalog grid
 - `QR_CATALOG_COLUMNS` integer column count
 - `QR_CATALOG_BACKGROUND` catalog canvas background

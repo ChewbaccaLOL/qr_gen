@@ -3,6 +3,7 @@ package renderpdf
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/jung-kurt/gofpdf"
 
@@ -24,6 +25,7 @@ func RenderPDF(
 	shape string,
 	radius float64,
 	gradient *config.Gradient,
+	backgroundGradient *config.Gradient,
 ) (*PDFDocument, error) {
 	size := len(matrix)
 	if size == 0 {
@@ -31,7 +33,14 @@ func RenderPDF(
 	}
 	dim := float64((size + border*2) * scale)
 	doc := newPDF(dim, dim)
-	if light != nil {
+	if backgroundGradient != nil {
+		spec, err := parseGradientSpec(backgroundGradient)
+		if err != nil {
+			return nil, err
+		}
+		x1, y1, x2, y2 := gradientCoords(spec.Angle, dim, dim, spec.FromStop, spec.ToStop)
+		doc.pdf.LinearGradient(0, 0, dim, dim, spec.From.R, spec.From.G, spec.From.B, spec.To.R, spec.To.G, spec.To.B, x1, y1, x2, y2)
+	} else if light != nil {
 		color, err := parseColor(*light)
 		if err != nil {
 			return nil, err
@@ -45,9 +54,9 @@ func RenderPDF(
 		return nil, err
 	}
 
-	var grad *gradientColors
+	var grad *gradientSpec
 	if gradient != nil {
-		grad, err = parseGradient(gradient)
+		grad, err = parseGradientSpec(gradient)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +71,7 @@ func RenderPDF(
 			}
 			px := float64(x+border) * float64(scale)
 			py := float64(y+border) * float64(scale)
-			drawModulePDF(doc.pdf, px, py, float64(scale), shape, corner, darkColor, grad)
+			drawModulePDF(doc.pdf, px, py, float64(scale), shape, corner, darkColor, grad, rect{X: 0, Y: 0, W: dim, H: dim})
 		}
 	}
 
@@ -113,24 +122,36 @@ func RenderCatalogPDF(
 		row := index / columns
 		originX := float64(padding + col*(tileDim+padding))
 		originY := float64(padding + row*tileTotalHeight)
-		tileBg := bg
-		if variant.Light != nil {
-			parsed, err := parseColor(*variant.Light)
+		tileRect := rect{X: originX, Y: originY, W: float64(tileDim), H: float64(tileDim)}
+		if variant.BackgroundGradient != nil {
+			bgSpec, err := parseGradientSpec(variant.BackgroundGradient)
 			if err != nil {
 				return nil, err
 			}
-			tileBg = parsed
+			x1, y1, x2, y2 := gradientCoords(bgSpec.Angle, tileRect.W, tileRect.H, bgSpec.FromStop, bgSpec.ToStop)
+			doc.pdf.ClipRect(tileRect.X, tileRect.Y, tileRect.W, tileRect.H, false)
+			doc.pdf.LinearGradient(tileRect.X, tileRect.Y, tileRect.W, tileRect.H, bgSpec.From.R, bgSpec.From.G, bgSpec.From.B, bgSpec.To.R, bgSpec.To.G, bgSpec.To.B, x1, y1, x2, y2)
+			doc.pdf.ClipEnd()
+		} else {
+			tileBg := bg
+			if variant.Light != nil {
+				parsed, err := parseColor(*variant.Light)
+				if err != nil {
+					return nil, err
+				}
+				tileBg = parsed
+			}
+			doc.pdf.SetFillColor(tileBg.R, tileBg.G, tileBg.B)
+			doc.pdf.Rect(originX, originY, float64(tileDim), float64(tileDim), "F")
 		}
-		doc.pdf.SetFillColor(tileBg.R, tileBg.G, tileBg.B)
-		doc.pdf.Rect(originX, originY, float64(tileDim), float64(tileDim), "F")
 
 		darkColor, err := parseColor(variant.Dark)
 		if err != nil {
 			return nil, err
 		}
-		var grad *gradientColors
+		var grad *gradientSpec
 		if variant.Gradient != nil {
-			grad, err = parseGradient(variant.Gradient)
+			grad, err = parseGradientSpec(variant.Gradient)
 			if err != nil {
 				return nil, err
 			}
@@ -144,7 +165,7 @@ func RenderCatalogPDF(
 				}
 				px := originX + float64(x+border)*float64(scale)
 				py := originY + float64(y+border)*float64(scale)
-				drawModulePDF(doc.pdf, px, py, float64(scale), variant.Shape, corner, darkColor, grad)
+				drawModulePDF(doc.pdf, px, py, float64(scale), variant.Shape, corner, darkColor, grad, tileRect)
 			}
 		}
 
@@ -180,12 +201,23 @@ type rgb struct {
 	B int
 }
 
-type gradientColors struct {
-	From rgb
-	To   rgb
+type gradientSpec struct {
+	From     rgb
+	To       rgb
+	Angle    float64
+	FromStop float64
+	ToStop   float64
+	Scope    string
 }
 
-func parseGradient(gradient *config.Gradient) (*gradientColors, error) {
+type rect struct {
+	X float64
+	Y float64
+	W float64
+	H float64
+}
+
+func parseGradientSpec(gradient *config.Gradient) (*gradientSpec, error) {
 	from, err := parseColor(gradient.From)
 	if err != nil {
 		return nil, err
@@ -194,7 +226,31 @@ func parseGradient(gradient *config.Gradient) (*gradientColors, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &gradientColors{From: from, To: to}, nil
+	angle := 45.0
+	if gradient.Angle != nil {
+		angle = *gradient.Angle
+	}
+	fromStop := 0.0
+	if gradient.FromStop != nil {
+		fromStop = *gradient.FromStop
+	}
+	toStop := 1.0
+	if gradient.ToStop != nil {
+		toStop = *gradient.ToStop
+	}
+	fromStop = clampUnit(fromStop)
+	toStop = clampUnit(toStop)
+	if toStop < fromStop {
+		fromStop, toStop = toStop, fromStop
+	}
+	scope := strings.TrimSpace(gradient.Scope)
+	if scope == "" {
+		scope = "module"
+	}
+	if scope != "global" {
+		scope = "module"
+	}
+	return &gradientSpec{From: from, To: to, Angle: angle, FromStop: fromStop, ToStop: toStop, Scope: scope}, nil
 }
 
 func parseColor(value string) (rgb, error) {
@@ -205,18 +261,40 @@ func parseColor(value string) (rgb, error) {
 	return rgb{R: color.R, G: color.G, B: color.B}, nil
 }
 
-func drawModulePDF(pdf *gofpdf.Fpdf, x, y, size float64, shape string, corner float64, color rgb, gradient *gradientColors) {
+func drawModulePDF(pdf *gofpdf.Fpdf, x, y, size float64, shape string, corner float64, color rgb, gradient *gradientSpec, global rect) {
 	if gradient != nil {
+		if gradient.Scope == "global" {
+			x1, y1, x2, y2 := gradientCoords(gradient.Angle, global.W, global.H, gradient.FromStop, gradient.ToStop)
+			switch shape {
+			case "square":
+				pdf.ClipRect(x, y, size, size, false)
+				pdf.LinearGradient(global.X, global.Y, global.W, global.H, gradient.From.R, gradient.From.G, gradient.From.B, gradient.To.R, gradient.To.G, gradient.To.B, x1, y1, x2, y2)
+				pdf.ClipEnd()
+			case "rounded":
+				pdf.ClipRoundedRect(x, y, size, size, corner, false)
+				pdf.LinearGradient(global.X, global.Y, global.W, global.H, gradient.From.R, gradient.From.G, gradient.From.B, gradient.To.R, gradient.To.G, gradient.To.B, x1, y1, x2, y2)
+				pdf.ClipEnd()
+			case "dot":
+				pdf.ClipCircle(x+size/2, y+size/2, size*0.45, false)
+				pdf.LinearGradient(global.X, global.Y, global.W, global.H, gradient.From.R, gradient.From.G, gradient.From.B, gradient.To.R, gradient.To.G, gradient.To.B, x1, y1, x2, y2)
+				pdf.ClipEnd()
+			default:
+				pdf.SetFillColor(color.R, color.G, color.B)
+				pdf.Rect(x, y, size, size, "F")
+			}
+			return
+		}
+		x1, y1, x2, y2 := gradientCoords(gradient.Angle, size, size, gradient.FromStop, gradient.ToStop)
 		switch shape {
 		case "square":
-			pdf.LinearGradient(x, y, size, size, gradient.From.R, gradient.From.G, gradient.From.B, gradient.To.R, gradient.To.G, gradient.To.B, 0, 0, 1, 1)
+			pdf.LinearGradient(x, y, size, size, gradient.From.R, gradient.From.G, gradient.From.B, gradient.To.R, gradient.To.G, gradient.To.B, x1, y1, x2, y2)
 		case "rounded":
 			pdf.ClipRoundedRect(x, y, size, size, corner, false)
-			pdf.LinearGradient(x, y, size, size, gradient.From.R, gradient.From.G, gradient.From.B, gradient.To.R, gradient.To.G, gradient.To.B, 0, 0, 1, 1)
+			pdf.LinearGradient(x, y, size, size, gradient.From.R, gradient.From.G, gradient.From.B, gradient.To.R, gradient.To.G, gradient.To.B, x1, y1, x2, y2)
 			pdf.ClipEnd()
 		case "dot":
 			pdf.ClipCircle(x+size/2, y+size/2, size*0.45, false)
-			pdf.LinearGradient(x, y, size, size, gradient.From.R, gradient.From.G, gradient.From.B, gradient.To.R, gradient.To.G, gradient.To.B, 0, 0, 1, 1)
+			pdf.LinearGradient(x, y, size, size, gradient.From.R, gradient.From.G, gradient.From.B, gradient.To.R, gradient.To.G, gradient.To.B, x1, y1, x2, y2)
 			pdf.ClipEnd()
 		default:
 			pdf.SetFillColor(color.R, color.G, color.B)
@@ -253,4 +331,62 @@ func maxInt(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func gradientCoords(angleDeg float64, width float64, height float64, fromStop float64, toStop float64) (float64, float64, float64, float64) {
+	x1, y1, x2, y2 := gradientLine(angleDeg, width, height)
+	fromStop = clampUnit(fromStop)
+	toStop = clampUnit(toStop)
+	if toStop < fromStop {
+		fromStop, toStop = toStop, fromStop
+	}
+	dx := x2 - x1
+	dy := y2 - y1
+	sx := x1 + dx*fromStop
+	sy := y1 + dy*fromStop
+	ex := x1 + dx*toStop
+	ey := y1 + dy*toStop
+	if width != 0 {
+		sx /= width
+		ex /= width
+	}
+	if height != 0 {
+		sy /= height
+		ey /= height
+	}
+	return sx, sy, ex, ey
+}
+
+func gradientLine(angleDeg float64, width float64, height float64) (float64, float64, float64, float64) {
+	rad := angleDeg * math.Pi / 180
+	dx := math.Cos(rad)
+	dy := math.Sin(rad)
+	corners := [][2]float64{
+		{0, 0},
+		{width, 0},
+		{0, height},
+		{width, height},
+	}
+	minProj := math.Inf(1)
+	maxProj := math.Inf(-1)
+	for _, corner := range corners {
+		proj := corner[0]*dx + corner[1]*dy
+		if proj < minProj {
+			minProj = proj
+		}
+		if proj > maxProj {
+			maxProj = proj
+		}
+	}
+	return dx * minProj, dy * minProj, dx * maxProj, dy * maxProj
+}
+
+func clampUnit(value float64) float64 {
+	if value < 0 {
+		return 0
+	}
+	if value > 1 {
+		return 1
+	}
+	return value
 }

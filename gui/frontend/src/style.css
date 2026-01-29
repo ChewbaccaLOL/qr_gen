@@ -129,6 +129,80 @@ body {
   color: var(--ink);
 }
 
+.color-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.color-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-input input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  width: 60px;
+  height: 40px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+}
+
+.color-input input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-input input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 10px;
+}
+
+.color-input input[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: 10px;
+}
+
+.color-input input[type="text"] {
+  flex: 1;
+  max-width: 150px;
+}
+
+.range-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.range-input input[type="range"] {
+  flex: 1;
+}
+
+.range-value {
+  min-width: 48px;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.range-input input[type="range"]:disabled {
+  opacity: 0.5;
+}
+
+.color-input input[type="color"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.color-input input[type="text"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .field textarea {
   resize: vertical;
   min-height: 70px;
@@ -392,6 +466,10 @@ button.danger:hover {
   }
 
   .custom-variant {
+    grid-template-columns: 1fr;
+  }
+
+  .color-row {
     grid-template-columns: 1fr;
   }
 }

@@ -82,6 +82,7 @@ func main() {
 	var light *string
 	var radius float64
 	var gradient *config.Gradient
+	var backgroundGradient *config.Gradient
 	if args.Catalog {
 		names := make([]string, 0, len(cfg.Variants))
 		for name := range cfg.Variants {
@@ -118,9 +119,11 @@ func main() {
 		if args.Radius != nil {
 			radius = *args.Radius
 		}
-		gradient = variant.Gradient
-		if args.Dark != "" {
-			gradient = nil
+		gradient = resolveForegroundGradient(args, variant, dark, cfg.Defaults)
+		if args.NoBackground {
+			backgroundGradient = nil
+		} else {
+			backgroundGradient = resolveBackgroundGradient(args, variant, light, cfg.Defaults)
 		}
 		svg, err = render.RenderSVG(
 			matrix,
@@ -131,6 +134,7 @@ func main() {
 			variant.Shape,
 			radius,
 			gradient,
+			backgroundGradient,
 			nil,
 			0,
 			0,
@@ -197,6 +201,7 @@ func main() {
 				variant.Shape,
 				radius,
 				gradient,
+				backgroundGradient,
 			)
 		}
 		if err != nil {
@@ -259,6 +264,7 @@ func main() {
 				variant.Shape,
 				radius,
 				gradient,
+				backgroundGradient,
 			)
 		}
 		if err != nil {
@@ -311,6 +317,7 @@ func main() {
 				variant.Shape,
 				radius,
 				gradient,
+				backgroundGradient,
 			)
 		}
 		if err != nil {
@@ -355,9 +362,10 @@ func main() {
 		if args.Radius != nil {
 			radius = *args.Radius
 		}
-		gradient := variant.Gradient
-		if args.Dark != "" {
-			gradient = nil
+		gradient := resolveForegroundGradient(args, variant, dark, cfg.Defaults)
+		var backgroundGradient *config.Gradient
+		if !args.NoBackground {
+			backgroundGradient = resolveBackgroundGradient(args, variant, light, cfg.Defaults)
 		}
 
 		var gifOut *gif.GIF
@@ -372,6 +380,7 @@ func main() {
 				variant.Shape,
 				radius,
 				gradient,
+				backgroundGradient,
 				args.WaveAmp,
 				args.WavePeriod,
 				args.GifFrames,
@@ -390,6 +399,7 @@ func main() {
 				variant.Shape,
 				radius,
 				gradient,
+				backgroundGradient,
 				args.WaveAmp,
 				args.WavePeriod,
 				args.GifFrames,
@@ -413,6 +423,7 @@ func main() {
 				variant.Shape,
 				radius,
 				gradient,
+				backgroundGradient,
 				args.WaveAmp,
 				args.WavePeriod,
 				*floatAngle,
@@ -441,6 +452,7 @@ func main() {
 				variant.Shape,
 				radius,
 				gradient,
+				backgroundGradient,
 				args.WaveAmp,
 				args.WavePeriod,
 				*floatAngle,
@@ -469,6 +481,7 @@ func main() {
 				variant.Shape,
 				radius,
 				gradient,
+				backgroundGradient,
 				args.WaveAmp,
 				args.WavePeriod,
 				*floatAngle,
@@ -497,6 +510,7 @@ func main() {
 				variant.Shape,
 				radius,
 				gradient,
+				backgroundGradient,
 				args.WaveAmp,
 				args.WavePeriod,
 				*floatAngle,
@@ -558,4 +572,111 @@ func deriveOutputPath(path string, extension string) string {
 		return path[:len(path)-4] + ext
 	}
 	return path + ext
+}
+
+func resolveForegroundGradient(args *cli.Args, variant config.Variant, dark string, defaults config.Defaults) *config.Gradient {
+	if args.GradientDisabled {
+		return nil
+	}
+	enable := args.GradientEnabled || args.GradientConfigSet
+	if !enable {
+		if variant.Gradient == nil {
+			return nil
+		}
+		if args.Dark != "" {
+			return nil
+		}
+	}
+	base := variant.Gradient
+	gradient := &config.Gradient{}
+	if base != nil {
+		*gradient = *base
+	}
+	if gradient.ID == "" {
+		gradient.ID = "fg"
+	}
+	if strings.TrimSpace(args.GradientFrom) != "" {
+		gradient.From = args.GradientFrom
+	} else if strings.TrimSpace(gradient.From) == "" {
+		gradient.From = dark
+	}
+	if strings.TrimSpace(args.GradientTo) != "" {
+		gradient.To = args.GradientTo
+	} else if strings.TrimSpace(gradient.To) == "" {
+		gradient.To = dark
+	}
+	gradient.Angle = chooseFloat(args.GradientAngle, gradient.Angle, defaults.GradientAngle)
+	gradient.FromStop = chooseFloat(args.GradientFromStop, gradient.FromStop, defaults.GradientFromStop)
+	gradient.ToStop = chooseFloat(args.GradientToStop, gradient.ToStop, defaults.GradientToStop)
+	gradient.Scope = chooseScope(args.GradientScope, gradient.Scope, defaults.GradientScope, "module")
+	return gradient
+}
+
+func resolveBackgroundGradient(args *cli.Args, variant config.Variant, light *string, defaults config.Defaults) *config.Gradient {
+	if args.BgGradientDisabled {
+		return nil
+	}
+	enable := args.BgGradientEnabled || args.BgGradientConfigSet || variant.BackgroundGradient != nil
+	if !enable {
+		return nil
+	}
+	base := variant.BackgroundGradient
+	gradient := &config.Gradient{}
+	if base != nil {
+		*gradient = *base
+	}
+	if gradient.ID == "" {
+		gradient.ID = "bg"
+	}
+	if strings.TrimSpace(args.BgGradientFrom) != "" {
+		gradient.From = args.BgGradientFrom
+	} else if strings.TrimSpace(gradient.From) == "" {
+		gradient.From = fallbackLight(light, "#ffffff")
+	}
+	if strings.TrimSpace(args.BgGradientTo) != "" {
+		gradient.To = args.BgGradientTo
+	} else if strings.TrimSpace(gradient.To) == "" {
+		gradient.To = fallbackLight(light, "#ffffff")
+	}
+	gradient.Angle = chooseFloat(args.BgGradientAngle, gradient.Angle, defaults.BgGradientAngle)
+	gradient.FromStop = chooseFloat(args.BgGradientFromStop, gradient.FromStop, defaults.BgGradientFromStop)
+	gradient.ToStop = chooseFloat(args.BgGradientToStop, gradient.ToStop, defaults.BgGradientToStop)
+	gradient.Scope = "global"
+	return gradient
+}
+
+func chooseFloat(override *float64, base *float64, fallback float64) *float64 {
+	if override != nil {
+		value := *override
+		return &value
+	}
+	if base != nil {
+		value := *base
+		return &value
+	}
+	return &fallback
+}
+
+func chooseScope(override string, base string, fallback string, defaultScope string) string {
+	scope := strings.TrimSpace(override)
+	if scope == "" {
+		scope = strings.TrimSpace(base)
+	}
+	if scope == "" {
+		scope = strings.TrimSpace(fallback)
+	}
+	if scope == "" {
+		scope = defaultScope
+	}
+	if scope == "global" {
+		return "global"
+	}
+	return "module"
+}
+
+func fallbackLight(light *string, fallback string) string {
+	if light != nil && strings.TrimSpace(*light) != "" {
+		return *light
+	}
+	return fallback
 }

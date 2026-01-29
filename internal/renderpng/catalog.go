@@ -98,17 +98,14 @@ func drawMatrixAt(img *image.RGBA, matrix [][]bool, scale int, border int, varia
 		return fmt.Errorf("invalid dark color: %w", err)
 	}
 
-	var gradientLUT []color.RGBA
+	var gradientLUT *GradientLUT
 	if variant.Gradient != nil {
-		from, err := parseColor(variant.Gradient.From)
+		spec, err := buildGradientSpec(variant.Gradient)
 		if err != nil {
-			return fmt.Errorf("invalid gradient from color: %w", err)
+			return err
 		}
-		to, err := parseColor(variant.Gradient.To)
-		if err != nil {
-			return fmt.Errorf("invalid gradient to color: %w", err)
-		}
-		gradientLUT = buildGradientLUT(scale, from, to)
+		spec.Scope = "module"
+		gradientLUT = buildModuleGradientLUT(scale, spec)
 	}
 
 	for y, row := range matrix {

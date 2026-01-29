@@ -13,7 +13,7 @@ func TestRenderPDFWritesHeader(t *testing.T) {
 		{true, false},
 		{false, true},
 	}
-	doc, err := RenderPDF(matrix, 10, 1, "#000000", nil, "square", 0, nil)
+	doc, err := RenderPDF(matrix, 10, 1, "#000000", nil, "square", 0, nil, nil)
 	if err != nil {
 		t.Fatalf("RenderPDF error: %v", err)
 	}

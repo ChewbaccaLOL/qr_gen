@@ -17,6 +17,22 @@ type Gradient struct {
 	To   color.RGBA
 }
 
+type GradientSpec struct {
+	From     color.RGBA
+	To       color.RGBA
+	Angle    float64
+	FromStop float64
+	ToStop   float64
+	Scope    string
+}
+
+type GradientLUT struct {
+	Mode   string
+	Width  int
+	Height int
+	Data   []color.RGBA
+}
+
 func RenderPNG(
 	matrix [][]bool,
 	scale int,
@@ -26,6 +42,7 @@ func RenderPNG(
 	shape string,
 	radius float64,
 	gradient *config.Gradient,
+	backgroundGradient *config.Gradient,
 ) (*image.RGBA, error) {
 	return RenderPNGWithOffsets(
 		matrix,
@@ -36,6 +53,7 @@ func RenderPNG(
 		shape,
 		radius,
 		gradient,
+		backgroundGradient,
 		nil,
 		0,
 		0,
@@ -54,6 +72,7 @@ func RenderPNGWithOffsets(
 	shape string,
 	radius float64,
 	gradient *config.Gradient,
+	backgroundGradient *config.Gradient,
 	columnOffsets []ColumnOffset,
 	extraPadX int,
 	extraPadY int,
@@ -104,26 +123,36 @@ func RenderPNGWithOffsets(
 	}
 
 	img := image.NewRGBA(image.Rect(0, 0, widthInt, heightInt))
-	if lightColor != nil {
+	if lightColor != nil && backgroundGradient == nil {
 		draw.Draw(img, img.Bounds(), &image.Uniform{C: *lightColor}, image.Point{}, draw.Src)
 	}
 
-	var gradientDef *Gradient
+	var gradientLUT *GradientLUT
 	if gradient != nil {
-		from, err := parseColor(gradient.From)
+		spec, err := buildGradientSpec(gradient)
 		if err != nil {
-			return nil, fmt.Errorf("invalid gradient from color: %w", err)
+			return nil, err
 		}
-		to, err := parseColor(gradient.To)
-		if err != nil {
-			return nil, fmt.Errorf("invalid gradient to color: %w", err)
+		if spec.Scope == "global" {
+			gradientLUT = buildGlobalGradientLUT(widthInt, heightInt, spec)
+		} else {
+			gradientLUT = buildModuleGradientLUT(scale, spec)
 		}
-		gradientDef = &Gradient{From: from, To: to}
 	}
 
-	var gradientLUT []color.RGBA
-	if gradientDef != nil {
-		gradientLUT = buildGradientLUT(scale, gradientDef.From, gradientDef.To)
+	var bgLUT *GradientLUT
+	var baseBgLUT *GradientLUT
+	if backgroundGradient != nil {
+		spec, err := buildGradientSpec(backgroundGradient)
+		if err != nil {
+			return nil, err
+		}
+		spec.Scope = "global"
+		bgLUT = buildGlobalGradientLUT(widthInt, heightInt, spec)
+		baseBgLUT = buildGlobalGradientLUT(contentWidth, contentHeight, spec)
+		if bgLUT != nil {
+			applyGradientBackground(img, bgLUT)
+		}
 	}
 
 	centerX := float64(contentWidth) / 2
@@ -138,7 +167,9 @@ func RenderPNGWithOffsets(
 
 	if rotateDeg != 0 && rotateTiles {
 		baseImg := image.NewRGBA(image.Rect(0, 0, contentWidth, contentHeight))
-		if lightColor != nil {
+		if baseBgLUT != nil {
+			applyGradientBackground(baseImg, baseBgLUT)
+		} else if lightColor != nil && backgroundGradient == nil {
 			draw.Draw(baseImg, baseImg.Bounds(), &image.Uniform{C: *lightColor}, image.Point{}, draw.Src)
 		}
 		for y, row := range matrix {
@@ -243,7 +274,7 @@ func drawModule(
 	shape string,
 	radius float64,
 	dark color.RGBA,
-	gradientLUT []color.RGBA,
+	gradientLUT *GradientLUT,
 ) error {
 	switch shape {
 	case "square":
@@ -257,16 +288,16 @@ func drawModule(
 	}
 }
 
-func fillRect(img *image.RGBA, x, y, w, h int, dark color.RGBA, gradientLUT []color.RGBA) error {
+func fillRect(img *image.RGBA, x, y, w, h int, dark color.RGBA, gradientLUT *GradientLUT) error {
 	for py := 0; py < h; py++ {
 		for px := 0; px < w; px++ {
-			img.SetRGBA(x+px, y+py, pickColor(dark, gradientLUT, w, px, py))
+			img.SetRGBA(x+px, y+py, pickColor(dark, gradientLUT, w, px, py, x+px, y+py))
 		}
 	}
 	return nil
 }
 
-func fillRoundedRect(img *image.RGBA, x, y, w, h int, radius float64, dark color.RGBA, gradientLUT []color.RGBA) error {
+func fillRoundedRect(img *image.RGBA, x, y, w, h int, radius float64, dark color.RGBA, gradientLUT *GradientLUT) error {
 	r := math.Max(0, math.Min(radius, 0.5)) * float64(w)
 	r2 := r * r
 	for py := 0; py < h; py++ {
@@ -274,7 +305,7 @@ func fillRoundedRect(img *image.RGBA, x, y, w, h int, radius float64, dark color
 			fx := float64(px) + 0.5
 			fy := float64(py) + 0.5
 			if insideRoundedRect(fx, fy, float64(w), float64(h), r, r2) {
-				img.SetRGBA(x+px, y+py, pickColor(dark, gradientLUT, w, px, py))
+				img.SetRGBA(x+px, y+py, pickColor(dark, gradientLUT, w, px, py, x+px, y+py))
 			}
 		}
 	}
@@ -314,7 +345,7 @@ func insideRoundedRect(x, y, w, h, r, r2 float64) bool {
 	return false
 }
 
-func fillCircle(img *image.RGBA, x, y, scale int, dark color.RGBA, gradientLUT []color.RGBA) error {
+func fillCircle(img *image.RGBA, x, y, scale int, dark color.RGBA, gradientLUT *GradientLUT) error {
 	r := float64(scale) * 0.45
 	r2 := r * r
 	cx := float64(scale) / 2
@@ -324,34 +355,27 @@ func fillCircle(img *image.RGBA, x, y, scale int, dark color.RGBA, gradientLUT [
 			dx := float64(px) + 0.5 - cx
 			dy := float64(py) + 0.5 - cy
 			if dx*dx+dy*dy <= r2 {
-				img.SetRGBA(x+px, y+py, pickColor(dark, gradientLUT, scale, px, py))
+				img.SetRGBA(x+px, y+py, pickColor(dark, gradientLUT, scale, px, py, x+px, y+py))
 			}
 		}
 	}
 	return nil
 }
 
-func buildGradientLUT(size int, from color.RGBA, to color.RGBA) []color.RGBA {
-	if size <= 0 {
-		return nil
-	}
-	lut := make([]color.RGBA, size*size)
-	for y := 0; y < size; y++ {
-		for x := 0; x < size; x++ {
-			u := (float64(x) + 0.5) / float64(size)
-			v := (float64(y) + 0.5) / float64(size)
-			t := (u + v) / 2
-			lut[y*size+x] = lerpColor(from, to, t)
-		}
-	}
-	return lut
-}
-
-func pickColor(base color.RGBA, lut []color.RGBA, size int, px int, py int) color.RGBA {
+func pickColor(base color.RGBA, lut *GradientLUT, size int, px int, py int, absX int, absY int) color.RGBA {
 	if lut == nil {
 		return base
 	}
-	return lut[py*size+px]
+	if lut.Mode == "global" {
+		if absX < 0 || absY < 0 || absX >= lut.Width || absY >= lut.Height {
+			return base
+		}
+		return lut.Data[absY*lut.Width+absX]
+	}
+	if size <= 0 {
+		return base
+	}
+	return lut.Data[py*size+px]
 }
 
 func lerpColor(from color.RGBA, to color.RGBA, t float64) color.RGBA {
@@ -366,6 +390,173 @@ func lerpColor(from color.RGBA, to color.RGBA, t float64) color.RGBA {
 		B: uint8(math.Round(float64(from.B) + (float64(to.B)-float64(from.B))*t)),
 		A: uint8(math.Round(float64(from.A) + (float64(to.A)-float64(from.A))*t)),
 	}
+}
+
+func buildGradientSpec(gradient *config.Gradient) (*GradientSpec, error) {
+	if gradient == nil {
+		return nil, nil
+	}
+	fromValue := gradient.From
+	if strings.TrimSpace(fromValue) == "" {
+		fromValue = "#000000"
+	}
+	toValue := gradient.To
+	if strings.TrimSpace(toValue) == "" {
+		toValue = "#ffffff"
+	}
+	from, err := parseColor(fromValue)
+	if err != nil {
+		return nil, fmt.Errorf("invalid gradient from color: %w", err)
+	}
+	to, err := parseColor(toValue)
+	if err != nil {
+		return nil, fmt.Errorf("invalid gradient to color: %w", err)
+	}
+	angle := 45.0
+	if gradient.Angle != nil {
+		angle = *gradient.Angle
+	}
+	fromStop := 0.0
+	if gradient.FromStop != nil {
+		fromStop = *gradient.FromStop
+	}
+	toStop := 1.0
+	if gradient.ToStop != nil {
+		toStop = *gradient.ToStop
+	}
+	fromStop = clampUnit(fromStop)
+	toStop = clampUnit(toStop)
+	if toStop < fromStop {
+		fromStop, toStop = toStop, fromStop
+	}
+	scope := strings.ToLower(strings.TrimSpace(gradient.Scope))
+	if scope == "" {
+		scope = "module"
+	}
+	if scope != "global" {
+		scope = "module"
+	}
+	return &GradientSpec{
+		From:     from,
+		To:       to,
+		Angle:    angle,
+		FromStop: fromStop,
+		ToStop:   toStop,
+		Scope:    scope,
+	}, nil
+}
+
+func buildModuleGradientLUT(size int, spec *GradientSpec) *GradientLUT {
+	if spec == nil || size <= 0 {
+		return nil
+	}
+	data := buildGradientLUT(float64(size), float64(size), size, size, spec)
+	return &GradientLUT{
+		Mode:   "module",
+		Width:  size,
+		Height: size,
+		Data:   data,
+	}
+}
+
+func buildGlobalGradientLUT(width int, height int, spec *GradientSpec) *GradientLUT {
+	if spec == nil || width <= 0 || height <= 0 {
+		return nil
+	}
+	data := buildGradientLUT(float64(width), float64(height), width, height, spec)
+	return &GradientLUT{
+		Mode:   "global",
+		Width:  width,
+		Height: height,
+		Data:   data,
+	}
+}
+
+func buildGradientLUT(width float64, height float64, widthInt int, heightInt int, spec *GradientSpec) []color.RGBA {
+	if spec == nil || widthInt <= 0 || heightInt <= 0 {
+		return nil
+	}
+	axis := gradientAxisForRect(width, height, spec.Angle)
+	out := make([]color.RGBA, widthInt*heightInt)
+	for y := 0; y < heightInt; y++ {
+		for x := 0; x < widthInt; x++ {
+			px := float64(x) + 0.5
+			py := float64(y) + 0.5
+			t := gradientAt(px, py, axis)
+			t = applyStops(t, spec.FromStop, spec.ToStop)
+			out[y*widthInt+x] = lerpColor(spec.From, spec.To, t)
+		}
+	}
+	return out
+}
+
+type gradientAxis struct {
+	dx  float64
+	dy  float64
+	min float64
+	max float64
+}
+
+func gradientAxisForRect(width float64, height float64, angleDeg float64) gradientAxis {
+	rad := angleDeg * math.Pi / 180
+	dx := math.Cos(rad)
+	dy := math.Sin(rad)
+	corners := [][2]float64{
+		{0, 0},
+		{width, 0},
+		{0, height},
+		{width, height},
+	}
+	minProj := math.Inf(1)
+	maxProj := math.Inf(-1)
+	for _, corner := range corners {
+		proj := corner[0]*dx + corner[1]*dy
+		if proj < minProj {
+			minProj = proj
+		}
+		if proj > maxProj {
+			maxProj = proj
+		}
+	}
+	return gradientAxis{dx: dx, dy: dy, min: minProj, max: maxProj}
+}
+
+func gradientAt(x float64, y float64, axis gradientAxis) float64 {
+	denom := axis.max - axis.min
+	if denom == 0 {
+		return 0
+	}
+	proj := x*axis.dx + y*axis.dy
+	return (proj - axis.min) / denom
+}
+
+func applyStops(t float64, fromStop float64, toStop float64) float64 {
+	denom := toStop - fromStop
+	if denom == 0 {
+		return 0
+	}
+	return clampUnit((t - fromStop) / denom)
+}
+
+func applyGradientBackground(img *image.RGBA, lut *GradientLUT) {
+	if img == nil || lut == nil || lut.Mode != "global" {
+		return
+	}
+	for y := 0; y < lut.Height; y++ {
+		for x := 0; x < lut.Width; x++ {
+			img.SetRGBA(x, y, lut.Data[y*lut.Width+x])
+		}
+	}
+}
+
+func clampUnit(value float64) float64 {
+	if value < 0 {
+		return 0
+	}
+	if value > 1 {
+		return 1
+	}
+	return value
 }
 
 func parseColor(value string) (color.RGBA, error) {

@@ -48,6 +48,7 @@ func TestGoSvgMatchesPython(t *testing.T) {
 			variant.Shape,
 			variant.Radius,
 			variant.Gradient,
+			variant.BackgroundGradient,
 			nil,
 			0,
 			0,

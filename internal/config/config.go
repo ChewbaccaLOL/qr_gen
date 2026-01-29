@@ -8,18 +8,23 @@ import (
 )
 
 type Gradient struct {
-	ID   string `json:"id"`
-	From string `json:"from"`
-	To   string `json:"to"`
+	ID       string   `json:"id,omitempty"`
+	From     string   `json:"from"`
+	To       string   `json:"to"`
+	FromStop *float64 `json:"from_stop,omitempty"`
+	ToStop   *float64 `json:"to_stop,omitempty"`
+	Angle    *float64 `json:"angle,omitempty"`
+	Scope    string   `json:"scope,omitempty"`
 }
 
 type Variant struct {
-	Name     string    `json:"name"`
-	Shape    string    `json:"shape"`
-	Dark     string    `json:"dark"`
-	Light    *string   `json:"light"`
-	Radius   float64   `json:"radius"`
-	Gradient *Gradient `json:"gradient"`
+	Name               string    `json:"name"`
+	Shape              string    `json:"shape"`
+	Dark               string    `json:"dark"`
+	Light              *string   `json:"light"`
+	Radius             float64   `json:"radius"`
+	Gradient           *Gradient `json:"gradient"`
+	BackgroundGradient *Gradient `json:"background_gradient"`
 }
 
 type GifDefaults struct {
@@ -31,17 +36,24 @@ type GifDefaults struct {
 }
 
 type Defaults struct {
-	GifFPS          int         `json:"gif_fps"`
-	GifFrames       int         `json:"gif_frames"`
-	GifHold         int         `json:"gif_hold"`
-	WaveAmp         float64     `json:"wave_amp"`
-	WavePeriod      float64     `json:"wave_period"`
-	FloatJaggedSnap float64     `json:"float_jagged_snap"`
-	FloatTilt       float64     `json:"float_tilt"`
-	FloatAngle      float64     `json:"float_angle"`
-	FloatHold       int         `json:"float_hold"`
-	FloatCycles     int         `json:"float_cycles"`
-	ReadableGif     GifDefaults `json:"readable_gif"`
+	GifFPS             int         `json:"gif_fps"`
+	GifFrames          int         `json:"gif_frames"`
+	GifHold            int         `json:"gif_hold"`
+	WaveAmp            float64     `json:"wave_amp"`
+	WavePeriod         float64     `json:"wave_period"`
+	FloatJaggedSnap    float64     `json:"float_jagged_snap"`
+	FloatTilt          float64     `json:"float_tilt"`
+	FloatAngle         float64     `json:"float_angle"`
+	FloatHold          int         `json:"float_hold"`
+	FloatCycles        int         `json:"float_cycles"`
+	GradientAngle      float64     `json:"gradient_angle"`
+	GradientFromStop   float64     `json:"gradient_from_stop"`
+	GradientToStop     float64     `json:"gradient_to_stop"`
+	GradientScope      string      `json:"gradient_scope"`
+	BgGradientAngle    float64     `json:"bg_gradient_angle"`
+	BgGradientFromStop float64     `json:"bg_gradient_from_stop"`
+	BgGradientToStop   float64     `json:"bg_gradient_to_stop"`
+	ReadableGif        GifDefaults `json:"readable_gif"`
 }
 
 type Config struct {

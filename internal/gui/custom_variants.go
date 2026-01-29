@@ -15,12 +15,26 @@ import (
 const customVariantsFilename = "variants.custom.json"
 
 type CustomVariantRequest struct {
-	Name         string   `json:"name"`
-	BaseVariant  string   `json:"baseVariant"`
-	Dark         string   `json:"dark"`
-	Light        string   `json:"light"`
-	NoBackground bool     `json:"noBackground"`
-	Radius       *float64 `json:"radius"`
+	Name               string   `json:"name"`
+	BaseVariant        string   `json:"baseVariant"`
+	Dark               string   `json:"dark"`
+	Light              string   `json:"light"`
+	NoBackground       bool     `json:"noBackground"`
+	Radius             *float64 `json:"radius"`
+	Shape              string   `json:"shape"`
+	Gradient           bool     `json:"gradientEnabled"`
+	GradientFrom       string   `json:"gradientFrom"`
+	GradientTo         string   `json:"gradientTo"`
+	GradientAngle      *float64 `json:"gradientAngle"`
+	GradientFromStop   *float64 `json:"gradientFromStop"`
+	GradientToStop     *float64 `json:"gradientToStop"`
+	GradientScope      string   `json:"gradientScope"`
+	BgGradient         bool     `json:"bgGradientEnabled"`
+	BgGradientFrom     string   `json:"bgGradientFrom"`
+	BgGradientTo       string   `json:"bgGradientTo"`
+	BgGradientAngle    *float64 `json:"bgGradientAngle"`
+	BgGradientFromStop *float64 `json:"bgGradientFromStop"`
+	BgGradientToStop   *float64 `json:"bgGradientToStop"`
 }
 
 type customVariantsFile struct {

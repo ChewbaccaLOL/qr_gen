@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strings"
 
 	"qr_generator/internal/config"
 )
@@ -24,6 +25,7 @@ func RenderPS(
 	shape string,
 	radius float64,
 	gradient *config.Gradient,
+	backgroundGradient *config.Gradient,
 ) (*PSDocument, error) {
 	size := len(matrix)
 	if size == 0 {
@@ -32,7 +34,14 @@ func RenderPS(
 	dim := float64((size + border*2) * scale)
 	doc := newPS(dim, dim)
 
-	if light != nil {
+	if backgroundGradient != nil {
+		spec, err := parseGradientSpec(backgroundGradient)
+		if err != nil {
+			return nil, err
+		}
+		area := rect{X: 0, Y: 0, W: dim, H: dim}
+		writeGradientFillRect(&doc.buf, area, spec, area)
+	} else if light != nil {
 		color, err := parseColor(*light)
 		if err != nil {
 			return nil, err
@@ -45,9 +54,9 @@ func RenderPS(
 		return nil, err
 	}
 
-	var grad *gradientColors
+	var grad *gradientSpec
 	if gradient != nil {
-		grad, err = parseGradient(gradient)
+		grad, err = parseGradientSpec(gradient)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +71,7 @@ func RenderPS(
 			}
 			px := float64(x+border) * float64(scale)
 			py := float64(y+border) * float64(scale)
-			drawModulePS(&doc.buf, px, py, float64(scale), shape, corner, darkColor, grad)
+			drawModulePS(&doc.buf, px, py, float64(scale), shape, corner, darkColor, grad, rect{X: 0, Y: 0, W: dim, H: dim})
 		}
 	}
 
@@ -113,23 +122,32 @@ func RenderCatalogPS(
 		row := index / columns
 		originX := float64(padding + col*(tileDim+padding))
 		originY := float64(padding + row*tileTotalHeight)
-		tileBg := bg
-		if variant.Light != nil {
-			parsed, err := parseColor(*variant.Light)
+		tileRect := rect{X: originX, Y: originY, W: float64(tileDim), H: float64(tileDim)}
+		if variant.BackgroundGradient != nil {
+			bgSpec, err := parseGradientSpec(variant.BackgroundGradient)
 			if err != nil {
 				return nil, err
 			}
-			tileBg = parsed
+			writeGradientFillRect(&doc.buf, tileRect, bgSpec, tileRect)
+		} else {
+			tileBg := bg
+			if variant.Light != nil {
+				parsed, err := parseColor(*variant.Light)
+				if err != nil {
+					return nil, err
+				}
+				tileBg = parsed
+			}
+			writeRectFill(&doc.buf, originX, originY, float64(tileDim), float64(tileDim), tileBg)
 		}
-		writeRectFill(&doc.buf, originX, originY, float64(tileDim), float64(tileDim), tileBg)
 
 		darkColor, err := parseColor(variant.Dark)
 		if err != nil {
 			return nil, err
 		}
-		var grad *gradientColors
+		var grad *gradientSpec
 		if variant.Gradient != nil {
-			grad, err = parseGradient(variant.Gradient)
+			grad, err = parseGradientSpec(variant.Gradient)
 			if err != nil {
 				return nil, err
 			}
@@ -143,7 +161,7 @@ func RenderCatalogPS(
 				}
 				px := originX + float64(x+border)*float64(scale)
 				py := originY + float64(y+border)*float64(scale)
-				drawModulePS(&doc.buf, px, py, float64(scale), variant.Shape, corner, darkColor, grad)
+				drawModulePS(&doc.buf, px, py, float64(scale), variant.Shape, corner, darkColor, grad, tileRect)
 			}
 		}
 
@@ -180,12 +198,23 @@ type rgb struct {
 	B int
 }
 
-type gradientColors struct {
-	From rgb
-	To   rgb
+type gradientSpec struct {
+	From     rgb
+	To       rgb
+	Angle    float64
+	FromStop float64
+	ToStop   float64
+	Scope    string
 }
 
-func parseGradient(gradient *config.Gradient) (*gradientColors, error) {
+type rect struct {
+	X float64
+	Y float64
+	W float64
+	H float64
+}
+
+func parseGradientSpec(gradient *config.Gradient) (*gradientSpec, error) {
 	from, err := parseColor(gradient.From)
 	if err != nil {
 		return nil, err
@@ -194,7 +223,31 @@ func parseGradient(gradient *config.Gradient) (*gradientColors, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &gradientColors{From: from, To: to}, nil
+	angle := 45.0
+	if gradient.Angle != nil {
+		angle = *gradient.Angle
+	}
+	fromStop := 0.0
+	if gradient.FromStop != nil {
+		fromStop = *gradient.FromStop
+	}
+	toStop := 1.0
+	if gradient.ToStop != nil {
+		toStop = *gradient.ToStop
+	}
+	fromStop = clampUnit(fromStop)
+	toStop = clampUnit(toStop)
+	if toStop < fromStop {
+		fromStop, toStop = toStop, fromStop
+	}
+	scope := strings.TrimSpace(gradient.Scope)
+	if scope == "" {
+		scope = "module"
+	}
+	if scope != "global" {
+		scope = "module"
+	}
+	return &gradientSpec{From: from, To: to, Angle: angle, FromStop: fromStop, ToStop: toStop, Scope: scope}, nil
 }
 
 func parseColor(value string) (rgb, error) {
@@ -205,9 +258,14 @@ func parseColor(value string) (rgb, error) {
 	return rgb{R: color.R, G: color.G, B: color.B}, nil
 }
 
-func drawModulePS(buf *bytes.Buffer, x, y, size float64, shape string, corner float64, color rgb, gradient *gradientColors) {
+func drawModulePS(buf *bytes.Buffer, x, y, size float64, shape string, corner float64, color rgb, gradient *gradientSpec, global rect) {
 	if gradient != nil {
-		writeGradientFill(buf, x, y, size, shape, corner, gradient)
+		area := rect{X: x, Y: y, W: size, H: size}
+		base := area
+		if gradient.Scope == "global" {
+			base = global
+		}
+		writeGradientFill(buf, area, shape, corner, gradient, base)
 		return
 	}
 	switch shape {
@@ -262,42 +320,41 @@ func writeCircleFill(buf *bytes.Buffer, cx, cy, r float64, color rgb) {
 	fmt.Fprintf(buf, "closepath fill\n")
 }
 
-func writeGradientFill(buf *bytes.Buffer, x, y, size float64, shape string, corner float64, gradient *gradientColors) {
+func writeGradientFill(buf *bytes.Buffer, area rect, shape string, corner float64, gradient *gradientSpec, base rect) {
 	fmt.Fprintf(buf, "gsave\n")
 	switch shape {
 	case "square":
-		fmt.Fprintf(buf, "newpath\n%.4f %.4f %.4f %.4f rectclip\n", x, y, size, size)
+		fmt.Fprintf(buf, "newpath\n%.4f %.4f %.4f %.4f rectclip\n", area.X, area.Y, area.W, area.H)
 	case "rounded":
-		writeRoundedRectPath(buf, x, y, size, size, corner)
+		writeRoundedRectPath(buf, area.X, area.Y, area.W, area.H, corner)
 		fmt.Fprintf(buf, "clip\nnewpath\n")
 	case "dot":
-		fmt.Fprintf(buf, "newpath\n%.4f %.4f %.4f 0 360 arc\nclip\nnewpath\n", x+size/2, y+size/2, size*0.45)
+		fmt.Fprintf(buf, "newpath\n%.4f %.4f %.4f 0 360 arc\nclip\nnewpath\n", area.X+area.W/2, area.Y+area.H/2, area.W*0.45)
 	default:
-		fmt.Fprintf(buf, "newpath\n%.4f %.4f %.4f %.4f rectclip\n", x, y, size, size)
+		fmt.Fprintf(buf, "newpath\n%.4f %.4f %.4f %.4f rectclip\n", area.X, area.Y, area.W, area.H)
 	}
 
-	steps := 10
-	stepSize := size / float64(steps)
-	for iy := 0; iy < steps; iy++ {
-		for ix := 0; ix < steps; ix++ {
-			px := x + float64(ix)*stepSize
-			py := y + float64(iy)*stepSize
-			cx := (float64(ix) + 0.5) * stepSize
-			cy := (float64(iy) + 0.5) * stepSize
-			t := (cx + cy) / (2 * size)
-			if t < 0 {
-				t = 0
-			}
-			if t > 1 {
-				t = 1
-			}
-			color := mixColor(gradient.From, gradient.To, t)
-			fmt.Fprintf(buf, "%.4f %.4f %.4f setrgbcolor\n", float64(color.R)/255.0, float64(color.G)/255.0, float64(color.B)/255.0)
-			fmt.Fprintf(buf, "%.4f %.4f %.4f %.4f rectfill\n", px, py, stepSize, stepSize)
-		}
-	}
+	writeGradientFillRect(buf, area, gradient, base)
 
 	fmt.Fprintf(buf, "grestore\n")
+}
+
+func writeGradientFillRect(buf *bytes.Buffer, area rect, gradient *gradientSpec, base rect) {
+	stepsX, stepsY := gradientSteps(area.W, area.H)
+	stepX := area.W / float64(stepsX)
+	stepY := area.H / float64(stepsY)
+	for iy := 0; iy < stepsY; iy++ {
+		for ix := 0; ix < stepsX; ix++ {
+			px := area.X + float64(ix)*stepX
+			py := area.Y + float64(iy)*stepY
+			cx := px + stepX*0.5
+			cy := py + stepY*0.5
+			t := gradientT(cx, cy, base, gradient.Angle, gradient.FromStop, gradient.ToStop)
+			color := mixColor(gradient.From, gradient.To, t)
+			fmt.Fprintf(buf, "%.4f %.4f %.4f setrgbcolor\n", float64(color.R)/255.0, float64(color.G)/255.0, float64(color.B)/255.0)
+			fmt.Fprintf(buf, "%.4f %.4f %.4f %.4f rectfill\n", px, py, stepX, stepY)
+		}
+	}
 }
 
 func mixColor(a rgb, b rgb, t float64) rgb {
@@ -325,6 +382,13 @@ func maxInt(a, b int) int {
 	return b
 }
 
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func writeTextCentered(buf *bytes.Buffer, x, y, size float64, text string) {
 	fmt.Fprintf(buf, "/Helvetica findfont %.4f scalefont setfont\n", size)
 	fmt.Fprintf(buf, "gsave\n")
@@ -344,4 +408,69 @@ func escapeText(text string) string {
 		escaped.WriteByte(ch)
 	}
 	return escaped.String()
+}
+
+func gradientSteps(width float64, height float64) (int, int) {
+	stepsX := int(math.Ceil(width / 8))
+	stepsY := int(math.Ceil(height / 8))
+	stepsX = maxInt(6, minInt(60, stepsX))
+	stepsY = maxInt(6, minInt(60, stepsY))
+	return stepsX, stepsY
+}
+
+func gradientT(x float64, y float64, base rect, angle float64, fromStop float64, toStop float64) float64 {
+	x1, y1, x2, y2 := gradientLine(angle, base.W, base.H)
+	x1 += base.X
+	y1 += base.Y
+	x2 += base.X
+	y2 += base.Y
+	dx := x2 - x1
+	dy := y2 - y1
+	denom := dx*dx + dy*dy
+	if denom == 0 {
+		return 0
+	}
+	t := ((x-x1)*dx + (y-y1)*dy) / denom
+	t = clampUnit(t)
+	if toStop == fromStop {
+		if t < fromStop {
+			return 0
+		}
+		return 1
+	}
+	return clampUnit((t - fromStop) / (toStop - fromStop))
+}
+
+func gradientLine(angleDeg float64, width float64, height float64) (float64, float64, float64, float64) {
+	rad := angleDeg * math.Pi / 180
+	dx := math.Cos(rad)
+	dy := math.Sin(rad)
+	corners := [][2]float64{
+		{0, 0},
+		{width, 0},
+		{0, height},
+		{width, height},
+	}
+	minProj := math.Inf(1)
+	maxProj := math.Inf(-1)
+	for _, corner := range corners {
+		proj := corner[0]*dx + corner[1]*dy
+		if proj < minProj {
+			minProj = proj
+		}
+		if proj > maxProj {
+			maxProj = proj
+		}
+	}
+	return dx * minProj, dy * minProj, dx * maxProj, dy * maxProj
+}
+
+func clampUnit(value float64) float64 {
+	if value < 0 {
+		return 0
+	}
+	if value > 1 {
+		return 1
+	}
+	return value
 }

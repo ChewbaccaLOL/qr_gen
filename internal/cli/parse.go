@@ -13,43 +13,60 @@ import (
 )
 
 type Args struct {
-	Data              string
-	Output            string
-	OutputSet         bool
-	Png               bool
-	PngOutput         string
-	PngScale          float64
-	Gif               bool
-	Animation         bool
-	AnimationFormat   string
-	AnimationVariant  string
-	GifOutput         string
-	GifVariant        string
-	GifFps            int
-	GifFrames         int
-	GifHold           int
-	WaveAmp           float64
-	WavePeriod        float64
-	FloatCycles       int
-	FloatAngle        *float64
-	ReadableGif       bool
-	Pdf               bool
-	PdfOutput         string
-	Ps                bool
-	PsOutput          string
-	Variant           string
-	Scale             int
-	Border            int
-	ErrorLevel        string
-	Dark              string
-	Light             string
-	NoBackground      bool
-	Radius            *float64
-	ListVariants      bool
-	Catalog           bool
-	CatalogColumns    int
-	CatalogBackground string
-	CatalogLabelSize  int
+	Data                string
+	Output              string
+	OutputSet           bool
+	Png                 bool
+	PngOutput           string
+	PngScale            float64
+	Gif                 bool
+	Animation           bool
+	AnimationFormat     string
+	AnimationVariant    string
+	GifOutput           string
+	GifVariant          string
+	GifFps              int
+	GifFrames           int
+	GifHold             int
+	WaveAmp             float64
+	WavePeriod          float64
+	FloatCycles         int
+	FloatAngle          *float64
+	ReadableGif         bool
+	Pdf                 bool
+	PdfOutput           string
+	Ps                  bool
+	PsOutput            string
+	Variant             string
+	Scale               int
+	Border              int
+	ErrorLevel          string
+	Dark                string
+	Light               string
+	NoBackground        bool
+	Radius              *float64
+	GradientEnabled     bool
+	GradientDisabled    bool
+	GradientFrom        string
+	GradientTo          string
+	GradientAngle       *float64
+	GradientFromStop    *float64
+	GradientToStop      *float64
+	GradientScope       string
+	GradientConfigSet   bool
+	BgGradientEnabled   bool
+	BgGradientDisabled  bool
+	BgGradientFrom      string
+	BgGradientTo        string
+	BgGradientAngle     *float64
+	BgGradientFromStop  *float64
+	BgGradientToStop    *float64
+	BgGradientConfigSet bool
+	ListVariants        bool
+	Catalog             bool
+	CatalogColumns      int
+	CatalogBackground   string
+	CatalogLabelSize    int
 }
 
 type ErrUsage struct {
@@ -92,6 +109,17 @@ func ParseArgs(args []string, cfg *config.Config, env Env, stdin io.Reader, stdi
 	radius := OptionalFloat{}
 	dark := OptionalString{}
 	light := OptionalString{}
+	gradientFrom := OptionalString{}
+	gradientTo := OptionalString{}
+	gradientScope := OptionalString{}
+	gradientAngle := OptionalFloat{}
+	gradientFromStop := OptionalFloat{}
+	gradientToStop := OptionalFloat{}
+	bgGradientFrom := OptionalString{}
+	bgGradientTo := OptionalString{}
+	bgGradientAngle := OptionalFloat{}
+	bgGradientFromStop := OptionalFloat{}
+	bgGradientToStop := OptionalFloat{}
 
 	scale := OptionalInt{}
 	border := OptionalInt{}
@@ -107,6 +135,10 @@ func ParseArgs(args []string, cfg *config.Config, env Env, stdin io.Reader, stdi
 	pdf := OptionalBool{}
 	ps := OptionalBool{}
 	noBackground := OptionalBool{}
+	gradientEnabled := OptionalBool{}
+	gradientDisabled := OptionalBool{}
+	bgGradientEnabled := OptionalBool{}
+	bgGradientDisabled := OptionalBool{}
 	catalog := OptionalBool{}
 	listVariants := OptionalBool{}
 
@@ -142,6 +174,21 @@ func ParseArgs(args []string, cfg *config.Config, env Env, stdin io.Reader, stdi
 	fs.Var(&errorLevel, "error", "Error correction level (default: m).")
 	fs.Var(&dark, "dark", "Override foreground color (hex or CSS color).")
 	fs.Var(&light, "light", "Override background color (hex or CSS color).")
+	fs.Var(&gradientEnabled, "gradient", "Enable gradient fill for modules.")
+	fs.Var(&gradientDisabled, "no-gradient", "Disable gradient fill even if the variant includes one.")
+	fs.Var(&gradientFrom, "gradient-from", "Gradient start color (hex or CSS color).")
+	fs.Var(&gradientTo, "gradient-to", "Gradient end color (hex or CSS color).")
+	fs.Var(&gradientAngle, "gradient-angle", "Gradient direction in degrees (0 = left to right).")
+	fs.Var(&gradientFromStop, "gradient-from-stop", "Gradient start stop position (0-1).")
+	fs.Var(&gradientToStop, "gradient-to-stop", "Gradient end stop position (0-1).")
+	fs.Var(&gradientScope, "gradient-scope", "Gradient scope (module or global).")
+	fs.Var(&bgGradientEnabled, "bg-gradient", "Enable background gradient.")
+	fs.Var(&bgGradientDisabled, "no-bg-gradient", "Disable background gradient.")
+	fs.Var(&bgGradientFrom, "bg-gradient-from", "Background gradient start color (hex or CSS color).")
+	fs.Var(&bgGradientTo, "bg-gradient-to", "Background gradient end color (hex or CSS color).")
+	fs.Var(&bgGradientAngle, "bg-gradient-angle", "Background gradient direction in degrees.")
+	fs.Var(&bgGradientFromStop, "bg-gradient-from-stop", "Background gradient start stop position (0-1).")
+	fs.Var(&bgGradientToStop, "bg-gradient-to-stop", "Background gradient end stop position (0-1).")
 	fs.Var(&noBackground, "no-background", "Make the background transparent.")
 	fs.Var(&radius, "radius", "Corner radius for rounded modules (0-0.5).")
 	fs.Var(&listVariants, "list-variants", "List available variants and exit.")
@@ -182,6 +229,10 @@ func ParseArgs(args []string, cfg *config.Config, env Env, stdin io.Reader, stdi
 	resolved.Animation = resolveBool(animation, env, "QR_ANIMATION", false)
 	resolved.ReadableGif = resolveBool(readableGif, env, "QR_READABLE_GIF", false)
 	resolved.NoBackground = resolveBool(noBackground, env, "QR_NO_BACKGROUND", false)
+	resolved.GradientEnabled = resolveBool(gradientEnabled, env, "QR_GRADIENT", false)
+	resolved.GradientDisabled = resolveBool(gradientDisabled, env, "QR_NO_GRADIENT", false)
+	resolved.BgGradientEnabled = resolveBool(bgGradientEnabled, env, "QR_BG_GRADIENT", false)
+	resolved.BgGradientDisabled = resolveBool(bgGradientDisabled, env, "QR_NO_BG_GRADIENT", false)
 
 	resolved.Variant = resolveString(variant, env, "QR_VARIANT", "classic")
 	resolved.Scale = resolveInt(scale, env, "QR_SCALE", 10)
@@ -223,6 +274,56 @@ func ParseArgs(args []string, cfg *config.Config, env Env, stdin io.Reader, stdi
 	} else if value, ok := env.Lookup("QR_LIGHT"); ok {
 		resolved.Light = value
 	}
+
+	gradientFromValue, gradientFromSet := resolveOptionalString(gradientFrom, env, "QR_GRADIENT_FROM")
+	gradientToValue, gradientToSet := resolveOptionalString(gradientTo, env, "QR_GRADIENT_TO")
+	gradientScopeValue, gradientScopeSet := resolveOptionalString(gradientScope, env, "QR_GRADIENT_SCOPE")
+	gradientAngleValue, gradientAngleSet := resolveOptionalFloat(gradientAngle, env, "QR_GRADIENT_ANGLE")
+	gradientFromStopValue, gradientFromStopSet := resolveOptionalFloat(gradientFromStop, env, "QR_GRADIENT_FROM_STOP")
+	gradientToStopValue, gradientToStopSet := resolveOptionalFloat(gradientToStop, env, "QR_GRADIENT_TO_STOP")
+
+	if gradientFromSet {
+		resolved.GradientFrom = gradientFromValue
+	}
+	if gradientToSet {
+		resolved.GradientTo = gradientToValue
+	}
+	if gradientScopeSet {
+		resolved.GradientScope = gradientScopeValue
+	}
+	if gradientAngleSet {
+		resolved.GradientAngle = &gradientAngleValue
+	}
+	if gradientFromStopSet {
+		resolved.GradientFromStop = &gradientFromStopValue
+	}
+	if gradientToStopSet {
+		resolved.GradientToStop = &gradientToStopValue
+	}
+	resolved.GradientConfigSet = gradientFromSet || gradientToSet || gradientScopeSet || gradientAngleSet || gradientFromStopSet || gradientToStopSet
+
+	bgGradientFromValue, bgGradientFromSet := resolveOptionalString(bgGradientFrom, env, "QR_BG_GRADIENT_FROM")
+	bgGradientToValue, bgGradientToSet := resolveOptionalString(bgGradientTo, env, "QR_BG_GRADIENT_TO")
+	bgGradientAngleValue, bgGradientAngleSet := resolveOptionalFloat(bgGradientAngle, env, "QR_BG_GRADIENT_ANGLE")
+	bgGradientFromStopValue, bgGradientFromStopSet := resolveOptionalFloat(bgGradientFromStop, env, "QR_BG_GRADIENT_FROM_STOP")
+	bgGradientToStopValue, bgGradientToStopSet := resolveOptionalFloat(bgGradientToStop, env, "QR_BG_GRADIENT_TO_STOP")
+
+	if bgGradientFromSet {
+		resolved.BgGradientFrom = bgGradientFromValue
+	}
+	if bgGradientToSet {
+		resolved.BgGradientTo = bgGradientToValue
+	}
+	if bgGradientAngleSet {
+		resolved.BgGradientAngle = &bgGradientAngleValue
+	}
+	if bgGradientFromStopSet {
+		resolved.BgGradientFromStop = &bgGradientFromStopValue
+	}
+	if bgGradientToStopSet {
+		resolved.BgGradientToStop = &bgGradientToStopValue
+	}
+	resolved.BgGradientConfigSet = bgGradientFromSet || bgGradientToSet || bgGradientAngleSet || bgGradientFromStopSet || bgGradientToStopSet
 
 	if floatAngleSet {
 		resolved.FloatAngle = &floatAngleValue
@@ -397,6 +498,16 @@ func resolveOptionalFloat(opt OptionalFloat, env Env, name string) (float64, boo
 	return 0, false
 }
 
+func resolveOptionalString(opt OptionalString, env Env, name string) (string, bool) {
+	if opt.IsSet {
+		return opt.Value, true
+	}
+	if value, ok := env.Lookup(name); ok {
+		return value, true
+	}
+	return "", false
+}
+
 func envInt(env Env, name string) (int, bool) {
 	value, ok := env.Lookup(name)
 	if !ok {
@@ -490,6 +601,35 @@ func validate(args *Args, cfg *config.Config, animationEnabled bool) error {
 	}
 	if args.Png && args.PngScale <= 0 {
 		return errors.New("--png-scale must be greater than 0")
+	}
+	if args.GradientEnabled && args.GradientDisabled {
+		return errors.New("--gradient and --no-gradient cannot be used together")
+	}
+	if args.BgGradientEnabled && args.BgGradientDisabled {
+		return errors.New("--bg-gradient and --no-bg-gradient cannot be used together")
+	}
+	if args.GradientFromStop != nil {
+		if *args.GradientFromStop < 0 || *args.GradientFromStop > 1 {
+			return errors.New("--gradient-from-stop must be between 0 and 1")
+		}
+	}
+	if args.GradientToStop != nil {
+		if *args.GradientToStop < 0 || *args.GradientToStop > 1 {
+			return errors.New("--gradient-to-stop must be between 0 and 1")
+		}
+	}
+	if args.GradientScope != "" && args.GradientScope != "module" && args.GradientScope != "global" {
+		return errors.New("--gradient-scope must be 'module' or 'global'")
+	}
+	if args.BgGradientFromStop != nil {
+		if *args.BgGradientFromStop < 0 || *args.BgGradientFromStop > 1 {
+			return errors.New("--bg-gradient-from-stop must be between 0 and 1")
+		}
+	}
+	if args.BgGradientToStop != nil {
+		if *args.BgGradientToStop < 0 || *args.BgGradientToStop > 1 {
+			return errors.New("--bg-gradient-to-stop must be between 0 and 1")
+		}
 	}
 	if animationEnabled {
 		if args.GifFps <= 0 {

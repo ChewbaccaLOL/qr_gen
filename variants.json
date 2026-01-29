@@ -107,6 +107,13 @@
     "float_angle": 90.0,
     "float_hold": 8,
     "float_cycles": 3,
+    "gradient_angle": 45.0,
+    "gradient_from_stop": 0.0,
+    "gradient_to_stop": 1.0,
+    "gradient_scope": "module",
+    "bg_gradient_angle": 45.0,
+    "bg_gradient_from_stop": 0.0,
+    "bg_gradient_to_stop": 1.0,
     "readable_gif": {
       "gif_fps": 12,
       "gif_frames": 32,

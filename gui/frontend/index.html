@@ -21,12 +21,16 @@
 
       <main class="workspace">
         <section class="card controls">
-          <div class="field">
-            <label for="data">Data</label>
-            <textarea id="data" rows="3" placeholder="https://example.com"></textarea>
-          </div>
-
           <div class="grid">
+            <div class="field">
+              <label for="shape">Shape</label>
+              <select id="shape">
+                <option value="">Variant default</option>
+                <option value="square">Square</option>
+                <option value="rounded">Rounded</option>
+                <option value="dot">Dot</option>
+              </select>
+            </div>
             <div class="field">
               <label for="error">Error level</label>
               <select id="error">
@@ -48,29 +52,147 @@
 
           <div class="grid">
             <div class="field">
-              <label for="dark">Dark override</label>
-              <input id="dark" type="text" placeholder="#111111" />
-            </div>
-            <div class="field">
-              <label for="light">Light override</label>
-              <input id="light" type="text" placeholder="#ffffff" />
-            </div>
-            <div class="field">
               <label for="radius">Radius</label>
               <input id="radius" type="number" min="0" step="0.1" placeholder="variant default" />
             </div>
+          </div>
+
+          <div class="color-row">
+            <div class="field">
+              <label for="dark">Dark override</label>
+              <div class="color-input">
+                <input id="dark" type="text" placeholder="#111111" />
+                <input id="darkPicker" type="color" aria-label="Dark color picker" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="light">Light override</label>
+              <div class="color-input">
+                <input id="light" type="text" placeholder="#ffffff" />
+                <input id="lightPicker" type="color" aria-label="Light color picker" />
+              </div>
+            </div>
+          </div>
+
+          <div class="color-row">
             <div class="field checkbox">
-              <label for="transparent">
-                <input id="transparent" type="checkbox" />
-                Transparent background
+              <label for="gradientEnabled">
+                <input id="gradientEnabled" type="checkbox" />
+                Enable gradient
               </label>
+            </div>
+          </div>
+
+          <div class="color-row">
+            <div class="field">
+              <label for="gradientFrom">Gradient from</label>
+              <div class="color-input">
+                <input id="gradientFrom" type="text" placeholder="#ff7a59" />
+                <input id="gradientFromPicker" type="color" aria-label="Gradient from color picker" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="gradientTo">Gradient to</label>
+              <div class="color-input">
+                <input id="gradientTo" type="text" placeholder="#7a2cff" />
+                <input id="gradientToPicker" type="color" aria-label="Gradient to color picker" />
+              </div>
             </div>
           </div>
 
           <div class="grid">
             <div class="field">
-              <label for="pngScale">PNG scale</label>
-              <input id="pngScale" type="number" min="1" step="0.5" value="3" />
+              <label for="gradientScope">Gradient scope</label>
+              <select id="gradientScope">
+                <option value="module">Per module</option>
+                <option value="global">Whole QR</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="gradientAngle">Gradient angle</label>
+              <div class="range-input">
+                <input id="gradientAngle" type="range" min="0" max="360" step="1" value="45" />
+                <span id="gradientAngleValue" class="range-value">45°</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="field">
+              <label for="gradientFromStop">Gradient from stop</label>
+              <div class="range-input">
+                <input id="gradientFromStop" type="range" min="0" max="1" step="0.01" value="0" />
+                <span id="gradientFromStopValue" class="range-value">0.00</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="gradientToStop">Gradient to stop</label>
+              <div class="range-input">
+                <input id="gradientToStop" type="range" min="0" max="1" step="0.01" value="1" />
+                <span id="gradientToStopValue" class="range-value">1.00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="color-row">
+            <div class="field checkbox">
+              <label for="bgGradientEnabled">
+                <input id="bgGradientEnabled" type="checkbox" />
+                Enable background gradient
+              </label>
+            </div>
+          </div>
+
+          <div class="color-row">
+            <div class="field">
+              <label for="bgGradientFrom">Background from</label>
+              <div class="color-input">
+                <input id="bgGradientFrom" type="text" placeholder="#ffffff" />
+                <input id="bgGradientFromPicker" type="color" aria-label="Background gradient from color picker" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="bgGradientTo">Background to</label>
+              <div class="color-input">
+                <input id="bgGradientTo" type="text" placeholder="#f0f0f0" />
+                <input id="bgGradientToPicker" type="color" aria-label="Background gradient to color picker" />
+              </div>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="field">
+              <label for="bgGradientAngle">Background angle</label>
+              <div class="range-input">
+                <input id="bgGradientAngle" type="range" min="0" max="360" step="1" value="45" />
+                <span id="bgGradientAngleValue" class="range-value">45°</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="field">
+              <label for="bgGradientFromStop">Background from stop</label>
+              <div class="range-input">
+                <input id="bgGradientFromStop" type="range" min="0" max="1" step="0.01" value="0" />
+                <span id="bgGradientFromStopValue" class="range-value">0.00</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="bgGradientToStop">Background to stop</label>
+              <div class="range-input">
+                <input id="bgGradientToStop" type="range" min="0" max="1" step="0.01" value="1" />
+                <span id="bgGradientToStopValue" class="range-value">1.00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="field checkbox">
+              <label for="transparent">
+                <input id="transparent" type="checkbox" />
+                Transparent background
+              </label>
             </div>
           </div>
 
@@ -82,12 +204,6 @@
             <button id="saveVariant" class="primary">Save custom variant</button>
           </div>
 
-          <div class="actions">
-            <button id="exportSvg">Export SVG</button>
-            <button id="exportPng">Export PNG</button>
-          </div>
-
-          <div id="status" class="status" role="status"></div>
         </section>
 
         <section class="card preview">
@@ -103,6 +219,24 @@
           </div>
           <div id="previewFrame" class="preview-frame">
             <img id="preview" alt="QR preview" />
+          </div>
+          <div id="status" class="status" role="status"></div>
+
+          <div class="field">
+            <label for="data">Data</label>
+            <textarea id="data" rows="3" placeholder="https://example.com"></textarea>
+          </div>
+
+          <div class="grid">
+            <div class="field">
+              <label for="pngScale">PNG scale</label>
+              <input id="pngScale" type="number" min="1" step="0.5" value="3" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="exportSvg">Export SVG</button>
+            <button id="exportPng">Export PNG</button>
           </div>
         </section>
       </main>

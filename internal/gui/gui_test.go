@@ -154,6 +154,80 @@ func TestBuildPNGDefaultScale(t *testing.T) {
 	}
 }
 
+func TestBuildSVGGradientOverrides(t *testing.T) {
+	cfg := &config.Config{
+		Variants: map[string]config.Variant{
+			"classic": {
+				Name:  "classic",
+				Shape: "square",
+				Dark:  "#000000",
+				Gradient: &config.Gradient{
+					ID:   "fg",
+					From: "#111111",
+					To:   "#222222",
+				},
+			},
+		},
+		AnimationVariants: []string{"wave"},
+	}
+	req := RenderRequest{
+		Data:       "hello",
+		Variant:    "classic",
+		ErrorLevel: "m",
+		Scale:      6,
+		Border:     4,
+		Gradient:   true,
+	}
+	svg, err := BuildSVG(cfg, req)
+	if err != nil {
+		t.Fatalf("build svg: %v", err)
+	}
+	if !strings.Contains(svg, "linearGradient") {
+		t.Fatalf("expected gradient definition")
+	}
+	if !strings.Contains(svg, "#111111") || !strings.Contains(svg, "#222222") {
+		t.Fatalf("expected default gradient colors")
+	}
+
+	req.GradientFrom = "#abcdef"
+	req.GradientTo = "#123456"
+	svg, err = BuildSVG(cfg, req)
+	if err != nil {
+		t.Fatalf("build svg: %v", err)
+	}
+	if !strings.Contains(svg, "#abcdef") || !strings.Contains(svg, "#123456") {
+		t.Fatalf("expected override gradient colors")
+	}
+}
+
+func TestBuildSVGShapeOverride(t *testing.T) {
+	cfg := &config.Config{
+		Variants: map[string]config.Variant{
+			"classic": {
+				Name:  "classic",
+				Shape: "square",
+				Dark:  "#000000",
+			},
+		},
+		AnimationVariants: []string{"wave"},
+	}
+	req := RenderRequest{
+		Data:       "hello",
+		Variant:    "classic",
+		ErrorLevel: "m",
+		Scale:      6,
+		Border:     4,
+		Shape:      "dot",
+	}
+	svg, err := BuildSVG(cfg, req)
+	if err != nil {
+		t.Fatalf("build svg: %v", err)
+	}
+	if !strings.Contains(svg, "circle") {
+		t.Fatalf("expected dot shape override")
+	}
+}
+
 func TestFindVariantsPath(t *testing.T) {
 	root := t.TempDir()
 	variantsPath := filepath.Join(root, "variants.json")

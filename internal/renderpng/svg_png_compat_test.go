@@ -51,6 +51,7 @@ func TestSvgToPngTolerance(t *testing.T) {
 			variant.Shape,
 			variant.Radius,
 			variant.Gradient,
+			variant.BackgroundGradient,
 			nil,
 			0,
 			0,
@@ -91,6 +92,7 @@ func TestSvgToPngTolerance(t *testing.T) {
 			variant.Shape,
 			variant.Radius,
 			variant.Gradient,
+			variant.BackgroundGradient,
 		)
 		if err != nil {
 			t.Fatalf("render native png: %v", err)

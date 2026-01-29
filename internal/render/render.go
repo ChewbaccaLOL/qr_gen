@@ -34,6 +34,7 @@ func RenderSVG(
 	shape string,
 	radius float64,
 	gradient *config.Gradient,
+	backgroundGradient *config.Gradient,
 	columnOffsets []ColumnOffset,
 	extraPadY int,
 	extraPadX int,
@@ -89,10 +90,29 @@ func RenderSVG(
 		),
 	}
 
-	if def := svgGradientDef(gradient, gradientID); def != "" {
-		parts = append(parts, fmt.Sprintf("<defs>%s</defs>", def))
+	defs := []string{}
+	if def := svgGradientDef(gradient, gradientID, width, height, ""); def != "" {
+		defs = append(defs, def)
 	}
-	if light != nil {
+	if backgroundGradient != nil {
+		bgID := backgroundGradient.ID
+		if bgID == "" {
+			bgID = "bg"
+		}
+		if def := svgGradientDef(backgroundGradient, bgID, width, height, "global"); def != "" {
+			defs = append(defs, def)
+		}
+	}
+	if len(defs) > 0 {
+		parts = append(parts, fmt.Sprintf("<defs>%s</defs>", strings.Join(defs, "")))
+	}
+	if backgroundGradient != nil {
+		bgID := backgroundGradient.ID
+		if bgID == "" {
+			bgID = "bg"
+		}
+		parts = append(parts, fmt.Sprintf("<rect width=\"100%%\" height=\"100%%\" fill=\"url(#%s)\"/>", bgID))
+	} else if light != nil {
 		parts = append(parts, fmt.Sprintf("<rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>", *light))
 	}
 
@@ -192,7 +212,7 @@ func RenderCatalogSVG(
 	for _, variant := range variants {
 		if variant.Gradient != nil {
 			gradientID := fmt.Sprintf("fg-%s", variant.Name)
-			gradientDefs = append(gradientDefs, svgGradientDef(variant.Gradient, gradientID))
+			gradientDefs = append(gradientDefs, svgGradientDef(variant.Gradient, gradientID, 1, 1, "module"))
 		}
 	}
 	if len(gradientDefs) > 0 {
@@ -238,7 +258,7 @@ func RenderCatalogSVG(
 	return strings.Join(parts, "\n"), nil
 }
 
-func svgGradientDef(gradient *config.Gradient, gradientID string) string {
+func svgGradientDef(gradient *config.Gradient, gradientID string, width float64, height float64, scopeOverride string) string {
 	if gradient == nil || gradientID == "" {
 		return ""
 	}
@@ -250,12 +270,95 @@ func svgGradientDef(gradient *config.Gradient, gradientID string) string {
 	if colorTo == "" {
 		colorTo = "#ffffff"
 	}
+	angle := 45.0
+	if gradient.Angle != nil {
+		angle = *gradient.Angle
+	}
+	fromStop := 0.0
+	if gradient.FromStop != nil {
+		fromStop = *gradient.FromStop
+	}
+	toStop := 1.0
+	if gradient.ToStop != nil {
+		toStop = *gradient.ToStop
+	}
+	scope := strings.TrimSpace(gradient.Scope)
+	if scopeOverride != "" {
+		scope = scopeOverride
+	}
+	if scope == "" {
+		scope = "module"
+	}
+	if scope != "global" {
+		scope = "module"
+	}
+	fromStop = clampUnit(fromStop)
+	toStop = clampUnit(toStop)
+	if toStop < fromStop {
+		fromStop, toStop = toStop, fromStop
+	}
+	gradWidth := width
+	gradHeight := height
+	if scope != "global" {
+		gradWidth = 1
+		gradHeight = 1
+	}
+	x1, y1, x2, y2 := gradientLine(angle, gradWidth, gradHeight)
+	gradientUnits := ""
+	if scope == "global" {
+		gradientUnits = " gradientUnits=\"userSpaceOnUse\""
+	}
 	return fmt.Sprintf(
-		"<linearGradient id=\"%s\" x1=\"0%%\" y1=\"0%%\" x2=\"100%%\" y2=\"100%%\"><stop offset=\"0%%\" stop-color=\"%s\"/><stop offset=\"100%%\" stop-color=\"%s\"/></linearGradient>",
+		"<linearGradient id=\"%s\"%s x1=\"%s\" y1=\"%s\" x2=\"%s\" y2=\"%s\"><stop offset=\"%s\" stop-color=\"%s\"/><stop offset=\"%s\" stop-color=\"%s\"/></linearGradient>",
 		gradientID,
+		gradientUnits,
+		formatFloat(x1),
+		formatFloat(y1),
+		formatFloat(x2),
+		formatFloat(y2),
+		formatPercent(fromStop),
 		colorFrom,
+		formatPercent(toStop),
 		colorTo,
 	)
+}
+
+func gradientLine(angleDeg float64, width float64, height float64) (float64, float64, float64, float64) {
+	rad := angleDeg * math.Pi / 180
+	dx := math.Cos(rad)
+	dy := math.Sin(rad)
+	corners := [][2]float64{
+		{0, 0},
+		{width, 0},
+		{0, height},
+		{width, height},
+	}
+	minProj := math.Inf(1)
+	maxProj := math.Inf(-1)
+	for _, corner := range corners {
+		proj := corner[0]*dx + corner[1]*dy
+		if proj < minProj {
+			minProj = proj
+		}
+		if proj > maxProj {
+			maxProj = proj
+		}
+	}
+	return dx * minProj, dy * minProj, dx * maxProj, dy * maxProj
+}
+
+func clampUnit(value float64) float64 {
+	if value < 0 {
+		return 0
+	}
+	if value > 1 {
+		return 1
+	}
+	return value
+}
+
+func formatPercent(value float64) string {
+	return fmt.Sprintf("%s%%", formatFloat(value*100))
 }
 
 func moduleFill(dark, gradientID string) string {

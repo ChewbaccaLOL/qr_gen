@@ -236,6 +236,21 @@ go run ./cmd/qr_generator --catalog --catalog-columns 4 --png -o out/catalog.svg
 - `--light`: override background color
 - `--no-background`: transparent background
 - `--radius`: rounded corner radius (0-0.5)
+- `--gradient`: enable foreground gradient fill
+- `--no-gradient`: disable foreground gradient
+- `--gradient-from`: gradient start color
+- `--gradient-to`: gradient end color
+- `--gradient-angle`: gradient direction in degrees (0 = left to right)
+- `--gradient-from-stop`: gradient start stop (0-1)
+- `--gradient-to-stop`: gradient end stop (0-1)
+- `--gradient-scope`: `module` (per module) or `global` (whole QR)
+- `--bg-gradient`: enable background gradient
+- `--no-bg-gradient`: disable background gradient
+- `--bg-gradient-from`: background gradient start color
+- `--bg-gradient-to`: background gradient end color
+- `--bg-gradient-angle`: background gradient direction in degrees
+- `--bg-gradient-from-stop`: background gradient start stop (0-1)
+- `--bg-gradient-to-stop`: background gradient end stop (0-1)
 - `--png-scale`: scale multiplier for PNG export
 - `--animation`: render an animated output (default format: gif)
 - `--animation-format`: animation format (currently `gif`)

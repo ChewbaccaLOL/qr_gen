@@ -9,7 +9,7 @@ import (
 
 func TestRenderPNGDimensions(t *testing.T) {
 	matrix := [][]bool{{true}}
-	img, err := RenderPNG(matrix, 10, 4, "#000000", ptr("#ffffff"), "square", 0, nil)
+	img, err := RenderPNG(matrix, 10, 4, "#000000", ptr("#ffffff"), "square", 0, nil, nil)
 	if err != nil {
 		t.Fatalf("render png: %v", err)
 	}
@@ -20,7 +20,7 @@ func TestRenderPNGDimensions(t *testing.T) {
 
 func TestRenderPNGTransparentBackground(t *testing.T) {
 	matrix := [][]bool{{true}}
-	img, err := RenderPNG(matrix, 10, 4, "#000000", nil, "square", 0, nil)
+	img, err := RenderPNG(matrix, 10, 4, "#000000", nil, "square", 0, nil, nil)
 	if err != nil {
 		t.Fatalf("render png: %v", err)
 	}
@@ -32,7 +32,7 @@ func TestRenderPNGTransparentBackground(t *testing.T) {
 func TestGradientLUTVariation(t *testing.T) {
 	matrix := [][]bool{{true}}
 	gradient := &config.Gradient{From: "#000000", To: "#ffffff"}
-	img, err := RenderPNG(matrix, 10, 0, "#000000", ptr("#ffffff"), "square", 0, gradient)
+	img, err := RenderPNG(matrix, 10, 0, "#000000", ptr("#ffffff"), "square", 0, gradient, nil)
 	if err != nil {
 		t.Fatalf("render png: %v", err)
 	}
