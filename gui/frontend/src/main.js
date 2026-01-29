@@ -1,6 +1,7 @@
 import "./style.css";
 import { resolveAutoLightValue } from "./backgroundDefaults.js";
 import { sectionsForBackgroundMode } from "./backgroundModeVisibility.js";
+import { isBackgroundGradientFill, isGradientFill, resolveFillMode } from "./fillModeUtils.js";
 import { ANIMATION_DEBUG_ENABLED } from "./uiFlags.js";
 import {
   DeleteCustomVariant,
@@ -33,7 +34,9 @@ const elements = {
   radius: document.getElementById("radius"),
   radiusRow: document.getElementById("radiusRow"),
   radiusValue: document.getElementById("radiusValue"),
-  gradientEnabled: document.getElementById("gradientEnabled"),
+  foregroundFill: document.getElementById("foregroundFill"),
+  foregroundSolidControls: document.getElementById("foregroundSolidControls"),
+  foregroundGradientControls: document.getElementById("foregroundGradientControls"),
   gradientFrom: document.getElementById("gradientFrom"),
   gradientFromPicker: document.getElementById("gradientFromPicker"),
   gradientTo: document.getElementById("gradientTo"),
@@ -47,7 +50,9 @@ const elements = {
   gradientToStopValue: document.getElementById("gradientToStopValue"),
   foregroundSection: document.getElementById("foregroundSection"),
   backgroundSection: document.getElementById("backgroundSection"),
-  bgGradientEnabled: document.getElementById("bgGradientEnabled"),
+  backgroundFill: document.getElementById("backgroundFill"),
+  backgroundSolidControls: document.getElementById("backgroundSolidControls"),
+  backgroundGradientControls: document.getElementById("backgroundGradientControls"),
   bgGradientFrom: document.getElementById("bgGradientFrom"),
   bgGradientFromPicker: document.getElementById("bgGradientFromPicker"),
   bgGradientTo: document.getElementById("bgGradientTo"),
@@ -674,10 +679,10 @@ function updateCustomNamePlaceholder(variant) {
 }
 
 function updateGradientFields(variant) {
-  if (!elements.gradientEnabled || !elements.gradientFrom || !elements.gradientTo) {
+  if (!elements.foregroundFill || !elements.gradientFrom || !elements.gradientTo) {
     return;
   }
-  elements.gradientEnabled.checked = Boolean(variant?.hasGradient);
+  elements.foregroundFill.value = resolveFillMode(Boolean(variant?.hasGradient));
   elements.gradientFrom.placeholder = variant?.gradientFrom || variant?.dark || "#ff7a59";
   elements.gradientTo.placeholder = variant?.gradientTo || variant?.dark || "#7a2cff";
   elements.gradientFrom.value = variant?.hasGradient ? (variant?.gradientFrom || "") : "";
@@ -704,10 +709,10 @@ function updateGradientFields(variant) {
 }
 
 function updateBackgroundGradientFields(variant) {
-  if (!elements.bgGradientEnabled || !elements.bgGradientFrom || !elements.bgGradientTo) {
+  if (!elements.backgroundFill || !elements.bgGradientFrom || !elements.bgGradientTo) {
     return;
   }
-  elements.bgGradientEnabled.checked = Boolean(variant?.hasBgGradient);
+  elements.backgroundFill.value = resolveFillMode(Boolean(variant?.hasBgGradient));
   elements.bgGradientFrom.placeholder = variant?.bgGradientFrom || variant?.light || "#ffffff";
   elements.bgGradientTo.placeholder = variant?.bgGradientTo || variant?.light || "#f0f0f0";
   elements.bgGradientFrom.value = variant?.hasBgGradient ? (variant?.bgGradientFrom || "") : "";
@@ -817,6 +822,22 @@ function backgroundModeIsCutout() {
   return currentBackgroundMode() === "cutout";
 }
 
+function foregroundFillMode() {
+  return elements.foregroundFill?.value || "solid";
+}
+
+function backgroundFillMode() {
+  return elements.backgroundFill?.value || "solid";
+}
+
+function foregroundGradientEnabled() {
+  return isGradientFill(foregroundFillMode());
+}
+
+function backgroundGradientEnabled() {
+  return isBackgroundGradientFill(backgroundFillMode(), currentBackgroundMode());
+}
+
 function updateBackgroundModeVisibility() {
   const { showForeground, showBackground } = sectionsForBackgroundMode(currentBackgroundMode());
   if (elements.foregroundSection) {
@@ -832,7 +853,7 @@ function previewHasTransparentBackground() {
   if (mode === "transparent" || mode === "cutout") {
     return true;
   }
-  if (elements.bgGradientEnabled?.checked) {
+  if (backgroundGradientEnabled()) {
     return false;
   }
   const selected = state.variantMap.get(currentVariantName());
@@ -853,7 +874,7 @@ function updatePreviewFrame() {
 }
 
 function resolveGradientColors(selected) {
-  if (!elements.gradientEnabled?.checked) {
+  if (!foregroundGradientEnabled()) {
     return { gradientFrom: "", gradientTo: "" };
   }
   let gradientFrom = elements.gradientFrom?.value.trim() || "";
@@ -870,7 +891,7 @@ function resolveGradientColors(selected) {
 }
 
 function resolveBackgroundGradientColors(selected) {
-  if (!elements.bgGradientEnabled?.checked || backgroundModeIsTransparent()) {
+  if (!backgroundGradientEnabled()) {
     return { bgGradientFrom: "", bgGradientTo: "" };
   }
   let bgGradientFrom = elements.bgGradientFrom?.value.trim() || "";
@@ -891,9 +912,9 @@ function buildRequest() {
   const radius = radiusActive ? parseOptionalFloat(elements.radius.value) : null;
   const selected = state.variantMap.get(currentVariantName());
   const { gradientFrom, gradientTo } = resolveGradientColors(selected);
-  const gradientEnabled = Boolean(elements.gradientEnabled?.checked);
+  const gradientEnabled = foregroundGradientEnabled();
   const backgroundMode = currentBackgroundMode();
-  const bgGradientEnabled = Boolean(elements.bgGradientEnabled?.checked) && backgroundMode !== "transparent";
+  const bgGradientEnabled = backgroundGradientEnabled();
   const { bgGradientFrom, bgGradientTo } = resolveBackgroundGradientColors(selected);
   return {
     data: elements.data.value.trim(),
@@ -982,8 +1003,8 @@ function buildGalleryRequest(variant) {
 function buildCustomVariantRequest() {
   const selected = state.variantMap.get(currentVariantName());
   const { gradientFrom, gradientTo } = resolveGradientColors(selected);
-  const gradientEnabled = Boolean(elements.gradientEnabled?.checked);
-  const bgGradientEnabled = Boolean(elements.bgGradientEnabled?.checked) && !backgroundModeIsTransparent();
+  const gradientEnabled = foregroundGradientEnabled();
+  const bgGradientEnabled = backgroundGradientEnabled();
   const { bgGradientFrom, bgGradientTo } = resolveBackgroundGradientColors(selected);
   const radiusActive = elements.radiusRow && !elements.radiusRow.classList.contains("is-hidden");
   return {
@@ -1407,7 +1428,13 @@ function prunePreviewCache() {
 }
 
 function updateGradientState() {
-  const enabled = Boolean(elements.gradientEnabled?.checked);
+  const enabled = foregroundGradientEnabled();
+  if (elements.foregroundGradientControls) {
+    elements.foregroundGradientControls.hidden = !enabled;
+  }
+  if (elements.foregroundSolidControls) {
+    elements.foregroundSolidControls.hidden = enabled;
+  }
   const gradientInputs = [
     elements.gradientFrom,
     elements.gradientFromPicker,
@@ -1428,9 +1455,15 @@ function updateGradientState() {
 }
 
 function updateBackgroundGradientState() {
-  const enabled = Boolean(elements.bgGradientEnabled?.checked) && !backgroundModeIsTransparent();
-  if (elements.bgGradientEnabled) {
-    elements.bgGradientEnabled.disabled = backgroundModeIsTransparent();
+  const enabled = backgroundGradientEnabled();
+  if (elements.backgroundGradientControls) {
+    elements.backgroundGradientControls.hidden = !enabled;
+  }
+  if (elements.backgroundSolidControls) {
+    elements.backgroundSolidControls.hidden = enabled;
+  }
+  if (elements.backgroundFill) {
+    elements.backgroundFill.disabled = backgroundModeIsTransparent();
   }
   const inputs = [
     elements.bgGradientFrom,
@@ -1462,7 +1495,7 @@ function setPickerDefault(textInput, colorInput, fallback) {
 }
 
 function computeForegroundBaseColor(variant) {
-  const gradientEnabled = Boolean(elements.gradientEnabled?.checked);
+  const gradientEnabled = foregroundGradientEnabled();
   if (gradientEnabled) {
     const from = elements.gradientFrom?.value.trim() || variant?.gradientFrom || "";
     const to = elements.gradientTo?.value.trim() || variant?.gradientTo || "";
@@ -1497,10 +1530,10 @@ function ensureBackgroundDefaults(variant) {
     setPickerDefault(elements.light, elements.lightPicker, fallback);
   }
 
-  if (elements.bgGradientEnabled?.checked) {
+  if (backgroundGradientEnabled()) {
     let fallbackFrom = "";
     let fallbackTo = "";
-    if (Boolean(elements.gradientEnabled?.checked)) {
+    if (foregroundGradientEnabled()) {
       const fgFrom = elements.gradientFrom?.value.trim() || variant?.gradientFrom || "";
       const fgTo = elements.gradientTo?.value.trim() || variant?.gradientTo || "";
       fallbackFrom = invertHex(fgFrom);
@@ -1648,6 +1681,8 @@ async function init() {
     setStatus(error.message || String(error), "error");
   }
   updateBackgroundModeVisibility();
+  updateGradientState();
+  updateBackgroundGradientState();
   await refreshPreview();
 }
 
@@ -1660,13 +1695,11 @@ async function init() {
   elements.dark,
   elements.light,
   elements.radius,
-  elements.gradientEnabled,
   elements.gradientFrom,
   elements.gradientTo,
   elements.gradientScope,
   elements.gradientFromStop,
   elements.gradientToStop,
-  elements.bgGradientEnabled,
   elements.bgGradientFrom,
   elements.bgGradientTo,
   elements.bgGradientFromStop,
@@ -1717,13 +1750,14 @@ elements.customName?.addEventListener("keydown", (event) => {
   }
 });
 
-elements.gradientEnabled?.addEventListener("change", () => {
+elements.foregroundFill?.addEventListener("change", () => {
   updateGradientState();
+  ensureBackgroundDefaults(state.variantMap.get(currentVariantName()));
   debounceRefresh();
   markAnimationDirty();
 });
 
-elements.bgGradientEnabled?.addEventListener("change", () => {
+elements.backgroundFill?.addEventListener("change", () => {
   updateBackgroundGradientState();
   ensureBackgroundDefaults(state.variantMap.get(currentVariantName()));
   debounceRefresh();

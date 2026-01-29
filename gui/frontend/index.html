@@ -86,95 +86,100 @@
                 <div class="settings-subsplit">
                   <div class="settings-section" id="foregroundSection">
                     <div class="settings-header">
-                      <div>
-                        <h3>Foreground</h3>
-                        <div class="meta">Dark tone and gradient styling.</div>
-                      </div>
-                    </div>
-
-                    <div class="color-row">
-                      <div class="field">
-                        <label for="dark">Dark override</label>
-                        <div class="color-input">
-                          <input id="dark" type="text" placeholder="#111111" />
-                          <input id="darkPicker" type="color" aria-label="Dark color picker" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="color-row">
-                      <div class="field checkbox">
-                        <label for="gradientEnabled">
-                          <input id="gradientEnabled" type="checkbox" />
-                          Enable gradient
-                        </label>
-                      </div>
-                    </div>
-
-                    <div class="color-row">
-                      <div class="field">
-                        <label for="gradientFrom">Gradient from</label>
-                        <div class="color-input">
-                          <input id="gradientFrom" type="text" placeholder="#ff7a59" />
-                          <input id="gradientFromPicker" type="color" aria-label="Gradient from color picker" />
-                        </div>
-                      </div>
-                      <div class="field">
-                        <label for="gradientTo">Gradient to</label>
-                        <div class="color-input">
-                          <input id="gradientTo" type="text" placeholder="#7a2cff" />
-                          <input id="gradientToPicker" type="color" aria-label="Gradient to color picker" />
-                        </div>
-                      </div>
-                    </div>
+                  <div>
+                    <h3>Foreground</h3>
+                    <div class="meta">Dark tone and gradient styling.</div>
+                  </div>
+                </div>
 
                     <div class="grid">
                       <div class="field">
-                        <label for="gradientScope">Gradient scope</label>
-                        <select id="gradientScope">
-                          <option value="global" selected>Whole QR</option>
-                          <option value="module">Per module</option>
+                        <label for="foregroundFill">Fill method</label>
+                        <select id="foregroundFill">
+                          <option value="solid" selected>Solid</option>
+                          <option value="gradient">Gradient</option>
                         </select>
                       </div>
                     </div>
 
-                    <div class="grid">
-                      <div class="field">
-                        <label for="gradientAngle">Gradient angle</label>
-                        <div class="angle-control" data-target="gradientAngle" data-label="Gradient angle" data-from="gradientFrom" data-to="gradientTo">
-                          <div
-                            class="angle-dial"
-                            role="slider"
-                            aria-label="Gradient angle"
-                            aria-valuemin="0"
-                            aria-valuemax="360"
-                            aria-valuenow="45"
-                            tabindex="0"
-                          >
-                            <div class="angle-arrow angle-from"></div>
-                            <div class="angle-arrow angle-to"></div>
-                          </div>
-                          <div class="range-input angle-range">
-                            <input id="gradientAngle" type="range" min="0" max="360" step="1" value="45" />
-                            <span id="gradientAngleValue" class="range-value">45°</span>
+                    <div id="foregroundSolidControls">
+                      <div class="color-row">
+                        <div class="field">
+                          <label for="dark">Dark override</label>
+                          <div class="color-input">
+                            <input id="dark" type="text" placeholder="#111111" />
+                            <input id="darkPicker" type="color" aria-label="Dark color picker" />
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div class="grid">
-                      <div class="field">
-                        <label for="gradientFromStop">Gradient from stop</label>
-                        <div class="range-input">
-                          <input id="gradientFromStop" type="range" min="0" max="1" step="0.01" value="0" />
-                          <span id="gradientFromStopValue" class="range-value">0.00</span>
+                    <div id="foregroundGradientControls">
+                      <div class="color-row">
+                        <div class="field">
+                          <label for="gradientFrom">Gradient from</label>
+                          <div class="color-input">
+                            <input id="gradientFrom" type="text" placeholder="#ff7a59" />
+                            <input id="gradientFromPicker" type="color" aria-label="Gradient from color picker" />
+                          </div>
+                        </div>
+                        <div class="field">
+                          <label for="gradientTo">Gradient to</label>
+                          <div class="color-input">
+                            <input id="gradientTo" type="text" placeholder="#7a2cff" />
+                            <input id="gradientToPicker" type="color" aria-label="Gradient to color picker" />
+                          </div>
                         </div>
                       </div>
-                      <div class="field">
-                        <label for="gradientToStop">Gradient to stop</label>
-                        <div class="range-input">
-                          <input id="gradientToStop" type="range" min="0" max="1" step="0.01" value="1" />
-                          <span id="gradientToStopValue" class="range-value">1.00</span>
+
+                      <div class="grid">
+                        <div class="field">
+                          <label for="gradientScope">Gradient scope</label>
+                          <select id="gradientScope">
+                            <option value="global" selected>Whole QR</option>
+                            <option value="module">Per module</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div class="grid">
+                        <div class="field">
+                          <label for="gradientAngle">Gradient angle</label>
+                          <div class="angle-control" data-target="gradientAngle" data-label="Gradient angle" data-from="gradientFrom" data-to="gradientTo">
+                            <div
+                              class="angle-dial"
+                              role="slider"
+                              aria-label="Gradient angle"
+                              aria-valuemin="0"
+                              aria-valuemax="360"
+                              aria-valuenow="45"
+                              tabindex="0"
+                            >
+                              <div class="angle-arrow angle-from"></div>
+                              <div class="angle-arrow angle-to"></div>
+                            </div>
+                            <div class="range-input angle-range">
+                              <input id="gradientAngle" type="range" min="0" max="360" step="1" value="45" />
+                              <span id="gradientAngleValue" class="range-value">45°</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="grid">
+                        <div class="field">
+                          <label for="gradientFromStop">Gradient from stop</label>
+                          <div class="range-input">
+                            <input id="gradientFromStop" type="range" min="0" max="1" step="0.01" value="0" />
+                            <span id="gradientFromStopValue" class="range-value">0.00</span>
+                          </div>
+                        </div>
+                        <div class="field">
+                          <label for="gradientToStop">Gradient to stop</label>
+                          <div class="range-input">
+                            <input id="gradientToStop" type="range" min="0" max="1" step="0.01" value="1" />
+                            <span id="gradientToStopValue" class="range-value">1.00</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -188,79 +193,84 @@
                       </div>
                     </div>
 
-                    <div class="color-row">
-                      <div class="field">
-                        <label for="light">Light override</label>
-                        <div class="color-input">
-                          <input id="light" type="text" placeholder="#ffffff" />
-                          <input id="lightPicker" type="color" aria-label="Light color picker" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="color-row">
-                      <div class="field checkbox">
-                        <label for="bgGradientEnabled">
-                          <input id="bgGradientEnabled" type="checkbox" />
-                          Enable background gradient
-                        </label>
-                      </div>
-                    </div>
-
-                    <div class="color-row">
-                      <div class="field">
-                        <label for="bgGradientFrom">Background from</label>
-                        <div class="color-input">
-                          <input id="bgGradientFrom" type="text" placeholder="#ffffff" />
-                          <input id="bgGradientFromPicker" type="color" aria-label="Background gradient from color picker" />
-                        </div>
-                      </div>
-                      <div class="field">
-                        <label for="bgGradientTo">Background to</label>
-                        <div class="color-input">
-                          <input id="bgGradientTo" type="text" placeholder="#f0f0f0" />
-                          <input id="bgGradientToPicker" type="color" aria-label="Background gradient to color picker" />
-                        </div>
-                      </div>
-                    </div>
-
                     <div class="grid">
                       <div class="field">
-                        <label for="bgGradientAngle">Background angle</label>
-                        <div class="angle-control" data-target="bgGradientAngle" data-label="Background angle" data-from="bgGradientFrom" data-to="bgGradientTo">
-                          <div
-                            class="angle-dial"
-                            role="slider"
-                            aria-label="Background angle"
-                            aria-valuemin="0"
-                            aria-valuemax="360"
-                            aria-valuenow="45"
-                            tabindex="0"
-                          >
-                            <div class="angle-arrow angle-from"></div>
-                            <div class="angle-arrow angle-to"></div>
-                          </div>
-                          <div class="range-input angle-range">
-                            <input id="bgGradientAngle" type="range" min="0" max="360" step="1" value="45" />
-                            <span id="bgGradientAngleValue" class="range-value">45°</span>
+                        <label for="backgroundFill">Fill method</label>
+                        <select id="backgroundFill">
+                          <option value="solid" selected>Solid</option>
+                          <option value="gradient">Gradient</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div id="backgroundSolidControls">
+                      <div class="color-row">
+                        <div class="field">
+                          <label for="light">Light override</label>
+                          <div class="color-input">
+                            <input id="light" type="text" placeholder="#ffffff" />
+                            <input id="lightPicker" type="color" aria-label="Light color picker" />
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div class="grid">
-                      <div class="field">
-                        <label for="bgGradientFromStop">Background from stop</label>
-                        <div class="range-input">
-                          <input id="bgGradientFromStop" type="range" min="0" max="1" step="0.01" value="0" />
-                          <span id="bgGradientFromStopValue" class="range-value">0.00</span>
+                    <div id="backgroundGradientControls">
+                      <div class="color-row">
+                        <div class="field">
+                          <label for="bgGradientFrom">Background from</label>
+                          <div class="color-input">
+                            <input id="bgGradientFrom" type="text" placeholder="#ffffff" />
+                            <input id="bgGradientFromPicker" type="color" aria-label="Background gradient from color picker" />
+                          </div>
+                        </div>
+                        <div class="field">
+                          <label for="bgGradientTo">Background to</label>
+                          <div class="color-input">
+                            <input id="bgGradientTo" type="text" placeholder="#f0f0f0" />
+                            <input id="bgGradientToPicker" type="color" aria-label="Background gradient to color picker" />
+                          </div>
                         </div>
                       </div>
-                      <div class="field">
-                        <label for="bgGradientToStop">Background to stop</label>
-                        <div class="range-input">
-                          <input id="bgGradientToStop" type="range" min="0" max="1" step="0.01" value="1" />
-                          <span id="bgGradientToStopValue" class="range-value">1.00</span>
+
+                      <div class="grid">
+                        <div class="field">
+                          <label for="bgGradientAngle">Background angle</label>
+                          <div class="angle-control" data-target="bgGradientAngle" data-label="Background angle" data-from="bgGradientFrom" data-to="bgGradientTo">
+                            <div
+                              class="angle-dial"
+                              role="slider"
+                              aria-label="Background angle"
+                              aria-valuemin="0"
+                              aria-valuemax="360"
+                              aria-valuenow="45"
+                              tabindex="0"
+                            >
+                              <div class="angle-arrow angle-from"></div>
+                              <div class="angle-arrow angle-to"></div>
+                            </div>
+                            <div class="range-input angle-range">
+                              <input id="bgGradientAngle" type="range" min="0" max="360" step="1" value="45" />
+                              <span id="bgGradientAngleValue" class="range-value">45°</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="grid">
+                        <div class="field">
+                          <label for="bgGradientFromStop">Background from stop</label>
+                          <div class="range-input">
+                            <input id="bgGradientFromStop" type="range" min="0" max="1" step="0.01" value="0" />
+                            <span id="bgGradientFromStopValue" class="range-value">0.00</span>
+                          </div>
+                        </div>
+                        <div class="field">
+                          <label for="bgGradientToStop">Background to stop</label>
+                          <div class="range-input">
+                            <input id="bgGradientToStop" type="range" min="0" max="1" step="0.01" value="1" />
+                            <span id="bgGradientToStopValue" class="range-value">1.00</span>
+                          </div>
                         </div>
                       </div>
                     </div>
