@@ -13,6 +13,7 @@ __pycache__/
 /dist/
 /qr_generator
 /gui/build/
+/gui/out/
 /gui/frontend/dist/
 /gui/frontend/node_modules/
 /gui/frontend/wailsjs/

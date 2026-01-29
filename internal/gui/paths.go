@@ -45,3 +45,10 @@ func FindVariantsPath(cwd string, exePath string) (string, error) {
 
 	return "", fmt.Errorf("unable to locate variants.json (checked %d locations)", len(candidates))
 }
+
+func DefaultExportDir(cwd string) string {
+	if cwd == "" {
+		return ""
+	}
+	return filepath.Join(cwd, "out")
+}

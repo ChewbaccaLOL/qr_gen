@@ -266,3 +266,14 @@ func TestFindVariantsPathUsesExeAncestors(t *testing.T) {
 		t.Fatalf("expected %s, got %s", variantsPath, found)
 	}
 }
+
+func TestDefaultExportDir(t *testing.T) {
+	root := t.TempDir()
+	expected := filepath.Join(root, "out")
+	if got := DefaultExportDir(root); got != expected {
+		t.Fatalf("expected %s, got %s", expected, got)
+	}
+	if got := DefaultExportDir(""); got != "" {
+		t.Fatalf("expected empty default dir, got %s", got)
+	}
+}

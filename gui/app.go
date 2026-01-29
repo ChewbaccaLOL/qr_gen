@@ -153,9 +153,19 @@ func (a *App) SuggestSavePath(format string) (string, error) {
 	}
 	filterPattern := fmt.Sprintf("*.%s", format)
 	defaultName := fmt.Sprintf("qr.%s", format)
+	defaultDir := ""
+	if cwd, err := os.Getwd(); err == nil {
+		candidate := guicore.DefaultExportDir(cwd)
+		if candidate != "" {
+			if err := os.MkdirAll(candidate, 0o755); err == nil {
+				defaultDir = candidate
+			}
+		}
+	}
 	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		Title:           "Save QR",
-		DefaultFilename: defaultName,
+		Title:            "Save QR",
+		DefaultDirectory: defaultDir,
+		DefaultFilename:  defaultName,
 		Filters: []runtime.FileFilter{
 			{DisplayName: strings.ToUpper(format), Pattern: filterPattern},
 		},
