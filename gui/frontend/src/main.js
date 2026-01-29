@@ -1,5 +1,6 @@
 import "./style.css";
 import { resolveAutoLightValue } from "./backgroundDefaults.js";
+import { sectionsForBackgroundMode } from "./backgroundModeVisibility.js";
 import { ANIMATION_DEBUG_ENABLED } from "./uiFlags.js";
 import {
   DeleteCustomVariant,
@@ -44,6 +45,8 @@ const elements = {
   gradientFromStopValue: document.getElementById("gradientFromStopValue"),
   gradientToStop: document.getElementById("gradientToStop"),
   gradientToStopValue: document.getElementById("gradientToStopValue"),
+  foregroundSection: document.getElementById("foregroundSection"),
+  backgroundSection: document.getElementById("backgroundSection"),
   bgGradientEnabled: document.getElementById("bgGradientEnabled"),
   bgGradientFrom: document.getElementById("bgGradientFrom"),
   bgGradientFromPicker: document.getElementById("bgGradientFromPicker"),
@@ -791,6 +794,7 @@ function syncBackgroundModeFromVariant(variant) {
     elements.backgroundModeSolid.checked = true;
   }
   updateBackgroundGradientState();
+  updateBackgroundModeVisibility();
   updatePreviewFrame();
   updateAnimationPreviewFrame();
 }
@@ -811,6 +815,16 @@ function backgroundModeIsTransparent() {
 
 function backgroundModeIsCutout() {
   return currentBackgroundMode() === "cutout";
+}
+
+function updateBackgroundModeVisibility() {
+  const { showForeground, showBackground } = sectionsForBackgroundMode(currentBackgroundMode());
+  if (elements.foregroundSection) {
+    elements.foregroundSection.hidden = !showForeground;
+  }
+  if (elements.backgroundSection) {
+    elements.backgroundSection.hidden = !showBackground;
+  }
 }
 
 function previewHasTransparentBackground() {
@@ -1633,6 +1647,7 @@ async function init() {
   } catch (error) {
     setStatus(error.message || String(error), "error");
   }
+  updateBackgroundModeVisibility();
   await refreshPreview();
 }
 
@@ -1719,6 +1734,7 @@ elements.bgGradientEnabled?.addEventListener("change", () => {
 elements.backgroundModeOptions.forEach((option) => {
   option.addEventListener("change", () => {
     updateBackgroundGradientState();
+    updateBackgroundModeVisibility();
     ensureBackgroundDefaults(state.variantMap.get(currentVariantName()));
     updatePreviewFrame();
     updateAnimationPreviewFrame();
